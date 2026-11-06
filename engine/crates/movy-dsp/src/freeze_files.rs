@@ -11,12 +11,16 @@
 //! freeze/t<N>.wav    track N's loop: PCM, 16-bit, stereo, at the captured rate
 //! ```
 //!
-//! The manifest's first line is `movy-freeze 1`; then one line per frozen
-//! track: `<track> <len_ticks> <bpm_x100> <rate> <frames> <modules>`, where
-//! `<modules>` is the chain's `component=module` list joined by commas. An open
-//! freezes a track only when the Set's chain still names exactly those modules
-//! — a version restore that brought back another sound must not play a loop
-//! recorded from this one; it simply opens unfrozen.
+//! The manifest's first line is `movy-freeze 2`; then one line per frozen
+//! track: `<track> <len_ticks> <bpm_x100> <rate> <frames> <slot> <print>
+//! <modules>`, where `<len_ticks>` is the loop in CLOCK ticks, `<slot>` the clip
+//! slot it was recorded from, `<print>` that clip's fingerprint (hex, seq-core
+//! `clip_fingerprint`) and `<modules>` the chain's `component=module` list
+//! joined by commas. An open freezes a track only when the Set's chain still
+//! names exactly those modules AND the slot still holds that clip — a version
+//! restore from before the freeze must not play a loop of another sound or
+//! another clip; it simply opens unfrozen. A `movy-freeze 1` manifest (no
+//! slot, clip ticks) is no manifest: its tracks open unfrozen.
 //!
 //! Every write rewrites the manifest whole and deletes any `freeze/*.wav` it
 //! no longer names, so an unfreeze needs no file job of its own.
@@ -28,7 +32,7 @@ use std::io::Write;
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 
-const MAGIC: &str = "movy-freeze 1";
+const MAGIC: &str = "movy-freeze 2";
 pub const MANIFEST: &str = "freeze.txt";
 const DIR: &str = "freeze";
 
@@ -40,6 +44,8 @@ pub struct Entry {
     pub bpm_x100: u32,
     pub rate: u32,
     pub frames: usize,
+    pub slot: usize,
+    pub print: u64,
     pub modules: String,
 }
 
@@ -48,6 +54,8 @@ pub struct FrozenLoad {
     pub track: usize,
     pub map: LoopMap,
     pub samples: Vec<i16>,
+    pub slot: usize,
+    pub print: u64,
     pub modules: String,
 }
 
@@ -58,8 +66,8 @@ fn wav_name(track: usize) -> String {
 pub fn encode_manifest(entries: &[Entry]) -> String {
     let mut s = format!("{MAGIC}\n");
     for e in entries {
-        s.push_str(&format!("{} {} {} {} {} {}\n",
-            e.track, e.len_ticks, e.bpm_x100, e.rate, e.frames, e.modules));
+        s.push_str(&format!("{} {} {} {} {} {} {:x} {}\n",
+            e.track, e.len_ticks, e.bpm_x100, e.rate, e.frames, e.slot, e.print, e.modules));
     }
     s
 }
@@ -74,7 +82,7 @@ pub fn parse_manifest(s: &str) -> Vec<Entry> {
     }
     lines.filter_map(|l| {
         let f: Vec<&str> = l.split(' ').collect();
-        if f.len() != 6 || f[5].is_empty() {
+        if f.len() != 8 || f[7].is_empty() {
             return None;
         }
         Some(Entry {
@@ -83,7 +91,9 @@ pub fn parse_manifest(s: &str) -> Vec<Entry> {
             bpm_x100: f[2].parse().ok()?,
             rate: f[3].parse().ok()?,
             frames: f[4].parse().ok()?,
-            modules: f[5].to_string(),
+            slot: f[5].parse().ok()?,
+            print: u64::from_str_radix(f[6], 16).ok()?,
+            modules: f[7].to_string(),
         })
     }).collect()
 }
@@ -209,7 +219,7 @@ pub fn read(set_dir: &Path) -> Vec<FrozenLoad> {
         if rate != e.rate || map.frames() != e.frames || samples.len() != e.frames * 2 {
             return None;
         }
-        Some(FrozenLoad { track: e.track, map, samples, modules: e.modules })
+        Some(FrozenLoad { track: e.track, map, samples, slot: e.slot, print: e.print, modules: e.modules })
     }).collect()
 }
 
@@ -227,7 +237,7 @@ mod tests {
 
     fn entry(track: usize, map: &LoopMap) -> Entry {
         Entry { track, len_ticks: map.len_ticks(), bpm_x100: map.bpm_x100(), rate: map.sample_rate(),
-                frames: map.frames(), modules: "synth=obxd,fx1=mverb".into() }
+                frames: map.frames(), slot: 1, print: 0xfeed, modules: "synth=obxd,fx1=mverb".into() }
     }
 
     #[test]

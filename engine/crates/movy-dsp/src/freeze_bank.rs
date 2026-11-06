@@ -9,24 +9,42 @@
 //! The stages:
 //!
 //! ```text
-//! Idle --begin--> Capturing --two passes--> Frozen --thaw--> Thawing --loaded--> Idle
-//!                     |  (stopped / not playing)                 (chain reloads while
-//!                     +--------------> Idle (cancelled)           the loop keeps playing)
+//! Idle --begin--> Pending --buffer--> Capturing --two passes--> Frozen --thaw--> Thawing --loaded--> Idle
+//!                    |                   |  (stopped / another clip)              (chain reloads while
+//!                    +-------------------+------> Idle (cancelled)                the loop keeps playing)
 //! ```
 //!
-//! Capturing keeps the chain live and audible; only Frozen and Thawing play
-//! the loop instead. Nothing here allocates on the audio thread except where
-//! noted (`begin` builds the capture buffer — see its doc).
+//! Every stage but Idle names the clip SLOT the loop is (being) recorded from:
+//! the sequencer's freeze lock follows it (seq-core `engine/freeze_lock.rs`),
+//! and the positions the bank is fed are `None` whenever the track plays any
+//! other slot. Capturing keeps the chain live and audible; only Frozen and
+//! Thawing play the loop instead.
+//!
+//! **Memory.** A loop is capped at `MAX_LOOP_SECONDS` and all of them together
+//! at `MEM_BUDGET`; past either, `begin` refuses. Buffers are allocated and
+//! freed on freeze_mem.rs's helper, never here: Pending is the wait.
+//!
+//! **Mute.** A muted frozen track fades out over `FADE_OUT_SECONDS` — a muted
+//! live track's tails ring out after its last note, and a hard cut would not
+//! — and back in over a few milliseconds.
 
 use crate::freeze::{Capture, Frozen, LoopMap, Player};
+use crate::freeze_mem::{Ask, FreezeMem, Gone};
 use std::sync::Arc;
+
+/// The longest loop a freeze records (seconds of audio): 10 MB of stereo.
+pub const MAX_LOOP_SECONDS: f64 = 60.0;
+/// Every loop together. A Move has ~370 MB free with a full Set loaded.
+pub const MEM_BUDGET: usize = 128 << 20;
+const FADE_OUT_SECONDS: f32 = 0.25;
+const FADE_IN_SECONDS: f32 = 0.005;
 
 /// Why a capture ended without freezing, for the UI's message.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Cancel {
     /// The transport stopped, or the track stopped playing its clip.
     Stopped,
-    /// The UI asked (Back, or an edit to the capturing track).
+    /// The UI asked (Back).
     Asked,
     /// A whole-Set replace took the chain away.
     SetChanged,
@@ -53,79 +71,158 @@ pub enum Outcome {
 
 enum Stage {
     Idle,
+    Pending { map: LoopMap, ticket: u32 },
     Capturing(Capture),
     Frozen(Player),
     Thawing(Player),
 }
 
+impl Stage {
+    fn map(&self) -> Option<&LoopMap> {
+        match self {
+            Stage::Idle => None,
+            Stage::Pending { map, .. } => Some(map),
+            Stage::Capturing(c) => Some(c.map()),
+            Stage::Frozen(p) | Stage::Thawing(p) => Some(p.frozen().map()),
+        }
+    }
+}
+
 pub struct FreezeBank {
     stages: Vec<Stage>,
+    /// The clip slot each non-Idle track's loop belongs to.
+    slots: Vec<Option<usize>>,
     /// The chain's params at the moment it froze, as `get_param` key/value
     /// pairs: what a save writes while the chain is unloaded, and what a thaw
     /// loads back. Empty for a track that is not frozen.
     snaps: Vec<Vec<(String, String)>>,
     /// This block's end-of-block loop position per track (`None` = not
-    /// playing), and the transport tempo. Set once per block, before render.
+    /// playing its frozen slot), the muted tracks, and the transport tempo.
+    /// Set once per block, before render.
     pos: Vec<Option<f64>>,
+    muted: u32,
+    gain: Vec<f32>,
     bpm_x100: u32,
+    tickets: u32,
+    mem: FreezeMem,
 }
 
 impl FreezeBank {
     pub fn new(tracks: usize) -> Self {
         FreezeBank {
             stages: (0..tracks).map(|_| Stage::Idle).collect(),
+            slots: vec![None; tracks],
             snaps: vec![Vec::new(); tracks],
             pos: vec![None; tracks],
+            muted: 0,
+            gain: vec![1.0; tracks],
             bpm_x100: 12_000,
+            tickets: 0,
+            mem: FreezeMem::new(),
         }
     }
 
-    /// Once per block, before render: where every track is.
-    pub fn set_frame(&mut self, pos: impl Fn(usize) -> Option<f64>, bpm_x100: u32) {
+    /// Spawn the memory helper. Off the audio thread (`ChainSlots::configure`).
+    pub fn start(&mut self) {
+        self.mem.start();
+    }
+
+    /// Once per block, before render: where every track is, which are muted,
+    /// and any capture buffer that has arrived.
+    pub fn set_frame(&mut self, pos: impl Fn(usize) -> Option<f64>, muted: u32, bpm_x100: u32) {
         for (t, p) in self.pos.iter_mut().enumerate() {
             *p = pos(t);
         }
+        self.muted = muted;
         self.bpm_x100 = bpm_x100;
+        let stages = &mut self.stages;
+        self.mem.poll(|a, buf| {
+            let map = match stages.get(a.track) {
+                Some(Stage::Pending { map, ticket }) if *ticket == a.ticket => *map,
+                _ => return Some(buf), // cancelled meanwhile: freed again
+            };
+            match Capture::with_buf(map, buf) {
+                Ok(c) => {
+                    stages[a.track] = Stage::Capturing(c);
+                    None
+                }
+                Err(buf) => Some(buf),
+            }
+        });
     }
 
-    /// Start capturing track `t` over a loop of `map`. Allocates the whole loop
-    /// (calloc: the pages are faulted in as the capture writes them, spread over
-    /// the capture rather than in this call). `false` unless the track is Idle.
-    pub fn begin(&mut self, t: usize, map: LoopMap) -> bool {
-        match self.stages.get(t) {
-            Some(Stage::Idle) => {
-                self.stages[t] = Stage::Capturing(Capture::new(map));
-                true
-            }
-            _ => false,
+    /// What every loop and capture holds now, in bytes.
+    pub fn bytes(&self) -> usize {
+        self.stages.iter().filter_map(Stage::map).map(LoopMap::bytes).sum()
+    }
+
+    /// Start freezing track `t`'s clip `slot` over a loop of `map`: Pending
+    /// until its buffer arrives. Refuses (with the status code) a busy track,
+    /// a loop over `MAX_LOOP_SECONDS`, and one that would take the loops past
+    /// `MEM_BUDGET`.
+    pub fn begin(&mut self, t: usize, map: LoopMap, slot: usize) -> Result<(), &'static str> {
+        if !matches!(self.stages.get(t), Some(Stage::Idle)) {
+            return Err("busy");
         }
+        if map.seconds() > MAX_LOOP_SECONDS {
+            return Err("long");
+        }
+        if self.bytes() + map.bytes() > MEM_BUDGET {
+            return Err("mem");
+        }
+        self.tickets = self.tickets.wrapping_add(1);
+        if !self.mem.request(Ask { track: t, ticket: self.tickets, samples: map.frames() * 2 }) {
+            return Err("busy");
+        }
+        self.stages[t] = Stage::Pending { map, ticket: self.tickets };
+        self.slots[t] = Some(slot);
+        Ok(())
     }
 
     /// A loop read back from disk, for a track that opens frozen. `false`
     /// unless the track is Idle (a Set replace has just cleared the bank).
-    pub fn install(&mut self, t: usize, frozen: Frozen, snap: Vec<(String, String)>) -> bool {
+    pub fn install(&mut self, t: usize, frozen: Frozen, snap: Vec<(String, String)>, slot: usize) -> bool {
         if !matches!(self.stages.get(t), Some(Stage::Idle)) {
             return false;
         }
         self.stages[t] = Stage::Frozen(Player::new(frozen));
+        self.slots[t] = Some(slot);
         self.snaps[t] = snap;
+        self.gain[t] = 1.0;
         true
     }
 
-    /// A Frozen track's loop map and samples (shared), for the WAV writer and
-    /// the manifest. `None` for any other stage — a thawing track is on its way
-    /// back and is no longer saved as frozen.
-    pub fn frozen_loop(&self, t: usize) -> Option<(LoopMap, Arc<Vec<i16>>)> {
+    /// The clip slot track `t` is locked to: every stage but Idle.
+    pub fn locked_slot(&self, t: usize) -> Option<usize> {
+        self.slots.get(t).copied().flatten()
+    }
+
+    /// A Frozen track's loop map, samples (shared) and clip slot, for the WAV
+    /// writer and the manifest. `None` for any other stage — a thawing track
+    /// is on its way back and is no longer saved as frozen.
+    pub fn frozen_loop(&self, t: usize) -> Option<(LoopMap, Arc<Vec<i16>>, usize)> {
         match self.stages.get(t) {
-            Some(Stage::Frozen(p)) => Some((*p.frozen().map(), p.frozen().shared())),
+            Some(Stage::Frozen(p)) => Some((*p.frozen().map(), p.frozen().shared(), self.slots[t]?)),
             _ => None,
         }
     }
 
-    /// Drop a capture in progress. `true` if there was one.
+    /// Back to Idle, its buffer freed off the audio thread.
+    fn retire(&mut self, t: usize) {
+        match std::mem::replace(&mut self.stages[t], Stage::Idle) {
+            Stage::Capturing(c) => self.mem.retire(Gone::Buf(c.into_buf())),
+            Stage::Frozen(p) | Stage::Thawing(p) => self.mem.retire(Gone::Shared(p.into_shared())),
+            Stage::Idle | Stage::Pending { .. } => {}
+        }
+        self.slots[t] = None;
+        self.gain[t] = 1.0;
+    }
+
+    /// Drop a capture in progress (or one still waiting for its buffer).
+    /// `true` if there was one.
     pub fn cancel(&mut self, t: usize) -> bool {
-        if matches!(self.stages.get(t), Some(Stage::Capturing(_))) {
-            self.stages[t] = Stage::Idle;
+        if self.capturing(t) {
+            self.retire(t);
             true
         } else {
             false
@@ -135,11 +232,14 @@ impl FreezeBank {
     /// Feed a capturing track this block's chain output (`None` when its chain
     /// did not render: it was silent). Audio thread.
     pub fn tap(&mut self, t: usize, block: Option<&[i16]>, frames: usize) -> Option<Outcome> {
-        let Some(Stage::Capturing(cap)) = self.stages.get_mut(t) else { return None };
+        if !self.capturing(t) {
+            return None;
+        }
         let Some(end) = self.pos[t] else {
-            self.stages[t] = Stage::Idle;
+            self.retire(t);
             return Some(Outcome::Cancelled(Cancel::Stopped));
         };
+        let Some(Stage::Capturing(cap)) = self.stages.get_mut(t) else { return None };
         match block {
             Some(b) => cap.feed(&b[..frames * 2], end),
             None => cap.feed_silence(frames, end),
@@ -162,17 +262,31 @@ impl FreezeBank {
         }
     }
 
-    /// Fill `out` with a frozen or thawing track's loop. `false` (and `out`
-    /// untouched) for any other track. Audio thread.
+    /// Fill `out` with a frozen or thawing track's loop, faded by its mute.
+    /// `false` (and `out` untouched) for any other track. Audio thread.
     pub fn play(&mut self, t: usize, out: &mut [i16]) -> bool {
         let pos = self.pos.get(t).copied().flatten();
-        match self.stages.get_mut(t) {
-            Some(Stage::Frozen(p)) | Some(Stage::Thawing(p)) => {
-                p.render(out, pos, self.bpm_x100);
-                true
-            }
-            _ => false,
+        let target = if self.muted & (1 << t) != 0 { 0.0 } else { 1.0 };
+        let (bpm, g0) = (self.bpm_x100, self.gain[t]);
+        let Some(Stage::Frozen(p) | Stage::Thawing(p)) = self.stages.get_mut(t) else { return false };
+        if target == 0.0 && g0 == 0.0 {
+            out.fill(0);
+            return true;
         }
+        p.render(out, pos, bpm);
+        if target == 1.0 && g0 == 1.0 {
+            return true;
+        }
+        let sr = p.frozen().map().sample_rate().max(1) as f32;
+        let step = 1.0 / (sr * if target == 0.0 { FADE_OUT_SECONDS } else { FADE_IN_SECONDS });
+        let mut g = g0;
+        for f in out.chunks_exact_mut(2) {
+            g = if target == 0.0 { (g - step).max(0.0) } else { (g + step).min(1.0) };
+            f[0] = (f[0] as f32 * g) as i16;
+            f[1] = (f[1] as f32 * g) as i16;
+        }
+        self.gain[t] = g;
+        true
     }
 
     /// The chain must not render: the loop stands in for it.
@@ -180,8 +294,9 @@ impl FreezeBank {
         matches!(self.stages.get(t), Some(Stage::Frozen(_)) | Some(Stage::Thawing(_)))
     }
 
+    /// Capturing, or waiting for the buffer to capture into.
     pub fn capturing(&self, t: usize) -> bool {
-        matches!(self.stages.get(t), Some(Stage::Capturing(_)))
+        matches!(self.stages.get(t), Some(Stage::Capturing(_)) | Some(Stage::Pending { .. }))
     }
 
     /// Frozen, not on its way back.
@@ -193,10 +308,11 @@ impl FreezeBank {
         matches!(self.stages.get(t), Some(Stage::Thawing(_)))
     }
 
-    /// 0..=100 for a capturing track.
+    /// 0..=100 for a capturing track (0 while its buffer is on its way).
     pub fn progress(&self, t: usize) -> Option<u8> {
         match self.stages.get(t) {
             Some(Stage::Capturing(c)) => Some((c.progress() * 100.0) as u8),
+            Some(Stage::Pending { .. }) => Some(0),
             _ => None,
         }
     }
@@ -233,10 +349,9 @@ impl FreezeBank {
     }
 
     /// Thawing -> Idle: the chain is back and takes over from the next block.
-    /// Drops the loop (a free of its buffer, once, at a thaw).
     pub fn thawed(&mut self, t: usize) {
         if self.thawing(t) {
-            self.stages[t] = Stage::Idle;
+            self.retire(t);
             self.snaps[t].clear();
         }
     }
@@ -246,11 +361,11 @@ impl FreezeBank {
     /// Returns the tracks whose capture this cancelled.
     pub fn clear_all(&mut self) -> Vec<usize> {
         let mut cancelled = Vec::new();
-        for (t, s) in self.stages.iter_mut().enumerate() {
-            if matches!(s, Stage::Capturing(_)) {
+        for t in 0..self.stages.len() {
+            if self.capturing(t) {
                 cancelled.push(t);
             }
-            *s = Stage::Idle;
+            self.retire(t);
         }
         self.snaps.iter_mut().for_each(Vec::clear);
         cancelled
@@ -267,114 +382,5 @@ impl FreezeBank {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use seq_core::TICKS_PER_BAR;
-
-    const SR: u32 = 44_100;
-    const BLOCK: usize = 128;
-
-    fn map() -> LoopMap {
-        LoopMap::new(TICKS_PER_BAR, 12_000, SR).unwrap()
-    }
-
-    /// Run blocks of a constant signal through a capturing track until it
-    /// reports an outcome; returns it and how many blocks it took.
-    fn run(bank: &mut FreezeBank, t: usize, playing: bool, limit: usize) -> (Option<Outcome>, usize) {
-        let block = vec![1000i16; BLOCK * 2];
-        let fpt = SR as f64 * 60.0 / (120.0 * seq_core::PPQN as f64);
-        for n in 1..=limit {
-            let frame = (n * BLOCK) as f64;
-            bank.set_frame(|_| playing.then(|| (frame / fpt).rem_euclid(TICKS_PER_BAR as f64)), 12_000);
-            if let Some(o) = bank.tap(t, Some(&block), BLOCK) {
-                return (Some(o), n);
-            }
-        }
-        (None, limit)
-    }
-
-    #[test]
-    fn a_capture_freezes_after_two_passes_and_then_plays_the_loop() {
-        let mut b = FreezeBank::new(16);
-        assert!(b.begin(3, map()));
-        assert!(!b.begin(3, map()), "already capturing");
-        assert!(!b.silences_chain(3), "the chain stays live while it is captured");
-        let (o, n) = run(&mut b, 3, true, 5_000);
-        assert_eq!(o, Some(Outcome::Captured));
-        assert!((n * BLOCK) as f64 >= 2.0 * 88_200.0);
-        assert!(b.frozen(3) && b.silences_chain(3));
-        assert_eq!(b.frozen_mask(), 1 << 3);
-        let mut out = vec![0i16; BLOCK * 2];
-        assert!(b.play(3, &mut out));
-        assert!(out.iter().all(|&s| s == 1000), "plays what was captured");
-        assert!(!b.play(4, &mut out), "an idle track is not played");
-    }
-
-    #[test]
-    fn stopping_cancels_a_capture() {
-        let mut b = FreezeBank::new(16);
-        b.begin(0, map());
-        run(&mut b, 0, true, 100);
-        let (o, _) = run(&mut b, 0, false, 1);
-        assert_eq!(o, Some(Outcome::Cancelled(Cancel::Stopped)));
-        assert!(!b.capturing(0) && !b.silences_chain(0));
-    }
-
-    #[test]
-    fn a_silent_block_is_captured_as_silence() {
-        // An idle-gated chain did not render: its scratch is stale, so the
-        // capture must record zeros, not whatever the buffer last held.
-        let mut b = FreezeBank::new(16);
-        b.begin(1, map());
-        let fpt = SR as f64 * 60.0 / (120.0 * seq_core::PPQN as f64);
-        let mut n = 0;
-        loop {
-            n += 1;
-            let frame = (n * BLOCK) as f64;
-            b.set_frame(|_| Some((frame / fpt).rem_euclid(TICKS_PER_BAR as f64)), 12_000);
-            if b.tap(1, None, BLOCK).is_some() {
-                break;
-            }
-        }
-        let mut out = vec![7i16; BLOCK * 2];
-        b.play(1, &mut out);
-        assert!(out.iter().all(|&s| s == 0));
-    }
-
-    #[test]
-    fn thaw_keeps_the_loop_until_the_chain_is_back() {
-        let mut b = FreezeBank::new(16);
-        b.begin(2, map());
-        run(&mut b, 2, true, 5_000);
-        b.set_snapshot(2, vec![("synth:state".into(), "blob".into())]);
-        assert_eq!(b.snapshot_get(2, "synth:state").as_deref(), Some("blob"));
-        assert!(b.thaw(2));
-        assert!(!b.thaw(2), "already thawing");
-        assert!(b.silences_chain(2), "still the loop while the chain reloads");
-        let mut out = vec![0i16; BLOCK * 2];
-        assert!(b.play(2, &mut out));
-        b.thawed(2);
-        assert!(!b.silences_chain(2) && b.snapshot(2).is_empty());
-        assert_eq!(b.snapshot_get(2, "synth:state"), None);
-    }
-
-    #[test]
-    fn a_set_change_clears_everything_and_names_the_cancelled_captures() {
-        let mut b = FreezeBank::new(16);
-        b.begin(0, map());
-        run(&mut b, 0, true, 5_000); // frozen
-        b.begin(5, map());           // capturing
-        assert_eq!(b.clear_all(), vec![5]);
-        assert_eq!(b.frozen_mask(), 0);
-        assert!(!b.capturing(5));
-    }
-
-    #[test]
-    fn cancel_only_touches_a_capture() {
-        let mut b = FreezeBank::new(16);
-        assert!(!b.cancel(0));
-        b.begin(0, map());
-        assert!(b.cancel(0));
-        assert!(!b.capturing(0));
-    }
-}
+#[path = "freeze_bank_tests.rs"]
+mod tests;

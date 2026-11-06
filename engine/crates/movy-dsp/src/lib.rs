@@ -47,6 +47,7 @@ mod version_store;
 mod freeze;
 mod chain_reaper;
 mod freeze_bank;
+mod freeze_mem;
 mod freeze_files;
 use freeze::LoopMap;
 
@@ -204,6 +205,12 @@ struct Instance {
     /// yet. `set_uuid` already names the new Set, so an autosave now would
     /// write the PREVIOUS sequence under it.
     open_pending: bool,
+    /// The UI's chain document for the Set being opened, held until the
+    /// engine's own restore: the UI sends it right after `set open`, and
+    /// applying it first would load a frozen track's synth (0.3-0.5 s on this
+    /// thread) only for `freeze_install` to retire it again. Applied after
+    /// all when the open brings no chains document, or fails.
+    held_chains: Option<String>,
     /// How many Set payloads this engine has APPLIED — not requested, not read
     /// off disk: applied, on this thread, by `service_set`.
     ///
@@ -247,6 +254,7 @@ impl Instance {
             set_uuid: String::new(),
             set_gen: 0,
             open_pending: false,
+            held_chains: None,
             set_bad: String::new(),
             freeze_silent: None,
             set_applied: 0,
@@ -504,6 +512,7 @@ impl Instance {
                     self.chains.freeze_cancel(t);
                 }
             }
+            "chains" if self.open_pending => self.held_chains = Some(val.to_string()),
             "chains" => {
                 if !self.chains.set_chain_set(val) {
                     host::log("chains: malformed set document ignored");
@@ -704,6 +713,7 @@ impl Instance {
                  * next open reached this thread still says which Set it means. */
                 s.push_str(&format!(" sbad={}", if self.set_bad.is_empty() { "-" } else { &self.set_bad }));
                 s.push_str(&self.chains.freeze_status());
+                s.push_str(&self.engine.freeze_lock.status());
                 Some(s)
             }
             /* The UI compares this `uuid` against the Set it believes is open
@@ -866,6 +876,9 @@ impl Instance {
         let (loaded, failed) = saver.take_handoff();
         if let Some(uuid) = failed {
             self.set_bad = uuid;
+            if let Some(doc) = self.held_chains.take() {
+                self.chains.set_chain_set(&doc);
+            }
         }
         if let Some((payload, chains, gen)) = loaded {
             /* persist::load resets before applying, so a failed open leaves the
@@ -873,15 +886,25 @@ impl Instance {
             if seq_core::persist::load(&mut self.engine, &payload) {
                 self.engine.dirty = false;
             }
+            let held = self.held_chains.take();
             if !chain_state::restore(&mut self.chains, &chains) && !chains.is_empty() {
                 host::log("set: malformed chains.json ignored");
+            }
+            if chains.trim().is_empty() {
+                if let Some(doc) = held {
+                    self.chains.set_chain_set(&doc);
+                }
             }
             /* The Set's frozen tracks (freeze_files.rs), read with these bytes:
              * installed right after the restore queued their chains, so those
              * loads are taken back before a single one runs. */
             if let Some((_, frozen)) = saver.take_frozen() {
                 for f in frozen {
-                    self.chains.freeze_install(f, &chains);
+                    let print = self.engine.clip_fingerprint(f.track, f.slot);
+                    self.chains.freeze_install(f, &chains, print);
+                }
+                for t in 0..seq_core::track::NUM_TRACKS.min(chain_slots::MOVY_CHAINS) {
+                    self.engine.freeze_lock.set(t, self.chains.freeze_locked_slot(t));
                 }
             }
             self.set_gen = gen;
@@ -953,26 +976,46 @@ impl Instance {
     /// Start freezing track `t`: its ACTIVE clip, which must be the one
     /// playing when the transport runs. With the transport stopped, it is
     /// started for this track alone and silenced (`freeze_silent`).
+    /// A muted track is refused (the capture would record silence), and so is
+    /// one recording: the take is not finished.
     fn freeze_track(&mut self, t: usize) -> Result<(), &'static str> {
         let track = self.engine.tracks.get(t).ok_or("nochain")?;
-        let clip = track.active();
-        if !clip.exists() {
+        let slot = track.active_clip;
+        if !track.active().exists() {
             return Err("noclip");
         }
-        if self.engine.playing && track.playing_slot != Some(track.active_clip) {
+        if self.engine.playing && track.playing_slot != Some(slot) {
             return Err("notplaying");
         }
-        let map = LoopMap::new(clip.length_ticks(), self.engine.clock.bpm_x100(), host::sample_rate())
-            .ok_or("noclip")?;
-        self.chains.freeze_begin(t, map)?;
+        if track.muted {
+            return Err("muted");
+        }
+        if self.engine.recording_on(t) {
+            return Err("rec");
+        }
+        let len = self.engine.freeze_len_ticks(t, slot).ok_or("speed")?;
+        let map = LoopMap::new(len, self.engine.clock.bpm_x100(), host::sample_rate()).ok_or("noclip")?;
+        let print = self.engine.clip_fingerprint(t, slot).ok_or("noclip")?;
+        self.chains.freeze_begin(t, map, slot, print)?;
+        self.engine.freeze_lock.set(t, Some(slot));
         if !self.engine.playing {
             if !self.engine.play_alone(t) {
                 self.chains.freeze_cancel(t);
+                self.engine.freeze_lock.set(t, None);
                 return Err("noclip");
             }
             self.freeze_silent = Some(t);
         }
         Ok(())
+    }
+
+    /// The sequencer's freeze lock follows the bank (engine/freeze_lock.rs):
+    /// locked from the request until the chain is back. Once per block, and
+    /// after an open installs frozen tracks.
+    fn sync_freeze_lock(&mut self) {
+        for t in 0..seq_core::track::NUM_TRACKS.min(chain_slots::MOVY_CHAINS) {
+            self.engine.freeze_lock.set(t, self.chains.freeze_locked_slot(t));
+        }
     }
 
     fn render(&mut self, out_audio: &mut [i16]) {
@@ -999,8 +1042,10 @@ impl Instance {
         self.chains.service_loads();
         /* Every track's loop position at the end of this block, for the
          * tracks that are frozen or being captured (freeze_bank.rs). */
+        self.sync_freeze_lock();
         let engine = &self.engine;
-        self.chains.freeze_frame(|t| engine.loop_position(t), engine.clock.bpm_x100());
+        let muted = engine.tracks.iter().enumerate().fold(0u32, |m, (t, k)| m | ((k.muted as u32) << t));
+        self.chains.freeze_frame(|t| engine.loop_position(t), muted, engine.clock.bpm_x100());
         self.chains.prof.lap(Stage::Load, &mut lap);
         self.chains.render(out_audio);
         if let Some(t) = self.freeze_silent {
@@ -1102,7 +1147,11 @@ unsafe extern "C" fn on_midi(instance: *mut c_void, msg: *const u8, len: c_int, 
             if source == MOVE_MIDI_SOURCE_EXTERNAL {
                 if let Some(i) = inst(instance) {
                     let chains = &mut i.chains;
-                    i.ext.route(status, d1, d2, |c, m| chains.on_midi(c, &m, MOVE_MIDI_SOURCE_INTERNAL));
+                    i.ext.route(status, d1, d2, |c, m| {
+                        if chains.freeze_admits(c, &m) {
+                            chains.on_midi(c, &m, MOVE_MIDI_SOURCE_INTERNAL);
+                        }
+                    });
                 }
                 return;
             }
@@ -1112,7 +1161,9 @@ unsafe extern "C" fn on_midi(instance: *mut c_void, msg: *const u8, len: c_int, 
                         i.padlat.note_on(i.blocks, chain);
                     }
                     let m = if on { [0x90, pitch, vel] } else { [0x80, pitch, 0] };
-                    i.chains.on_midi(chain, &m, MOVE_MIDI_SOURCE_INTERNAL);
+                    if i.chains.freeze_admits(chain, &m) {
+                        i.chains.on_midi(chain, &m, MOVE_MIDI_SOURCE_INTERNAL);
+                    }
                     return;
                 }
             }
@@ -1220,6 +1271,20 @@ pub unsafe extern "C" fn move_plugin_init_v2(
     host::log(&format!("movy-dsp v{ENGINE_VERSION}: init"));
     &PLUGIN_API
 }
+
+#[cfg(test)]
+mod tests_support {
+    pub fn saver_tmp(name: &str) -> String {
+        let d = std::env::temp_dir().join(format!("movy-gate-{name}"));
+        let _ = std::fs::remove_dir_all(&d);
+        std::fs::create_dir_all(&d).unwrap();
+        d.to_str().unwrap().to_string()
+    }
+}
+
+#[cfg(test)]
+#[path = "lib_freeze_tests.rs"]
+mod freeze_tests;
 
 #[cfg(test)]
 mod tests {
@@ -1583,10 +1648,7 @@ mod tests {
      * Asserted through the saver's own status rather than a counter, because a
      * counter would have to be added to production code to be readable. */
     fn saver_tmp(name: &str) -> String {
-        let d = std::env::temp_dir().join(format!("movy-gate-{name}"));
-        let _ = std::fs::remove_dir_all(&d);
-        std::fs::create_dir_all(&d).unwrap();
-        d.to_str().unwrap().to_string()
+        super::tests_support::saver_tmp(name)
     }
 
     /* Without a saver there is nothing to ask, and the UI must be able to tell

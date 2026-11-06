@@ -85,7 +85,9 @@ import { aiPreviewActive } from '../ai/preview.js';
 import { previewInput } from '../ai/preview-input.js';
 import { leaveModalActive, openLeaveModal, closeLeaveModal, leaveModalMove, leaveModalConfirm, leaveModalPass,
          leaveModalState, openFreezeModal } from '../app/leave-modal.js';
-import { freezeTrackTap, freezeConfirm, freezeCancelCapture, freezeGuard, isFrozen } from '../seq/freeze.js';
+import { freezeTrackTap, freezeConfirm, freezeCancelCapture, freezeGuard, isFrozen, freezeBusy } from '../seq/freeze.js';
+import { freezeSwallows } from '../seq/freeze-busy.js';
+import { isMixSlot } from '../chain/config.js';
 import {
     quantOverlayActive, quantOverlayAction, quantOverlayJog, quantOverlayHold,
     dismissQuantOverlay,
@@ -171,6 +173,16 @@ function masterChainActive(): boolean {
         && appState.currentView !== VIEW_FILE_BROWSE;
 }
 
+/* Whether the knobs / jog click would edit a frozen track's unloaded chain.
+ * Not in Session mode: the master chain is on screen there, and a module
+ * browser opened from it is the master's too (picking a send FX while a frozen
+ * track is focused). Not on the MIX slot: level, pan and sends are the
+ * engine's mixer, which a frozen track keeps. */
+function frozenChainUnderEdit(): boolean {
+    if (seqState.sessionMode) return false;
+    return !isMixSlot(appState.trackChainIndex[appState.activeTrack.index]);
+}
+
 /* The master slot grid is on screen (jog scrolls slots, click adds/drills). */
 function masterGridActive(): boolean { return masterChainActive() && !appState.masterDetail; }
 
@@ -217,6 +229,19 @@ export function onMidiMessageInternal(data: number[]): void {
             return;
         }
     } else refusedThisBoot = false;
+
+    /* A freeze being recorded: every press but Back is swallowed, releases
+     * pass (seq/freeze-busy.ts). */
+    if (freezeBusy(Date.now())) {
+        /* Back is the one way out, taken here: below, the sequencer's router
+         * and the pages each have a use for Back of their own. */
+        if ((data[0] & 0xF0) === 0xB0 && data[1] === MoveBack && data[2] > 0) {
+            freezeCancelCapture();
+            appState.dirty = true;
+            return;
+        }
+        if (freezeSwallows(data)) { appState.dirty = true; return; }
+    }
 
     /* Schwung's keyboard (the Sets page's rename) owns every control while it
      * is up, releases included — it tracks its own presses, a pad would
@@ -359,6 +384,9 @@ export function onMidiMessageInternal(data: number[]): void {
             return;
         }
         if (clipPageActive()) {
+            /* The clip page edits the frozen clip itself (speed, length,
+             * transpose, quantize): refused before it is touched. */
+            if (d1 < 4 && d2 > 0 && freezeGuard(appState.activeTrack.index)) { appState.dirty = true; return; }
             if (d1 < 4) {
                 /* SP-53: Clip Params has no per-track model to re-pin against
                  * (its owner is the same fixed component whoever is touching
@@ -624,6 +652,7 @@ export function onMidiMessageInternal(data: number[]): void {
             return;
         }
         if (clipPageActive()) {
+            if (k < 4 && freezeGuard(appState.activeTrack.index)) return;
             if (k < 4) {
                 clipParamsOwner().page?.knobTurn(k, delta);
                 appState.dirty = true;
@@ -654,7 +683,7 @@ export function onMidiMessageInternal(data: number[]): void {
         const track = appState.activeTrack.index;
         /* A frozen track's chain is unloaded: an edit would go nowhere and the
          * unfreeze would bring the old sound back. Say so instead. */
-        if (!masterChainActive() && freezeGuard(track)) return;
+        if (frozenChainUnderEdit() && freezeGuard(track)) return;
         /*
          * THE LANE MUST TARGET THE PARAMETER THAT IS ACTUALLY UNDER THE KNOB.
          *
@@ -730,8 +759,6 @@ export function onMidiMessageInternal(data: number[]): void {
 
     /* Back */
     if (d1 === MoveBack && d2 > 0) {
-        /* First, a freeze being recorded: Back cancels it. */
-        if (freezeCancelCapture()) { appState.dirty = true; return; }
         jogHintTouch(false);
         holdTurnCancel();   // Back cancels an active hold-to-modulate
         /*
@@ -844,7 +871,7 @@ export function onMidiMessageInternal(data: number[]): void {
         }
         /* A frozen track's chain is unloaded: the click would open the module
          * browser on an empty slot. Say why instead (seq/freeze.ts). */
-        if (!masterChainActive() && freezeGuard(appState.activeTrack.index)) {
+        if (frozenChainUnderEdit() && freezeGuard(appState.activeTrack.index)) {
             appState.dirty = true;
             return;
         }

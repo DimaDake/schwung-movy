@@ -15,6 +15,8 @@ mod ai_clip;
 pub use ai_clip::{parse_ai_notes, AiClipWrite};
 mod note_view;
 mod phase;
+mod freeze_lock;
+pub use freeze_lock::{clip_edit_verb as freeze_lock_verb, FreezeLock};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum OutEvent {
@@ -137,6 +139,9 @@ pub struct Engine {
     /// gesture the user made — the same list the screen reads out and
     /// persistence stores, with no second representation to keep in sync.
     pub song: Vec<u8>,
+    /// Freeze's lock (engine/freeze_lock.rs): per track, the clip slot a
+    /// loop was captured from. Set by movy-dsp; refuses the clip edits.
+    pub freeze_lock: FreezeLock,
     /// Raw index in `song` of the first press of the entry now playing.
     song_pos: usize,
     /// Master bar on which the current entry started. `None` until the song's
@@ -237,6 +242,7 @@ impl Engine {
             clip_clipboard: None,
             recording: false,
             song: Vec::new(),
+            freeze_lock: FreezeLock::default(),
             song_pos: 0,
             song_start_bar: None,
             song_armed: false,
@@ -597,29 +603,6 @@ impl Engine {
         self.clock.reset();
         self.master_tick = 0;
         self.playing = true;
-    }
-
-    /// Where `track` is inside its playing clip's loop at the END of the last
-    /// block: ticks from the loop start, with the clock's sub-tick fraction
-    /// (and the clip-scale accumulator's) added, wrapped into the loop. This is
-    /// what a frozen loop is indexed by (movy-dsp `freeze.rs`); the integer
-    /// clock makes it land on the same frame every pass. `None` while stopped
-    /// or with nothing playing on the track.
-    pub fn loop_position(&self, track: usize) -> Option<f64> {
-        if !self.playing {
-            return None;
-        }
-        let t = self.tracks.get(track)?;
-        let clip = t.playing()?;
-        let len = clip.length_ticks();
-        if len == 0 {
-            return None;
-        }
-        let num = clip.scale_num.max(1) as f64;
-        let den = clip.scale_den.max(1) as f64;
-        let frac = (t.scale_acc as f64 + self.clock.tick_fraction() * num) / den;
-        let rel = t.pos_tick as f64 - clip.loop_start_ticks() as f64 + frac;
-        Some(rel.rem_euclid(len as f64))
     }
 
     /// Freeze's silent pass (movy-dsp `freeze_bank.rs`): start the transport
@@ -1740,6 +1723,10 @@ impl Engine {
     }
 
     pub fn live_note_on(&mut self, track: usize, pitch: u8, vel: u8) {
+        // A frozen track records nothing, from any keyboard (freeze_lock.rs).
+        if self.freeze_lock.slot(track).is_some() {
+            return;
+        }
         self.capture_push(track, pitch, vel, true);
         if track >= NUM_TRACKS || track != self.rec_track {
             return;
@@ -2501,9 +2488,13 @@ impl Engine {
             .map(|t| (t.playing_slot, t.queued_slot, t.pending_stop))
             .collect();
 
+        /* A frozen track's clips are what its loop was recorded from: an undo
+         * of an edit made before the freeze must not change them under it. */
+        let kept = self.freeze_lock.keep_clips(&self.tracks);
         if !crate::persist::load(self, blob) {
             return false;
         }
+        self.freeze_lock.put_back(&mut self.tracks, kept);
 
         for (t, (playing, queued, pending)) in self.tracks.iter_mut().zip(transport) {
             t.playing_slot = playing;
@@ -2729,29 +2720,6 @@ mod tests {
 
     fn engine() -> Engine {
         Engine::new(RATE, 12000)
-    }
-
-    #[test]
-    fn loop_position_follows_the_clock_to_the_sample_and_wraps() {
-        let mut e = engine();
-        e.tracks[2].active_mut().set_clip_length(16); // one bar
-        assert_eq!(e.loop_position(2), None, "stopped");
-        assert!(e.play_alone(2));
-        assert!(!e.play_alone(2), "already running");
-        assert!(e.tracks[0].playing_slot.is_none(), "only the frozen track plays");
-        let mut out = Vec::new();
-        let bar = crate::TICKS_PER_BAR as f64;
-        // 120 BPM: 229.6875 frames per tick. After n blocks the position is
-        // exactly n*128 frames in, sub-tick fraction included.
-        let fpt = RATE as f64 * 60.0 / (120.0 * crate::PPQN as f64);
-        for n in 1..=2000u32 {
-            e.advance_block(FRAMES, &mut out);
-            let want = ((n * FRAMES) as f64 / fpt).rem_euclid(bar);
-            let got = e.loop_position(2).unwrap();
-            let d = (got - want).rem_euclid(bar);
-            assert!(d.min(bar - d) < 1e-6, "block {n}: {got} vs {want}");
-        }
-        assert_eq!(e.loop_position(0), None, "a track with nothing playing");
     }
 
     #[test]

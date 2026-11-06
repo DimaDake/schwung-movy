@@ -710,7 +710,7 @@ mod tests {
         let map = LoopMap::new(seq_core::TICKS_PER_BAR, 12_000, 44_100).unwrap();
         let samples: Vec<i16> = (0..map.frames() * 2).map(|i| (i % 1000) as i16).collect();
         let manifest = encode_manifest(&[Entry { track: 3, len_ticks: map.len_ticks(), bpm_x100: 12_000,
-            rate: 44_100, frames: map.frames(), modules: "synth=obxd".into() }]);
+            rate: 44_100, frames: map.frames(), slot: 0, print: 1, modules: "synth=obxd".into() }]);
 
         let s = Saver::new(&root);
         s.submit(Job::Open { uuid: "u1".into(), seed: None });

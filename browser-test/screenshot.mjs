@@ -726,7 +726,7 @@ function applyView(preset) {
         }
         /* A frozen track's chain view: what it was, and how to bring it back. */
         case 'frozen_view': {
-            lastRender = () => renderFrozenView('T4', 'OBXD');
+            lastRender = () => renderFrozenView('T4', 'OBXD', 1, 6);
             lastRender();
             break;
         }

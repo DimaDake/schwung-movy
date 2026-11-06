@@ -8,6 +8,7 @@ import { drumConfigFor } from '../track/pad-route.js';
 import { extDrumPitch } from '../track/ext-route.js';
 import { seqNotePadPlayed, seqNotePadReleased } from '../seq/router-pads.js';
 import { EXT_KEY_BASE, extHold, extRelease } from './external-ledger.js';
+import { freezeBusy, freezeGuard } from '../seq/freeze.js';
 
 export function onMidiMessageExternal(data: number[]): void {
     if (!data || data.length < 3) return;
@@ -15,6 +16,10 @@ export function onMidiMessageExternal(data: number[]): void {
     const key = EXT_KEY_BASE + note;
     if (type === 0x90 && vel > 0) {
         const track = appState.activeTrack.index;
+        /* Not into a frozen clip, and nothing while a freeze is recorded (the
+         * engine refuses both too: freeze_lock.rs, ext_route.rs). */
+        if (freezeBusy(Date.now())) return;
+        if (freezeGuard(track)) { appState.dirty = true; return; }
         const drum = drumConfigFor(track);
         const pitch = drum ? extDrumPitch(note, drum) : note;
         if (pitch < 0) return;

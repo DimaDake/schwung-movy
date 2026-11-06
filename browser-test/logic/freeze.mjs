@@ -109,6 +109,9 @@ export async function run() {
     fz.freezeConfirm(3, true);
     eq('frz / unfrz <track>', writes.join(' '), 'frz=2 unfrz=3');
     writes.length = 0;
+    eq('Back right after a confirm cancels it, before the status shows it', fz.freezeCancelCapture(), true);
+    eq('frzx <the confirmed track>', writes.join(' '), 'frzx=2');
+    writes.length = 0;
     eq('Back with no capture does nothing', fz.freezeCancelCapture(), false);
     fz.freezeStatusField('frzc', '6:10');
     eq('Back during a capture cancels it', fz.freezeCancelCapture(), true);
@@ -127,14 +130,15 @@ export async function run() {
     eq('nothing frozen, no stale id', fz.frozenName(5), '');
     const { C_WHITE, TRACK_COLOR } = await import('../../dist/esm/seq/colors.js');
     const ICE = TRACK_COLOR[2];
+    const { frozenPadColor } = await import('../../dist/esm/seq/freeze-pads.js');
     // t = 0: the "F" sits in columns 0-2. Top row (pads 24-31) reads 111.
-    eq('F top bar', [24, 25, 26].map(i => fz.frozenPadColor(i, 0)).every(c => c === C_WHITE), true);
-    eq('the gap column is ice', fz.frozenPadColor(27, 0), ICE);
+    eq('F top bar', [24, 25, 26].map(i => frozenPadColor(i, 0)).every(c => c === C_WHITE), true);
+    eq('the gap column is ice', frozenPadColor(27, 0), ICE);
     // Second row from the top (pads 16-23): F is 100.
-    eq('F stem', [fz.frozenPadColor(16, 0), fz.frozenPadColor(17, 0)].join(','), [C_WHITE, ICE].join(','));
+    eq('F stem', [frozenPadColor(16, 0), frozenPadColor(17, 0)].join(','), [C_WHITE, ICE].join(','));
     // One step later everything has moved one column left.
-    eq('it scrolls', fz.frozenPadColor(24, 220), fz.frozenPadColor(25, 0));
-    ok('only white and ice', Array.from({ length: 32 }, (_, i) => fz.frozenPadColor(i, 1234))
+    eq('it scrolls', frozenPadColor(24, 220), frozenPadColor(25, 0));
+    ok('only white and ice', Array.from({ length: 32 }, (_, i) => frozenPadColor(i, 1234))
         .every(c => c === C_WHITE || c === ICE));
 
     _log('\nfreeze: the CPU page');

@@ -21,7 +21,7 @@ import { cpuPageActive } from '../seq/cpu-page.js';
 import { keyboardState, baseNoteFor, padMapFor } from '../keyboard/state.js';
 import { isSounding } from '../keyboard/held-notes.js';
 import { browserState } from '../browser/state.js';
-import { MASTER_FX_SLOTS, CLIP_PARAMS_COMPONENT, MIXER_COMPONENT, SET_PARAMS_COMPONENT, STEP_PARAMS_COMPONENT } from '../chain/config.js';
+import { CHAIN_SLOTS, isMixSlot, MASTER_FX_SLOTS, CLIP_PARAMS_COMPONENT, MIXER_COMPONENT, SET_PARAMS_COMPONENT, STEP_PARAMS_COMPONENT } from '../chain/config.js';
 import { drumPadLedColor } from '../keyboard/leds.js';
 import { drumNoteOfPhys } from '../keyboard/drum-grid.js';
 import { padVoiceSilent } from '../mixer/pad-mutes.js';
@@ -106,7 +106,9 @@ import {
     seqToastActive, seqToastTick, seqToastVersion,
     seqHeaderActive, seqHeaderTick,
 } from '../seq/render.js';
-import { isFrozen, frozenName, frozenPadColor } from '../seq/freeze.js';
+import { isFrozen, frozenName, freezeBusy, freezeBusyToast } from '../seq/freeze.js';
+import { frozenPadColor } from '../seq/freeze-pads.js';
+import { freezeBusyLeds, freezeBusyEnd } from '../seq/freeze-busy.js';
 import { renderFrozenView } from '../renderer/frozen-view.js';
 
 const PAD_MIN        = MovePads[0];
@@ -134,6 +136,8 @@ const lastModuleName = new Map<string, string>();
 /* Per-pad color cache for the chromatic layout: avoids resending unchanged
  * LED colors every tick. Initialized to 0 (C_BLACK); first tick syncs all. */
 const chromaticCache = new Uint8Array(32);
+let wasFreezeBusy = false;
+let busyToastVersion = -1;
 
 /* Assemble the automation snapshot for the param viewmodel from the seq mirror
  * + the lane registry. Kept here (app layer) so model/ stays free of seq/. */
@@ -528,6 +532,26 @@ function tickBody(): void {
     const noop = takeNoopSnapId();
     if (noop >= 0) onEngineNoop(noop);
     if (undoToastTick()) appState.dirty = true;
+    /* A freeze being recorded owns the LEDs and the screen (seq/freeze-busy.ts).
+     * Its first tick still renders the view once, under the toast; after that
+     * only the toast is redrawn, when its text moves. */
+    if (freezeBusy(Date.now())) {
+        freezeBusyToast();
+        if (wasFreezeBusy) {
+            freezeBusyLeds();
+            updateKnobLEDsFrom(NO_LEVELS);
+            if (seqToastVersion() !== busyToastVersion) { busyToastVersion = seqToastVersion(); drawSeqToast(); }
+            return;
+        }
+        wasFreezeBusy = true;
+        busyToastVersion = seqToastVersion();
+        appState.dirty = true;
+    } else if (wasFreezeBusy) {
+        wasFreezeBusy = false;
+        freezeBusyEnd();
+        appState.initLedsDone = false; appState.initLedIndex = 0; chromaticCache.fill(0);
+        appState.dirty = true;
+    }
     /* Session toggle changes pad ownership: invalidate the seq LED cache and
      * re-init the instrument pad LEDs when returning to Note mode. */
     if (seqState.sessionMode !== lastSessionMode) {
@@ -965,9 +989,10 @@ function tickBody(): void {
             const chrome = schwungChromeFor(drawnPageOwner, schwungBody, false);
             /* A frozen track has no chain to show: its own screen instead
              * (seq/freeze.ts), and no jog toast over it. */
-            const frozen = isFrozen(appState.activeTrack.index);
+            const frozen = isFrozen(appState.activeTrack.index) && !isMixSlot(chainIdx);
             if (frozen) {
-                renderFrozenView('T' + (appState.activeTrack.index + 1), frozenName(appState.activeTrack.index));
+                renderFrozenView('T' + (appState.activeTrack.index + 1), frozenName(appState.activeTrack.index),
+                                 chainIdx, CHAIN_SLOTS.length);
             } else {
                 renderChainView(vm, chainIdx, moduleJogHint(), 'T' + (appState.activeTrack.index + 1),
                                 undefined, undefined as any, paramBodyFor(drawnPageOwner, schwungBody, lastAutoView),

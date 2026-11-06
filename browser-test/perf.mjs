@@ -586,6 +586,8 @@ _origLog('\nTest: generator slice cost');
         for (let rep = 0; rep < 20; rep++) { const t = performance.now(); if (gen.next().done) break; sslice = Math.max(sslice, performance.now() - t); }
     }
     check('generator: one SEED order slice (512 notes)', Number(sslice.toFixed(2)), 15, 'ms');
+}
+
 /* ── Test: freeze costs nothing per tick ─────────────────────────────────── */
 /* A capture reports its percent every block; each new toast text is a full
  * repaint (tick.ts, seqToastVersion), so the UI must quantise it. And a frozen
@@ -595,6 +597,9 @@ _origLog('\nTest: generator slice cost');
 _origLog('\nTest: freeze per-tick cost');
 {
     const fz = await import('../dist/esm/seq/freeze.js');
+    const { frozenPadColor } = await import('../dist/esm/seq/freeze-pads.js');
+    const busy = await import('../dist/esm/seq/freeze-busy.js');
+    const { ledFrameReset, cachedSetButtonLED, seqLedsInvalidate } = await import('../dist/esm/seq/led-cache.js');
     const { seqToastVersion } = await import('../dist/esm/seq/render.js');
     const { renderFrozenView } = await import('../dist/esm/renderer/frozen-view.js');
     fz.resetFreeze();
@@ -605,16 +610,49 @@ _origLog('\nTest: freeze per-tick cost');
 
     let moved = 0;
     for (let t = 0; t < 1000; t += 2) {
-        for (let i = 0; i < 32; i++) if (fz.frozenPadColor(i, t) !== fz.frozenPadColor(i, t + 1)) moved++;
+        for (let i = 0; i < 32; i++) if (frozenPadColor(i, t) !== frozenPadColor(i, t + 1)) moved++;
     }
     check('frozen pad colours changed within a scroll step (500 ticks)', moved, 32 * 5);
 
+    /* A capture owns the LEDs (seq/freeze-busy.ts): dark within a couple of
+     * frames of the frame budget, then nothing at all per tick. And its toast
+     * is re-asserted every tick without a repaint. */
+    {
+        const savedB = globalThis.setButtonLED, savedL = globalThis.setLED;
+        globalThis.MoveBack ??= 51;
+        let sent = 0;
+        globalThis.setButtonLED = () => { sent++; };
+        globalThis.setLED = () => { sent++; };
+        seqLedsInvalidate();
+        ledFrameReset();
+        for (const cc of [85, 86, 88, 54, 55, 40, 41, 42, 43, 50]) cachedSetButtonLED(cc, 127);
+        let settle = 0;
+        for (let f = 1; f <= 20; f++) {
+            sent = 0; ledFrameReset(); busy.freezeBusyLeds();
+            if (sent > 0) settle = f;
+        }
+        check('busy LEDs: frames until dark', settle, 3);
+        sent = 0;
+        for (let f = 0; f < 100; f++) { ledFrameReset(); busy.freezeBusyLeds(); }
+        check('busy LEDs: packets over 100 steady ticks', sent, 0);
+        globalThis.setButtonLED = savedB; globalThis.setLED = savedL;
+        seqLedsInvalidate();
+
+        fz.freezeConfirm(2, false, 'X', 0);
+        fz.freezeStatusField('frzc', '2:35');
+        const v1 = seqToastVersion();
+        for (let i = 0; i < 100; i++) fz.freezeBusyToast();
+        check('busy toast: repaints over 100 ticks at one step', seqToastVersion() - v1, 0);
+        fz.resetFreeze();
+    }
+
     fillRectCount = 0;
-    renderFrozenView('T4', 'OBXD');
+    renderFrozenView('T4', 'OBXD', 1, 6);
     /* A full page of text, drawn only when the view repaints (the same gate as
      * the chain view it replaces), never per tick: the note view's full-paint
-     * budget, not a per-tick one. */
-    check('frozen view fill_rect per repaint', fillRectCount, 450);
+     * budget, not a per-tick one. 600 since it gained the slot bar and the
+     * MIX line (PR #30 review): still under a module page's full paint. */
+    check('frozen view fill_rect per repaint', fillRectCount, 600);
     _origLog(`    (frozen view: ${fillRectCount} fill_rect)`);
     fz.resetFreeze();
 }

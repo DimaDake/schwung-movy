@@ -7,7 +7,7 @@
  * Pure, like every renderer: same inputs, same pixels. */
 
 import { fontPrint, fontWidth } from '../font/index.js';
-import { drawHeader } from './header.js';
+import { drawBankBar, drawHeader } from './header.js';
 import { W } from './layout.js';
 
 function centered(y: number, text: string): void {
@@ -16,11 +16,16 @@ function centered(y: number, text: string): void {
     fontPrint(Math.max(0, Math.floor((W - fontWidth(t)) / 2)), y, t, 1);
 }
 
-export function renderFrozenView(trackLabel: string, moduleName: string): void {
+/** `slot`/`slotCount`: where the jog is in the chain. The slot bar stays, so
+ *  the jog still reaches the MIX slot, which a frozen track keeps (tick.ts
+ *  draws the ordinary MIX page there instead of this). */
+export function renderFrozenView(trackLabel: string, moduleName: string, slot = 0, slotCount = 0): void {
     clear_screen();
     drawHeader(trackLabel, 'FROZEN', true);
-    centered(20, moduleName ? moduleName.toUpperCase() : 'FROZEN TRACK');
-    centered(30, 'PLAYING ITS FROZEN LOOP');
-    centered(46, 'SHIFT + DOUBLE TAP TRACK');
-    centered(54, 'TO UNFREEZE');
+    drawBankBar(slot, slotCount);
+    centered(19, moduleName ? moduleName.toUpperCase() : 'FROZEN TRACK');
+    centered(27, 'PLAYING ITS FROZEN LOOP');
+    centered(38, 'JOG TO MIX: LEVEL & SENDS');
+    centered(48, 'SHIFT + DOUBLE TAP TRACK');
+    centered(56, 'TO UNFREEZE');
 }

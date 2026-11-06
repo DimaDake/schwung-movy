@@ -2,8 +2,8 @@
 //! chain's place so the chain can be unloaded and its CPU given back
 //! (plans/2026-10-23-stems-freeze-export-wifi.md, F3).
 //!
-//! **Audio-thread rules.** `Capture::new` allocates the whole loop up front and
-//! must be called OFF the audio thread. `Capture::feed` and `Player::render`
+//! **Audio-thread rules.** A capture's buffer is the whole loop, allocated up
+//! front OFF the audio thread (freeze_mem.rs, `Capture::with_buf`). `Capture::feed` and `Player::render`
 //! only index into that buffer: no allocation, no lock, no log, no I/O.
 //!
 //! **Positions.** Both sides are driven by the track's position inside its
@@ -91,6 +91,11 @@ impl LoopMap {
         self.len
     }
 
+    /// The loop's length in seconds of audio.
+    pub fn seconds(&self) -> f64 {
+        self.exact / self.sample_rate as f64
+    }
+
     /// What a stereo i16 buffer for this loop costs in RAM.
     pub fn bytes(&self) -> usize {
         self.len * 2 * std::mem::size_of::<i16>()
@@ -155,9 +160,28 @@ pub struct Capture {
 }
 
 impl Capture {
-    /// Allocates the whole loop. OFF the audio thread.
+    /// Allocates the whole loop. OFF the audio thread (tests).
+    #[cfg(test)]
     pub fn new(map: LoopMap) -> Self {
         Capture { map, buf: vec![0; map.len * 2], cur: Cursor::default(), since_sync: 0 }
+    }
+
+    /// Over a zeroed buffer allocated elsewhere (freeze_mem.rs). `Err` gives
+    /// the buffer back when it does not hold the loop exactly.
+    pub fn with_buf(map: LoopMap, buf: Vec<i16>) -> Result<Self, Vec<i16>> {
+        if buf.len() != map.len * 2 {
+            return Err(buf);
+        }
+        Ok(Capture { map, buf, cur: Cursor::default(), since_sync: 0 })
+    }
+
+    /// The buffer back, for freeing off the audio thread.
+    pub fn into_buf(self) -> Vec<i16> {
+        self.buf
+    }
+
+    pub fn map(&self) -> &LoopMap {
+        &self.map
     }
 
     /// Record one interleaved stereo block that ends at loop position
@@ -243,6 +267,7 @@ impl Frozen {
     }
 
     /// Interleaved stereo, `map().frames()` frames.
+    #[cfg(test)]
     pub fn samples(&self) -> &[i16] {
         &self.buf
     }
@@ -319,6 +344,11 @@ impl Player {
 
     pub fn frozen(&self) -> &Frozen {
         &self.frozen
+    }
+
+    /// The samples, for freeing off the audio thread.
+    pub fn into_shared(self) -> Arc<Vec<i16>> {
+        self.frozen.buf
     }
 }
 

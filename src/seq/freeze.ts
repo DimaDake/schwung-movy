@@ -10,11 +10,16 @@
  * Status fields (lib.rs): `frz=<hex mask>` frozen-or-thawing tracks,
  * `frzc=<track>:<pct>` the capture in progress (or `-`), and
  * `frze=<seq>:<track>:<code>` the last event, and — while any track is frozen —
- * `frzm=<track>:<module>,...` the module each was frozen from. */
+ * `frzm=<track>:<module>,...` the module each was frozen from. And from the
+ * sequencer, `frzr=<count>:<track>`: an edit the engine refused because the
+ * track is frozen (seq-core engine/freeze_lock.rs). The engine enforces the
+ * rule whatever door an edit came through; `freezeGuard` only says so first.
+ *
+ * From the confirm until the capture ends, input and LEDs belong to the
+ * capture (seq/freeze-busy.ts). */
 
 import { paramSet } from '../host/param.js';
 import { seqToast } from './render.js';
-import { C_WHITE, TRACK_COLOR } from './colors.js';
 
 /* The same window Loop mode's double tap on a bar uses (loop-mode.ts). */
 const DOUBLE_TAP_MS = 450;
@@ -22,6 +27,11 @@ const DOUBLE_TAP_MS = 450;
 let frozenMask = 0;
 let capture: { track: number; pct: number } | null = null;
 let lastSeq = -1;
+let lastRefused = '';
+/* A freeze confirmed whose capture the status has not shown yet. */
+let pending = -1;
+let pendingAt = 0;
+const PENDING_MS = 3000;
 let lastTap = { track: -1, ms: -DOUBLE_TAP_MS };
 /* The synth each frozen track was, taken when the freeze was confirmed — the
  * chain is unloaded afterwards, so it cannot be asked any more. */
@@ -39,6 +49,11 @@ const MESSAGES: Record<string, (t: string) => string> = {
     notplaying: (t) => `LAUNCH ${t}'S CLIP FIRST`,
     nochain:    (t) => `${t}: NOTHING TO FREEZE`,
     busy:       (t) => `${t} IS BUSY`,
+    muted:      (t) => `UNMUTE ${t} TO FREEZE IT`,
+    rec:        (t) => `${t} IS RECORDING`,
+    speed:      (t) => `${t}: SPEED CANNOT FREEZE`,
+    long:       (t) => `${t}: LOOP OVER 60 S`,
+    mem:        () => 'FREEZE: MEMORY FULL',
     /* `set`: a Set change took the capture with it; the new Set is the news. */
 };
 
@@ -63,11 +78,17 @@ export function freezeStatusField(key: string, val: string): void {
          * capture show it moving; a hundred would only cost UI time. */
         const step = Math.floor((p || 0) / 10) * 10;
         const next = val === '-' || !Number.isFinite(t) ? null : { track: t, pct: step };
+        if (next) pending = -1;
         if (next && (!capture || next.pct !== capture.pct)) seqToast(`FREEZING ${label(next.track)} ${next.pct}%`);
         capture = next;
+    } else if (key === 'frzr') {
+        /* Same first-sight rule as `frze`. */
+        if (lastRefused !== '' && val !== lastRefused) seqToast(`UNFREEZE ${label(Number(val.split(':')[1]))} FIRST`);
+        lastRefused = val;
     } else if (key === 'frze') {
         const [seqS, tS, code] = val.split(':');
         const seq = Number(seqS);
+        if (seq !== lastSeq && Number(tS) === pending) pending = -1;
         /* The first status after a boot reports an old event: remember it, say
          * nothing. Only an event that happens while we watch is news. */
         if (lastSeq >= 0 && seq !== lastSeq) {
@@ -86,6 +107,19 @@ export function isFrozen(track: number): boolean {
 /** The track being recorded for a freeze right now, or -1. */
 export function freezeCapturing(): number {
     return capture ? capture.track : -1;
+}
+
+/** A freeze is being recorded, or was just confirmed and has not shown up on
+ *  the status yet: input and LEDs belong to it (seq/freeze-busy.ts). */
+export function freezeBusy(nowMs: number): boolean {
+    if (pending >= 0 && nowMs - pendingAt > PENDING_MS) pending = -1;   // no engine answered
+    return capture !== null || pending >= 0;
+}
+
+/** The capture's toast, kept up for as long as it runs. Same text, no repaint. */
+export function freezeBusyToast(): void {
+    const t = capture ? capture.track : pending;
+    if (t >= 0) seqToast(`FREEZING ${label(t)} ${capture ? capture.pct : 0}%`);
 }
 
 /**
@@ -110,8 +144,13 @@ export function freezeTrackTap(track: number, nowMs: number): boolean {
 }
 
 /** The dialog was confirmed. `name` is the track's synth, while it is still loaded. */
-export function freezeConfirm(track: number, unfreeze: boolean, name = ''): void {
-    if (!unfreeze) names[track] = name;
+export function freezeConfirm(track: number, unfreeze: boolean, name = '', nowMs = Date.now()): void {
+    if (!unfreeze) {
+        names[track] = name;
+        pending = track;
+        pendingAt = nowMs;
+        seqToast(`FREEZING ${label(track)} 0%`);
+    }
     paramSet(unfreeze ? 'unfrz' : 'frz', String(track));
 }
 
@@ -122,40 +161,11 @@ export function frozenName(track: number): string {
 
 /** Back while a capture runs. `true` if it cancelled one. */
 export function freezeCancelCapture(): boolean {
-    if (!capture) return false;
-    paramSet('frzx', String(capture.track));
+    const t = capture ? capture.track : pending;
+    if (t < 0) return false;
+    paramSet('frzx', String(t));
+    pending = -1;
     return true;
-}
-
-/* ── The pads of a frozen track ─────────────────────────────────────────────
- * They play nothing (the chain is unloaded), so instead of a keyboard they say
- * so: "FROZEN" scrolling right to left, white on ice blue. 3x4 letters, a
- * blank column between them; one column every STEP_MS. The grid is diffed
- * against the LED cache and paced by the LED budget like any pad repaint, so
- * a scroll step costs at most the pads that actually change. */
-const ICE = TRACK_COLOR[2];   // Azure Blue dim: the palette's one cool hue that reads as blue
-const STEP_MS = 220;
-const TEXT = 'FROZEN ';
-/* Rows top to bottom; bit 2 = left column. */
-const GLYPHS: Record<string, number[]> = {
-    F: [0b111, 0b100, 0b110, 0b100],
-    R: [0b110, 0b101, 0b110, 0b101],
-    O: [0b111, 0b101, 0b101, 0b111],
-    Z: [0b111, 0b001, 0b100, 0b111],
-    E: [0b111, 0b110, 0b100, 0b111],
-    N: [0b101, 0b111, 0b111, 0b101],
-};
-const SPAN = TEXT.length * 4;
-
-/** Colour of pad `idx` (0 = bottom-left, 31 = top-right) at `nowMs`. */
-export function frozenPadColor(idx: number, nowMs: number): number {
-    const row = 3 - Math.floor(idx / 8);          // 0 = top row
-    const col = idx % 8;
-    const x = (col + Math.floor(nowMs / STEP_MS)) % SPAN;
-    const glyph = GLYPHS[TEXT[Math.floor(x / 4)]];
-    const cx = x % 4;
-    if (!glyph || cx === 3) return ICE;
-    return (glyph[row] >> (2 - cx)) & 1 ? C_WHITE : ICE;
 }
 
 /** The suites; a fresh boot. */
@@ -163,6 +173,8 @@ export function resetFreeze(): void {
     frozenMask = 0;
     capture = null;
     lastSeq = -1;
+    lastRefused = '';
+    pending = -1;
     lastTap = { track: -1, ms: -DOUBLE_TAP_MS };
     names.length = 0;
     moduleIds = [];

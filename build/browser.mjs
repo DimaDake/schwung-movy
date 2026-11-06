@@ -292,6 +292,9 @@ await esbuild.build({
         /* Freeze's UI half (status fields, double tap, guard): an entry point
          * so browser-test/logic/freeze.mjs drives it directly. */
         resolve(root, 'src/seq/freeze.ts'),
+        resolve(root, 'src/seq/freeze-pads.ts'),
+        resolve(root, 'src/seq/freeze-busy.ts'),
+        resolve(root, 'src/mixer/pad-mutes.ts'),
         resolve(root, 'src/seq/song.ts'),
         resolve(root, 'src/seq/persist-blob.ts'),
         resolve(root, 'src/seq/persist-store.ts'),

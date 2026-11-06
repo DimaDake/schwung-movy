@@ -37,6 +37,9 @@ export class SessionUndo {
 
     redo(): Snap | null { return this.at < this.states.length - 1 ? this.states[++this.at] : null; }
 
+    /** Every step rewritten in place (preview-retune.ts: the Set's key moved). */
+    map(f: (s: Snap) => Snap): void { this.states = this.states.map(f); }
+
     touch(): void { this.n++; }
     mark(): StepMark { return { n: this.n, top: this.top() }; }
     same(m: StepMark): boolean { return m.n === this.n && m.top === this.top(); }

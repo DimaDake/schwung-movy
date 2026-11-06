@@ -31,7 +31,7 @@ const BORROWED: Record<'major' | 'minor', [number, Chord['quality']][]> = {
 interface Tables { scale: number; degree: number[]; logW: Float64Array; tri: Chord[]; sev: Chord[]; dom: Chord[]; sub: Chord[]; borrowed: Chord[] }
 const TABLES = new Map<number, Tables>();
 function tables(k: Key): Tables {
-    const id = k.tonic * 2 + (k.minor ? 1 : 0);
+    const id = k.tonic * 2 + (k.minor ? 1 : 0) + (k.mode ? 24 * k.mode.reduce((m, i) => m | (1 << i), 0) : 0);
     let t = TABLES.get(id);
     if (!t) {
         t = { scale: Array.from({ length: 12 }, (_, p) => (inKey(p, k) ? 1 << p : 0)).reduce((a, b) => a | b, 0),

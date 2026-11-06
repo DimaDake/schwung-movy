@@ -8,7 +8,7 @@ import { hash, mix } from '../rng.js';
 import { type AiClip, type Chord, type Freedom, type GenInput, HALF, type HarmonyPlan, type Key, type Note,
     type Role, TPS } from '../types.js';
 import { chordsOf } from '../theory/chords.js';
-import { findKey, keyHint } from '../theory/key.js';
+import { keyFor, keyHint } from '../theory/key.js';
 import { bandHits, type Hit } from './band.js';
 import { type Groove, grooveOf } from './groove.js';
 import { type Kit, kitOf } from './kit.js';
@@ -71,7 +71,7 @@ export function buildCtx(input: GenInput): GenCtx {
     const srcSegs = soundingSegments(srcScene);
     const otherSegs = others.length ? soundingSegments(others, sceneTicks(others)) : [];
     const w = profile([...srcSegs, ...otherSegs]);
-    const key = findKey(w, keyHint(input.root, input.mode));
+    const key = keyFor(w, keyHint(input.root, input.mode));
 
     const pinned = otherSegs.map((s) => heardPcs(s));
     const filled = pinned.filter((p) => p.length > 0);

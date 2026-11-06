@@ -31,6 +31,7 @@ import { run as run_gen_maps } from './logic/gen-maps.mjs';
 import { run as run_gen_follow } from './logic/gen-follow.mjs';
 import { run as run_gen_quantize } from './logic/gen-quantize.mjs';
 import { run as run_ai_new_clip } from './logic/ai-new-clip.mjs';
+import { run as run_ai_retune } from './logic/ai-retune.mjs';
 import { run as run_gen_engine } from './logic/gen-engine.mjs';
 import { run as run_gen_merges } from './logic/gen-merges.mjs';
 import { run as run_gen_layout } from './logic/gen-layout.mjs';
@@ -152,6 +153,7 @@ const SUITES = [
     run_ai_preview_knobs,
     run_ai_sessions,
     run_ai_new_clip,
+    run_ai_retune,
     run_host_param,
     run_platform_caps,
     run_master_chain,

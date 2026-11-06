@@ -297,4 +297,18 @@ const phrasedTakes = Array.from({ length: 10 }, (_, n) => G.generateAll(createIn
     .flatMap((r) => r.picks.filter((p) => p.preset.id === 'n-melody').map((p) => p.knobs[G.knobIndex(p.preset, 'SPACE')]));
 ok('sparse_melody_defaults_are_sometimes_phrased', phrasedTakes.length >= 8 && phrasedTakes.some((v) => v > 0) && phrasedTakes.some((v) => v === 0));
 G.forgetOptions();
+
+/* The Set's mode on a silent scene: chords and lines in it (the stand-in
+ * chords keep the odd note in, so almost nothing leaves the mode), and its
+ * odd note heard. */
+for (const [mode, steps, odd] of [['dorian', G.DORIAN, 9], ['phrygian', G.PHRYGIAN, 1], ['lydian', G.LYDIAN, 6], ['mixolydian', G.MIXOLYDIAN, 10]]) {
+    G.forgetOptions();
+    const r = G.generateAll({ ...createInput(false, 'empty', 1), root: 'D', mode });
+    const ns = r.picks.flatMap((p) => p.notes);
+    const out = ns.filter((n) => !steps.includes(pcOf(n.pitch - 2))).length;
+    eq(`new_clip_${mode}_key_carries_the_mode`, r.ctx.key.mode?.join(), steps.join());
+    ok(`new_clip_${mode}_stays_in_the_mode`, out <= ns.length * 0.01, `${out}/${ns.length} out`);
+    ok(`new_clip_${mode}_sounds_its_odd_note`, ns.some((n) => pcOf(n.pitch - 2) === odd));
+    ok(`new_clip_${mode}_no_broken_chords`, r.ctx.plans.every((p) => p.chords.every((c) => !c || !['dim', 'aug', 'm7b5'].includes(c.quality))));
+}
 }

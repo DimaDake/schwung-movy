@@ -25,7 +25,9 @@ export type Quality = 'maj' | 'min' | 'dim' | 'aug' | 'sus2' | 'sus4' | '5' | 'm
 /** pcs[0] is the root; the rest follow the template's order (third, fifth, seventh). */
 export interface Chord { root: number; quality: Quality; pcs: number[]; bass: number }
 
-export interface Key { tonic: number; minor: boolean; score: number }
+/** `mode`: the Set's own 7-note mode (semitones per degree), when the notes
+ *  heard agree with it; absent, the key is plain major or minor. */
+export interface Key { tonic: number; minor: boolean; score: number; mode?: number[] }
 
 /** Design §2: who owns the harmony of the target scene. */
 export type Freedom = 'locked' | 'partial' | 'free';

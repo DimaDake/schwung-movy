@@ -3,7 +3,7 @@
  * the Yale corpus study use). */
 
 import type { Key } from '../types.js';
-import { pc } from './pc.js';
+import { DORIAN, LYDIAN, MIXOLYDIAN, pc, PHRYGIAN } from './pc.js';
 
 const KK_MAJOR = [6.35, 2.23, 3.48, 2.33, 4.38, 4.09, 2.52, 5.19, 2.39, 3.66, 2.29, 2.88];
 const KK_MINOR = [6.33, 2.68, 3.52, 5.38, 2.60, 3.53, 2.54, 4.75, 3.98, 2.69, 3.34, 3.17];
@@ -41,10 +41,32 @@ export function findKey(w: number[], hint?: { tonic: number; minor: boolean }): 
     return rankKeys(w, hint)[0];
 }
 
-/** The Set header's key ("A", "minor") as a hint, when it names one. */
-export function keyHint(root: string | undefined, mode: string | undefined): { tonic: number; minor: boolean } | undefined {
+/* Each of the Set's scales (seq/scales.ts, lower-cased) as a key: major or
+ * minor, and the mode when it is a 7-note one the chords can be built in.
+ * Locrian (a diminished home chord), the harmonic and melodic minors (an
+ * augmented III) and the 5- and 6-note scales take their parent key. */
+const SET_SCALES: Record<string, [boolean, number[]?]> = {
+    major: [false], minor: [true], dorian: [true, DORIAN], phrygian: [true, PHRYGIAN], lydian: [false, LYDIAN],
+    mixolydian: [false, MIXOLYDIAN], locrian: [true], 'harm min': [true], 'mel min': [true],
+    'maj penta': [false], 'min penta': [true], blues: [true],
+};
+
+export interface KeyHint { tonic: number; minor: boolean; mode?: number[] }
+
+/** The Set header's key ("A", "dorian") as a hint, when it names one. */
+export function keyHint(root: string | undefined, mode: string | undefined): KeyHint | undefined {
     const names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
     const t = names.indexOf((root ?? '').toUpperCase());
     if (t < 0) return undefined;
-    return { tonic: t, minor: /minor|aeolian|dorian|phrygian/i.test(mode ?? '') };
+    const [minor, steps] = SET_SCALES[(mode ?? '').toLowerCase()] ?? [false];
+    return { tonic: t, minor, ...(steps ? { mode: steps } : {}) };
+}
+
+/** The key the notes say, in the Set's mode when it is on the same tonic and
+ *  third and nothing heard leaves the mode (a silent scene says nothing). */
+export function keyFor(w: number[], hint: KeyHint | undefined): Key {
+    const k = findKey(w, hint);
+    const m = hint?.mode;
+    if (!m || k.tonic !== hint.tonic || k.minor !== hint.minor) return k;
+    return w.every((x, p) => x <= 0 || m.includes(pc(p - k.tonic))) ? { ...k, mode: m } : k;
 }

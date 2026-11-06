@@ -1,14 +1,14 @@
 /* A session's generators answer the Set as it was when they ran (the other
  * tracks' harmony, a Variation's source clip). Parked, the rest of the Set can
  * change under it, so a resume reads the Set again, one track per tick as the
- * job does, and if anything but the session's own clip moved, later knob
- * turns answer the new Set. The options as they stand are kept: they are what
- * was heard, and may carry hand edits. */
+ * job does, and if anything but the session's own clip moved, or the key,
+ * later knob turns answer the new Set. The options as they stand are kept:
+ * they are what was heard, and may carry hand edits. */
 
 import { mlog } from '../log.js';
 import { prepare } from '../gen/engine.js';
 import type { AiClip } from './clip-dump.js';
-import { readTrack, type AiTrackInput } from './set-input.js';
+import { readTrack, setHeader, type AiTrackInput } from './set-input.js';
 import { knobsCtx, knobsRecontext } from './preview-knobs.js';
 
 const TRACKS = 16;
@@ -48,7 +48,8 @@ export function refreshTick(): void {
     r = null;
     if (!c) return;
     const merged = withOwnClip(tracks, c.input.tracks, track, slot);
-    if (sigOf(merged) === sigOf(c.input.tracks)) return;
+    const { root, mode } = setHeader();   // the key, moved while parked (preview-retune.ts)
+    if (sigOf(merged) === sigOf(c.input.tracks) && root === c.input.root && mode === c.input.mode) return;
     mlog(`ai: t${track} s${slot} the Set moved while parked; knobs follow it`);
-    knobsRecontext(prepare({ ...c.input, tracks: merged }));
+    knobsRecontext(prepare({ ...c.input, tracks: merged, root, mode }));
 }

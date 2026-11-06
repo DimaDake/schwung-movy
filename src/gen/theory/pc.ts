@@ -10,15 +10,31 @@ export const near = (a: number, b: number): number => { const d = pc(b - a); ret
 
 export const MAJOR = [0, 2, 4, 5, 7, 9, 11];
 export const MINOR = [0, 2, 3, 5, 7, 8, 10];
+export const DORIAN = [0, 2, 3, 5, 7, 9, 10];
+export const PHRYGIAN = [0, 1, 3, 5, 7, 8, 10];
+export const LYDIAN = [0, 2, 4, 6, 7, 9, 11];
+export const MIXOLYDIAN = [0, 2, 4, 5, 7, 9, 10];
 
-export function scaleOf(k: Key): number[] { return (k.minor ? MINOR : MAJOR).map((i) => pc(k.tonic + i)); }
+/** The key's scale as semitones per degree from the tonic. */
+export const stepsOf = (k: Key): number[] => k.mode ?? (k.minor ? MINOR : MAJOR);
+
+export function scaleOf(k: Key): number[] { return stepsOf(k).map((i) => pc(k.tonic + i)); }
+
+/** A pitch on the same degree of another key's scale, the tonic moved the
+ *  shorter way (a tritone up); a note outside the first scale keeps its
+ *  distance from the tonic. */
+export function retune(p: number, from: Key, to: Key): number {
+    const a = stepsOf(from), b = stepsOf(to);
+    const d = a.indexOf(pc(p - from.tonic));
+    return p + near(from.tonic, to.tonic) + (d < 0 ? 0 : b[d] - a[d]);
+}
 
 export function inKey(p: number, k: Key): boolean { return scaleOf(k).includes(pc(p)); }
 
 /** A pitch moved by scale steps in the key (a diatonic sequence); a pitch
  *  outside the key moves from its nearest scale tone below. */
 export function stepScale(p: number, steps: number, k: Key): number {
-    const sc = (k.minor ? MINOR : MAJOR);
+    const sc = stepsOf(k);
     const rel = pc(p - k.tonic);
     let i = sc.length - 1;
     while (i > 0 && sc[i] > rel) i--;
@@ -32,7 +48,7 @@ export function stepScale(p: number, steps: number, k: Key): number {
 /** A pitch's place on the key's scale, in scale steps from the tonic's
  *  octave 0 (a chromatic note counts as the degree below it). */
 export function degreeIndex(p: number, k: Key): number {
-    const sc = (k.minor ? MINOR : MAJOR);
+    const sc = stepsOf(k);
     const rel = pc(p - k.tonic);
     let i = sc.length - 1;
     while (i > 0 && sc[i] > rel) i--;

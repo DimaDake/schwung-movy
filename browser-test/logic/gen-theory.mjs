@@ -85,4 +85,34 @@ ok('moves_a_one_chord_vamp_still_gets_somewhere', vamp.length >= 3);
 ok('connect_fifth_beats_tritone', G.connection(G.chordOf(0, 'maj'), G.chordOf(7, 'maj')) > G.connection(G.chordOf(0, 'maj'), G.chordOf(6, 'maj')));
 ok('connect_tritone_section_drops', G.sectionConnection([G.chordOf(0, 'maj')], [G.chordOf(6, 'maj')]) < G.DROP_BELOW);
 ok('tolerates_a_pinned_ninth', G.tolerates(Cmaj, [2], (c) => G.colourPcs(c, C)) && !G.tolerates(Cmaj, [1], (c) => G.colourPcs(c, C)));
+
+/* The Set's scales (seq/scales.ts names) as a key: every minor-family name is
+ * minor (Harm Min, Blues… once read as major), the four 7-note modes carry
+ * their degrees, the rest take their parent key. */
+const hint = (m) => { const h = G.keyHint('D', m); return `${h.minor ? 'm' : 'M'}${h.mode ? h.mode.join('') : ''}`; };
+eq('set_scale_minor_family_is_minor', ['minor', 'locrian', 'harm min', 'mel min', 'min penta', 'blues'].map(hint).join(' '), 'm m m m m m');
+eq('set_scale_major_family_is_major', ['major', 'maj penta', 'chromatic'].map(hint).join(' '), 'M M M');
+eq('set_scale_modes_carry_their_degrees', ['dorian', 'phrygian', 'lydian', 'mixolydian'].map(hint).join(' '),
+    'm02357910 m01357810 M02467911 M02457910');
+
+/* The mode is used only where the notes heard agree with it. */
+const dDor = G.keyHint('D', 'dorian');
+eq('mode_a_silent_scene_takes_the_sets_mode', G.keyFor(Array(12).fill(0), dDor).mode?.join(), G.DORIAN.join());
+eq('mode_notes_in_the_mode_keep_it', G.keyFor(prof([2, 4, 5, 7, 9, 11, 0], 2), dDor).mode?.join(), G.DORIAN.join());
+eq('mode_a_heard_b_flat_drops_it', G.keyFor(prof([2, 4, 5, 7, 9, 10, 0], 2), dDor).mode, undefined);
+
+/* A mode's chords: its own, a stand-in that carries its odd note where the
+ * triad breaks (Dorian vi° → IV), and natural minor's where no mode is set. */
+const kd = { tonic: 2, minor: true, score: 0, mode: G.DORIAN };
+eq('mode_dorian_iv_is_major', name(G.diatonic(kd, 3)), 'G');
+eq('mode_dorian_vi_stands_in_as_iv', name(G.diatonic(kd, 5)), 'G');
+eq('mode_plain_minor_vi_unchanged', name(G.diatonic({ tonic: 2, minor: true, score: 0 }, 5)), 'A#');
+eq('mode_lydian_ii_is_major', name(G.diatonic({ tonic: 0, minor: false, score: 0, mode: G.LYDIAN }, 1)), 'D');
+
+/* Retuning keeps each note's degree; the tonic moves the shorter way. */
+const cM0 = { tonic: 0, minor: false, score: 0 };
+eq('retune_c_major_to_d_major', [60, 64, 67, 61].map((p) => G.retune(p, cM0, { tonic: 2, minor: false, score: 0 })).join(), '62,66,69,63');
+eq('retune_c_major_to_c_minor', [60, 64, 67, 71].map((p) => G.retune(p, cM0, { tonic: 0, minor: true, score: 0 })).join(), '60,63,67,70');
+eq('retune_c_to_a_goes_down', G.retune(60, cM0, { tonic: 9, minor: false, score: 0 }), 57);
+eq('retune_c_major_to_c_dorian', [64, 69, 71].map((p) => G.retune(p, cM0, { ...cM0, minor: true, mode: G.DORIAN })).join(), '63,69,70');
 }

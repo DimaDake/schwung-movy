@@ -25,7 +25,10 @@ Speed: the slot's, else 1/1. ORIG gives back what was there.
 ## Context (`analysis/context.ts`, `create/plans.ts`)
 
 No source. The key comes from the other tracks in the scene, the Set's key setting breaking ties (a silent scene takes
-the setting). Freedom as for a Variation. Harmony plans: locked = the scene's chords; partial = diatonic fits around
+the setting). The Set's Dorian, Phrygian, Lydian or Mixolydian rides on the key (`Key.mode`) when the key found has
+its tonic and third and no note heard leaves it; a mode's diminished triad takes a stand-in that carries its odd note
+(`roman.ts diatonic`); the other scales take their major or minor parent (2026-11-06). A ROOT/KEY change retunes
+live New Clip sessions degree for degree (`ai/preview-retune.ts`). Freedom as for a Variation. Harmony plans: locked = the scene's chords; partial = diatonic fits around
 what the others pin, from each progression; free = a library of progressions in the key (pop, minor loop, cadence,
 two-chord vamp, modal…), one chord per bar on clips of four bars or more, per half-bar below. The groove's swing and
 the band's hits (`band.ts`) come from the other tracks, so new parts land with them.

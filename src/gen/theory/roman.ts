@@ -3,7 +3,7 @@
  * (moves.ts) are written in. */
 
 import type { Chord, Key, Quality } from '../types.js';
-import { chordOf, pc, scaleOf } from './pc.js';
+import { chordOf, DORIAN, LYDIAN, MIXOLYDIAN, pc, PHRYGIAN, scaleOf } from './pc.js';
 
 export type Fn = 'T' | 'S' | 'D' | '?';
 
@@ -20,8 +20,21 @@ export function functionOf(c: Chord, k: Key): Fn {
 
 const has7 = (q: Quality) => q === 'maj7' || q === '7' || q === 'm7' || q === 'm7b5';
 
-/** The chord the key builds on a degree, stacked in thirds; a seventh when asked. */
+/** The chord the key builds on a degree, stacked in thirds; a seventh when asked.
+ *  A mode builds its own chords except where its odd note breaks the triad:
+ *  there a chord of the mode that carries that note instead (Dorian's vi° →
+ *  IV, Lydian's #iv° → II, Mixolydian's iii° → v, Phrygian's v° → bII), so a
+ *  progression the tables wrote in major or minor still sounds the mode. */
 export function diatonic(k: Key, degree: number, seventh = false): Chord {
+    const c = stacked(k, degree, seventh);
+    const sub = k.mode && BROKEN.has(c.quality) ? STAND_IN[k.mode.join()] : undefined;
+    return sub === undefined ? c : stacked(k, sub, seventh);
+}
+
+const BROKEN = new Set<Quality>(['dim', 'aug', 'm7b5']);
+const STAND_IN: Record<string, number> = { [DORIAN.join()]: 3, [LYDIAN.join()]: 1, [MIXOLYDIAN.join()]: 4, [PHRYGIAN.join()]: 1 };
+
+function stacked(k: Key, degree: number, seventh: boolean): Chord {
     const sc = scaleOf(k);
     const d = ((degree % 7) + 7) % 7;
     const r = sc[d];

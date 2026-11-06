@@ -127,6 +127,16 @@ key when the scene is silent. Every run is new.
 
 ![Hold for a New Clip](../assets/screens/ai_hold_newclip_50.png){ .small }
 
+In a silent scene the part is written in the Set's **ROOT** and **KEY** (main
+page). Dorian, Phrygian, Lydian and Mixolydian get chords and lines in that mode.
+The other scales use their major or minor parent (Blues and Min Penta play
+minor, Maj Penta plays major).
+
+Change ROOT or KEY while New Clip previews are open and they follow at once:
+every option, on every track, moves to the new key, your edits included. Parts
+made side by side in one scene move together, so they stay in tune. A
+preview whose scene holds a clip you made or kept stays in the key of that clip.
+
 | Melodic options | |
 | --- | --- |
 | **CHORDS** | Comped chords on a rhythm. |

@@ -27,6 +27,7 @@ import { entryStep } from './job-types.js';
 import { knobsName, knobsOnStep, knobsOpen, knobsReset, knobsRestore, knobsSave, knobsShown, knobsTick } from './preview-knobs.js';
 import { clearParked, clipKey, forgetLatest, hasParked, keepLatest, latestOn, parkSession, takeSession } from './sessions.js';
 import { refreshStart, refreshStop, refreshTick } from './preview-refresh.js';
+import { retuneTick } from './preview-retune.js';
 import './preview-relength.js';
 
 export const VERBS = { quantize: 'SMART QUANT', variation: 'VARIATION', double: 'SMART DOUBLE', create: 'NEW CLIP' } as const;
@@ -166,6 +167,7 @@ export function aiForgetClip(track: number, slot: number): void {
 
 /** Per tick: parks and takes up sessions as the clip on screen changes. */
 export function aiPreviewTick(): void {
+    retuneTick();
     if (!S.cur && !hasParked()) return;
     const want = here();
     if (want !== (S.cur ? keyOf(S.cur) : null)) {

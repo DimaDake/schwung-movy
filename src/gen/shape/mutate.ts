@@ -7,8 +7,8 @@ import type { GenCtx } from '../analysis/context.js';
 import { chordAt } from '../analysis/context.js';
 import { strength } from '../analysis/events.js';
 import type { Rng } from '../rng.js';
-import { degreeIndex, nearestPitch, pc, stepScale } from '../theory/pc.js';
-import { type Chord, type Note, TPS } from '../types.js';
+import { degreeIndex, DORIAN, LYDIAN, MIXOLYDIAN, nearestPitch, PHRYGIAN, retune, stepScale } from '../theory/pc.js';
+import { type Chord, type Key, type Note, TPS } from '../types.js';
 
 const clampP = (p: number) => Math.max(24, Math.min(108, p));
 const weak = (n: Note) => strength(n.tick) < 0.7;
@@ -37,20 +37,16 @@ export function mutatePitches(ctx: GenCtx, notes: Note[], amount: number, steps:
 
 /* Modes over the clip's tonic, as semitones per scale degree. */
 export const MODES: [string, number[]][] = [
-    ['PARALLEL', []], ['DORIAN', [0, 2, 3, 5, 7, 9, 10]], ['PHRYGIAN', [0, 1, 3, 5, 7, 8, 10]], ['LYDIAN', [0, 2, 4, 6, 7, 9, 11]],
-    ['MIXOLYDIAN', [0, 2, 4, 5, 7, 9, 10]], ['HARMONIC', [0, 2, 3, 5, 7, 8, 11]], ['MELODIC', [0, 2, 3, 5, 7, 9, 11]], ['LOCRIAN', [0, 1, 3, 5, 6, 8, 10]],
+    ['PARALLEL', []], ['DORIAN', DORIAN], ['PHRYGIAN', PHRYGIAN], ['LYDIAN', LYDIAN],
+    ['MIXOLYDIAN', MIXOLYDIAN], ['HARMONIC', [0, 2, 3, 5, 7, 8, 11]], ['MELODIC', [0, 2, 3, 5, 7, 9, 11]], ['LOCRIAN', [0, 1, 3, 5, 6, 8, 10]],
 ];
-const MAJ = [0, 2, 4, 5, 7, 9, 11], MIN = [0, 2, 3, 5, 7, 8, 10];
 
 /** Each note on the same degree of another mode of the clip's tonic (the
  *  parallel one: major↔minor); a chromatic note keeps its offset. */
 export function toMode(ctx: GenCtx, notes: Note[], mode: number, where: (n: Note) => boolean): Note[] {
-    const from = ctx.key.minor ? MIN : MAJ;
-    const to = MODES[mode][1].length ? MODES[mode][1] : ctx.key.minor ? MAJ : MIN;
-    return notes.map((n) => {
-        const d = from.indexOf(pc(n.pitch - ctx.key.tonic));
-        return d < 0 || !where(n) ? { ...n } : { ...n, pitch: n.pitch + to[d] - from[d] };
-    });
+    const steps = MODES[mode][1];
+    const to: Key = steps.length ? { ...ctx.key, mode: steps } : { tonic: ctx.key.tonic, minor: !ctx.key.minor, score: 0 };
+    return notes.map((n) => (where(n) ? { ...n, pitch: retune(n.pitch, ctx.key, to) } : { ...n }));
 }
 
 /** The line mirrored in the key around `pivot`: a step up becomes a step down. */

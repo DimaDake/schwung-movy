@@ -18,6 +18,7 @@ export function takeSession<T>(key: string): T | undefined {
 }
 
 export function hasParked(): boolean { return parked.size > 0; }
+export function parkedSessions<T>(): T[] { return [...parked.values()] as T[]; }
 
 /** Every parked session's clip, and none parked afterwards. */
 export function clearParked(): string[] {

@@ -5,6 +5,7 @@
 
 import type { GenCtx } from './analysis/context.js';
 import { chordAt } from './analysis/context.js';
+import { homePlan } from './plan.js';
 import { isStrong } from './analysis/events.js';
 import type { Preset } from './preset.js';
 import { noteFit } from './theory/category.js';
@@ -28,7 +29,7 @@ export function difference(a: Note[], b: Note[]): number {
 
 function harmFit(ctx: GenCtx, notes: Note[]): number {
     if (ctx.drum) return 1;
-    const chords = ctx.plans[0]?.chords ?? [];
+    const chords = homePlan(ctx)?.chords ?? [];
     let s = 0, w = 0;
     for (const n of notes) {
         const c = chordAt(chords, n.tick, ctx.k) ?? chordAt(ctx.srcChords, n.tick, ctx.k);

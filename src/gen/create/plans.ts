@@ -12,25 +12,19 @@ import { fits, pinOk, sample } from '../plan.js';
 import { chordOf } from '../theory/pc.js';
 import { diatonic } from '../theory/roman.js';
 import { boldJourney, journey } from '../theory/develop.js';
-import { approachTo, CHANGES, withChanges } from '../theory/changes.js';
+import { CHANGES, withChanges } from '../theory/changes.js';
+import { approached, lay, progId as id } from '../theory/sections.js';
 import { walks } from '../theory/walk.js';
 import { grow, type Loop, order } from './harmony-map.js';
 import * as P from './progressions.js';
 import { mix, rng } from '../rng.js';
 import type { Chord, HarmonyPlan } from '../types.js';
 
-const id = (cs: (Chord | null)[]) => cs.map((c) => (c ? c.root + c.quality : '-')).join();
-
 /** Chord slots: one per bar on four bars or more, per half-bar below. */
 const perOf = (n: number) => (n >= 8 ? 2 : 1);
 
 const degrees = (ctx: GenCtx, p: P.Prog): Chord[] => p[1].map((d) => diatonic(ctx.key, d, !!p[2]));
 const colour = (ctx: GenCtx, cs: P.Colour[1]): Chord[] => cs.map(([s, q]) => chordOf(ctx.key.tonic + s, q));
-
-/** A slot list laid over the clip's half-bars, `per` a slot, going round when shorter. */
-function lay(slots: (Chord | null)[], n: number, per: number): (Chord | null)[] {
-    return Array.from({ length: n }, (_, h) => slots[Math.floor(h / per) % slots.length]);
-}
 
 /* HARMONY's positions a section: up to this many loops on its map. */
 const MAP = { 2: 40, 4: 128, 8: 56 } as const;
@@ -98,19 +92,6 @@ function pairSeeds(ctx: GenCtx): Loop[] {
     return seeds;
 }
 
-/** A four-chord loop with the chord that leads into each next one between
- *  them; null when no chord of it has one (outside the key). */
-function approached(ctx: GenCtx, cs: Chord[]): Chord[] | null {
-    const seventh = cs.some((c) => c.pcs.length > 3);
-    let any = false;
-    const out = cs.flatMap((c, i) => {
-        const a = approachTo(cs[(i + 1) % cs.length], ctx.key, () => true, seventh);
-        if (a) any = true;
-        return [c, a ?? c];
-    });
-    return any ? out : null;
-}
-
 /** The 8 section: the eight-chord progressions, eight-chord walks, and each
  *  four-chord loop with its approach chords. */
 function eightSeeds(ctx: GenCtx): Loop[] {
@@ -119,12 +100,12 @@ function eightSeeds(ctx: GenCtx): Loop[] {
     for (const p of ctx.key.minor ? P.LONG_MINOR : P.LONG_MAJOR) seed(p[0], degrees(ctx, p));
     const four = [...(ctx.key.minor ? P.MINOR : P.MAJOR), ...(ctx.key.minor ? P.MORE_MINOR : P.MORE_MAJOR)].filter((p) => p[0] !== 'TONIC');
     for (const p of four) {
-        const a = approached(ctx, degrees(ctx, p));
+        const a = approached(degrees(ctx, p), ctx.key);
         if (a) seed(p[0] + ' 8', a);
     }
     walks(ctx.key, 8, 3, rng(mix(ctx.seed, 0x8C8)), 1).forEach((w, i) => seed('WALK 8-' + (i + 1), w));
     for (const [name, cs] of ctx.key.minor ? P.COLOUR_MINOR : P.COLOUR_MAJOR) {
-        const a = approached(ctx, colour(ctx, cs));
+        const a = approached(colour(ctx, cs), ctx.key);
         if (a) seed(name + ' 8', a, true);
     }
     return seeds;

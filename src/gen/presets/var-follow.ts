@@ -8,7 +8,7 @@ import type { GenCtx } from '../analysis/context.js';
 import { chordAt } from '../analysis/context.js';
 import { isStrong } from '../analysis/events.js';
 import { custom, K } from '../knobs.js';
-import { planAt } from '../plan.js';
+import { homePlan, planAt } from '../plan.js';
 import type { Preset } from '../preset.js';
 import { rng } from '../rng.js';
 import { allowedPcs } from '../theory/category.js';
@@ -31,7 +31,7 @@ export function rootSteps(ctx: GenCtx, s: Chord, t: Chord, dir: number): number 
 }
 
 function rootsMove(ctx: GenCtx): boolean {
-    const t = ctx.plans[0]?.chords ?? [];
+    const t = homePlan(ctx)?.chords ?? [];
     return t.some((c, i) => {
         const s = ctx.srcChords.length ? ctx.srcChords[i % ctx.srcChords.length] : null;
         return !!c && !!s && c.root !== s.root;

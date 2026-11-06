@@ -6,6 +6,7 @@
 
 import type { GenCtx } from '../analysis/context.js';
 import { chordAt } from '../analysis/context.js';
+import { homePlan } from '../plan.js';
 import { ACCENT } from '../analysis/band.js';
 import { toEvents } from '../analysis/events.js';
 import { custom, type KnobDef } from '../knobs.js';
@@ -62,7 +63,7 @@ export const nextEv = (ctx: GenCtx): Ev | null => toEvents(ctx.src)[0] ?? null;
 
 /** The scene's chord under a tick. */
 export const chordUnder = (ctx: GenCtx, tick: number): Chord | null =>
-    chordAt(ctx.plans[0]?.chords ?? [], tick, ctx.k) ?? chordAt(ctx.srcChords, tick, ctx.k);
+    chordAt(homePlan(ctx)?.chords ?? [], tick, ctx.k) ?? chordAt(ctx.srcChords, tick, ctx.k);
 
 /** The line's note of an onset: a bass's lowest, any other part's highest. */
 export const lineOf = (ctx: GenCtx, e: Ev): number =>

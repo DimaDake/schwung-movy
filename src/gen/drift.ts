@@ -13,7 +13,7 @@ import { chordAt } from './analysis/context.js';
 import { fromEvents, isStrong, toEvents } from './analysis/events.js';
 import type { KnobDef } from './knobs.js';
 import type { Preset } from './preset.js';
-import { planAt } from './plan.js';
+import { homePlan, planAt } from './plan.js';
 import { hash, mix, type Rng, rng, shuffled } from './rng.js';
 import { nearestPitch, pc, stepScale } from './theory/pc.js';
 import { type Chord, type Ev, type Note, TPS } from './types.js';
@@ -81,7 +81,7 @@ export function withDrift(p: Preset): Preset {
         generate: (ctx, v, seed) => {
             const out = p.generate(ctx, v.slice(0, n), seed);
             if (!v[n]) return out;
-            const chords = (h >= 0 ? planAt(ctx, v[h]) : ctx.plans[0])?.chords ?? [];
+            const chords = (h >= 0 ? planAt(ctx, v[h]) : homePlan(ctx))?.chords ?? [];
             return driftNotes(ctx, out, v[n], mix(seed, hash(p.id)), chords);
         } };
 }

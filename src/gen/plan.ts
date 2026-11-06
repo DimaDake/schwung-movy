@@ -12,6 +12,7 @@ import { degreeOf, diatonic } from './theory/roman.js';
 import { holds, withChanges } from './theory/changes.js';
 import { createPlans } from './create/plans.js';
 import { chordsLabel } from './theory/chord-label.js';
+import { type Laid, progId, sectionsOver } from './theory/sections.js';
 
 const SITS: [Sit, string][] = [['asis', 'AS PLAYED'], ['roots', 'ROOTS'], ['inv', 'INVERSION'], ['7th', '7TH'], ['9th', '9TH']];
 
@@ -57,24 +58,33 @@ export function buildPlans(ctx: GenCtx): HarmonyPlan[] {
         return SITS.map(([sit, label]) => ({ chords, sit, pedal: null, label }));
     }
     const base = sample(ctx.srcChords, n);
-    if (!base.some((c) => c)) return [{ chords: base, sit: 'asis', pedal: null, label: 'SAME' }];
+    const same: HarmonyPlan = { chords: base, sit: 'asis', pedal: null, label: 'SAME' };
+    if (!base.some((c) => c)) return [same];
+    const col = (c: Chord) => colourPcs(c, ctx.key);
+    const ok = (cs: (Chord | null)[]) => ctx.freedom !== 'partial' || cs.every((c, i) => !c || tolerates(c, ctx.pinned[i % ctx.pinned.length] ?? [], col));
     let moves = harmonicMoves(base, ctx.key);
     if (ctx.freedom === 'partial') {
-        const col = (c: Chord) => colourPcs(c, ctx.key);
-        const ok = (cs: (Chord | null)[]) => cs.every((c, i) => !c || tolerates(c, ctx.pinned[i % ctx.pinned.length] ?? [], col));
         moves = moves.filter((m) => ok(m.chords));
-        const seen = new Set(moves.map((m) => m.chords.map((c) => c ? c.root + c.quality : '-').join()));
+        const seen = new Set(moves.map((m) => progId(m.chords)));
         ['FIT', 'FIT 2', 'FIT 3'].forEach((label, r) => {
             const chords = fits(ctx, base, r);
-            const id = chords.map((c) => c ? c.root + c.quality : '-').join();
+            const id = progId(chords);
             if (!seen.has(id)) { seen.add(id); moves.push({ name: label, dist: 0.2 + r * 0.25, chords, pedal: null }); }
         });
         moves.sort((a, b) => Number(!!a.ext) - Number(!!b.ext) || a.dist - b.dist);
     }
-    if (!moves.length) return [{ chords: base, sit: 'asis', pedal: null, label: 'SAME' }];
     const sev = sevenths(base);
-    return moves.map((m) => ({ chords: sev ? m.chords.map((c) => withSeventh(c, ctx)) : m.chords, sit: 'asis', pedal: m.pedal, label: m.name,
-        ...(m.ext ? { ext: true } : {}) }));
+    const mid: HarmonyPlan[] = !moves.length ? [same] : moves.map((m) => ({ chords: sev ? m.chords.map((c) => withSeventh(c, ctx)) : m.chords,
+        sit: 'asis', pedal: m.pedal, label: m.name, ...(m.ext ? { ext: true } : {}) }));
+    return withSections(ctx, n, base, mid, ok);
+}
+
+/** Variation's 2 and 8 sections either side of its moves, from the source's
+ *  own chords (theory/sections.ts). */
+function withSections(ctx: GenCtx, n: number, base: (Chord | null)[], mid: HarmonyPlan[], ok: (cs: (Chord | null)[]) => boolean): HarmonyPlan[] {
+    const plan = (l: Laid): HarmonyPlan => ({ chords: l.chords, sit: 'asis', pedal: null, label: chordsLabel(l.chords), count: l.count });
+    const [two, eight] = sectionsOver(base, ctx.key, n, false, ok, new Set(mid.map((p) => progId(p.chords))));
+    return [...two.map(plan), ...mid, ...eight.map(plan)];
 }
 
 /* The source's style carries over: a part that plays seventh chords gets
@@ -116,11 +126,19 @@ export function harmonyLabel(ctx: GenCtx, h: number): string {
 /** Where HARMONY opens: a free scene moves somewhere (a B section changes
  *  its harmony), a locked one sits on the chords as played. */
 export function defaultHarmony(ctx: GenCtx, far = 1): number {
+    const home = homeOf(ctx);
     /* Partial: the closest fit around what the others pin comes first. */
-    const basic = ctx.plans.filter((p) => !p.ext).length;
-    if (ctx.freedom !== 'free' || basic <= 1) return 0;
-    return Math.min(far, basic - 1);
+    const basic = ctx.plans.filter((p) => !p.ext && !p.count).length;
+    if (ctx.freedom !== 'free' || basic <= 1) return home;
+    return home + Math.min(far, basic - 1);
 }
+
+/** Where the scene's own chords sit on HARMONY: past a Variation's 2
+ *  section (the first plan otherwise). */
+export const homeOf = (ctx: GenCtx): number => (ctx.task === 'variation' ? Math.max(0, ctx.plans.findIndex((p) => p.count !== 2)) : 0);
+
+/** The plan at HARMONY's home: the chords the part plays now. */
+export const homePlan = (ctx: GenCtx): HarmonyPlan | undefined => ctx.plans[homeOf(ctx)];
 
 export function planAt(ctx: GenCtx, h: number, changes = 0): HarmonyPlan {
     const p = ctx.plans[Math.max(0, Math.min(ctx.plans.length - 1, h))];

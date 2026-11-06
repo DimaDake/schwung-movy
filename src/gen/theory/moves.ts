@@ -8,7 +8,8 @@ import { sectionConnection, DROP_BELOW } from './connect.js';
 import { chordOf, isMinorQ, pc, sameChord } from './pc.js';
 import { degreeOf, diatonic, shiftDegrees } from './roman.js';
 
-export interface MoveResult { name: string; dist: number; chords: (Chord | null)[]; pedal: number | null; ext?: boolean }
+/** `count`: a 2- or 8-chord section's loop (theory/sections.ts), not a move. */
+export interface MoveResult { name: string; dist: number; chords: (Chord | null)[]; pedal: number | null; ext?: boolean; count?: 2 | 8 }
 
 type Prog = (Chord | null)[];
 const each = (p: Prog, f: (c: Chord) => Chord): Prog => p.map((c) => (c ? f(c) : null));

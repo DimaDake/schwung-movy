@@ -164,6 +164,15 @@ const moves = G.evolutions(padF).map((m) => m.name);
 ok('evolve_offers_several_developments', moves.length >= 3 && !moves.includes('SAME'));
 const other = take(padF, 'x-evolve', { MOVE: 1 }).notes;
 ok('evolve_move_changes_the_development', sig(other) !== sig(evo));
+/* MOVE runs 2 | the developments | 8 (user, 2026-11-06), opening on the
+ * first development; a 2 answer is two chords from the first half. */
+const evs = G.evolutions(padF);
+const two = evs.filter((m) => m.count === 2);
+ok('evolve_move_opens_past_its_two_section', two.length >= 4 && take(padF, 'x-evolve').v[0] === two.length && !evs[two.length].count);
+ok('evolve_two_answers_are_two_chords', two.every((m) => new Set(m.chords.map((c) => c.root + c.quality)).size === 2));
+ok('evolve_no_eight_section_on_a_two_bar_answer', !evs.some((m) => m.count === 8));
+const pairAns = take(padF, 'x-evolve', { MOVE: 0 }).notes;
+eq('evolve_two_answer_keeps_the_first_half', sig(pairAns.filter((n) => n.tick < half2)), sig(padF.src.filter((n) => n.tick < half2)));
 const offered = ['pad', 'stabs', 'lead'].filter((role) => G.generateAll(fixtureInput(role, { task: 'double', scene: 'free' })).picks.some((p) => p.preset.id === 'x-evolve'));
 eq('evolve_is_among_the_options_for_chord_backed_parts', offered.join(), 'pad,stabs,lead');
 
@@ -178,4 +187,7 @@ const barsOf = (ns) => new Set(Array.from({ length: 16 }, (_, b) => [...new Set(
 eq('phrases_opens_on_each_where_the_half_repeats', take(lp, 'x-evolve').v[G.knobIndex(ev, 'PHRASES')], 1);
 const each = barsOf(take(lp, 'x-evolve').notes), one = barsOf(take(lp, 'x-evolve', { PHRASES: 0 }).notes);
 ok('phrases_each_moves_through_more_chords', each > one && each > 4);
+const eightAns = G.evolutions(lp).filter((m) => m.count === 8);
+const moves8 = (cs) => cs.slice(0, 8).filter((c, i) => i > 0 && c.root + c.quality !== cs[i - 1].root + cs[i - 1].quality).length;
+ok('evolve_eight_section_on_a_long_answer', eightAns.length >= 3 && eightAns.every((m) => moves8(m.chords) >= 5));
 }

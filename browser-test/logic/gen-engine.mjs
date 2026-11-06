@@ -31,9 +31,25 @@ eq('freedom_partial_when_a_bass_alone_pins', partial.freedom, 'partial');
 eq('freedom_free_when_nobody_plays_there', free.freedom, 'free');
 eq('locked_follows_the_scenes_chords', names(locked.plans[0].chords), 'FMA7 G7 AM7 E7');
 eq('locked_harmony_steps_how_the_part_sits', locked.plans.map((p) => p.label).join(','), 'AS PLAYED,ROOTS,INVERSION,7TH,9TH');
-eq('partial_fit_takes_the_pinned_bass_as_root', partial.plans[0].label + ': ' + names(partial.plans[0].chords).split(' ').map((c) => c[0]).join(''), 'FIT: FGAE');
-eq('free_starts_from_the_sources_progression', free.plans[0].label, 'SAME');
-eq('free_harmony_opens_on_a_move (a B changes harmony)', G.defaultHarmony(free), 1);
+eq('partial_fit_takes_the_pinned_bass_as_root', G.homePlan(partial).label + ': ' + names(G.homePlan(partial).chords).split(' ').map((c) => c[0]).join(''), 'FIT: FGAE');
+eq('free_starts_from_the_sources_progression', G.homePlan(free).label, 'SAME');
+eq('free_harmony_opens_on_a_move (a B changes harmony)', G.defaultHarmony(free), G.homeOf(free) + 1);
+/* HARMONY runs 2 | the moves | 8 like New Clip's (user, 2026-11-06), the
+ * loops from the source's own chords: every pair is two of them. */
+const srcSet = new Set(free.srcChords.filter((c) => c).map((c) => c.root + c.quality));
+const twos = free.plans.filter((p) => p.count === 2);
+ok('variation_harmony_opens_with_two_chord_loops', twos.length >= 4 && free.plans.slice(0, twos.length).every((p) => p.count === 2));
+ok('variation_two_loops_move_through_two_chords', twos.every((p) => G.uniqueChords(p) === 2));
+ok('variation_two_loops_start_from_the_sources_chords', twos.slice(0, 3).every((p) => p.chords.every((c) => srcSet.has(c.root + c.quality))));
+ok('variation_no_eight_section_below_four_bars', !free.plans.some((p) => p.count === 8));
+const long = fixtureInput('lead', { scene: 'free' });
+const lc = long.tracks[0].clips[0];
+long.tracks[0].clips[0] = { ...lc, len: 64, notes: [0, 1].flatMap((k) => lc.notes.map((n) => ({ ...n, tick: n.tick + k * 32 * G.TPS }))) };
+const free4 = G.prepare({ ...long, len: 64 });
+const eights = free4.plans.filter((p) => p.count === 8);
+ok('variation_eight_section_closes_a_four_bar_harmony', eights.length >= 4 && free4.plans.slice(-eights.length).every((p) => p.count === 8));
+const moves8 = (cs) => cs.slice(0, 8).filter((c, i) => i > 0 && c.root + c.quality !== cs[i - 1].root + cs[i - 1].quality).length;
+ok('variation_eight_loops_change_about_every_half_bar', eights.every((p) => moves8(p.chords) >= 5));
 eq('locked_harmony_opens_as_played', G.defaultHarmony(locked), 0);
 ok('sevenths_carry_over_from_a_seventh_chord_source', free.plans.filter((p) => /SEQ/.test(p.label)).every((p) => p.chords.every((c) => !c || c.pcs.length === 4)));
 

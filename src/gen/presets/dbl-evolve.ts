@@ -6,7 +6,9 @@
  * developed — a sequence, a Riemann turn, a substitute, a borrowing — the
  * way a B phrase answers an A. Only where the clip's own chords are the
  * scene's to change; in a partial scene only the moves that keep what the
- * others hold. */
+ * others hold. MOVE also runs 2 | its moves | 8 like New Clip's HARMONY
+ * (user, 2026-11-06), loops from the first half's own chords laid over the
+ * second (theory/sections.ts). */
 
 import type { GenCtx } from '../analysis/context.js';
 import { targetHalves } from '../analysis/context.js';
@@ -14,6 +16,8 @@ import { fromEvents, toEvents } from '../analysis/events.js';
 import { custom, K, type KnobDef, rangeOfKnob } from '../knobs.js';
 import { periodOf } from '../theory/develop.js';
 import { sample } from '../plan.js';
+import { chordsLabel } from '../theory/chord-label.js';
+import { type Laid, progId, sectionsOver } from '../theory/sections.js';
 import type { Preset } from '../preset.js';
 import { rng } from '../rng.js';
 import { realise } from '../realise/index.js';
@@ -25,7 +29,8 @@ import type { Chord, Note } from '../types.js';
 
 const cache = new WeakMap<GenCtx, MoveResult[]>();
 
-/** The developments of the first half's chords this scene allows, closest first. */
+/** The developments of the first half's chords this scene allows, closest
+ *  first, between its 2 and 8 sections. */
 export function evolutions(ctx: GenCtx): MoveResult[] {
     const hit = cache.get(ctx);
     if (hit) return hit;
@@ -33,11 +38,22 @@ export function evolutions(ctx: GenCtx): MoveResult[] {
     const first = sample(ctx.srcChords, h);
     const col = (c: Chord) => colourPcs(c, ctx.key);
     const fits = (cs: (Chord | null)[]) => cs.every((c, i) => !c || !ctx.pinned.length || tolerates(c, ctx.pinned[(h + i) % ctx.pinned.length], col));
-    const out = !first.some((c) => c) ? [] : harmonicMoves(first, ctx.key)
+    const mid = !first.some((c) => c) ? [] : harmonicMoves(first, ctx.key)
         .filter((m) => m.name !== 'SAME' && fits(m.chords));
+    const out = mid.length ? withSections(ctx, h, first, mid, fits) : mid;
     cache.set(ctx, out);
     return out;
 }
+
+/** The second half's sections; never the first half again. */
+function withSections(ctx: GenCtx, h: number, first: (Chord | null)[], mid: MoveResult[], fits: (cs: (Chord | null)[]) => boolean): MoveResult[] {
+    const move = (l: Laid): MoveResult => ({ name: chordsLabel(l.chords), dist: 0, chords: l.chords, pedal: null, count: l.count });
+    const [two, eight] = sectionsOver(first, ctx.key, h, true, fits, new Set([progId(first), ...mid.map((m) => progId(m.chords))]));
+    return [...two.map(move), ...mid, ...eight.map(move)];
+}
+
+/** Where MOVE opens: the first development, past the 2 section. */
+const firstMove = (ctx: GenCtx): number => Math.max(0, evolutions(ctx).findIndex((m) => !m.count));
 
 /* PHRASES: one development for the whole second half, or one per phrase
  * of it — the first half's own repeat, or its halves when it has none — so
@@ -58,8 +74,8 @@ export const EVOLVE: Preset = {
     roles: ['pad', 'stabs', 'bass', 'arpeggio', 'lead'],
     /* A chord part is where a new progression is heard most plainly. */
     fit: (ctx) => (chordPart(ctx) ? 0.8 : 0.62),
-    accepts: (ctx) => ctx.freedom !== 'locked' && ctx.src.length > 0 && evolutions(ctx).some((m) => !m.ext),
-    knobs: [{ name: 'MOVE', steps: (c) => Math.max(1, evolutions(c).length), def: () => 0, label: (v, c) => evolutions(c)[v]?.name ?? '-' },
+    accepts: (ctx) => ctx.freedom !== 'locked' && ctx.src.length > 0 && evolutions(ctx).some((m) => !m.ext && !m.count),
+    knobs: [{ name: 'MOVE', steps: (c) => Math.max(1, evolutions(c).length), def: firstMove, label: (v, c) => evolutions(c)[v]?.name ?? '-' },
         K.tension(4), K.rhythm(0), K.range(5), PHRASES],
     generate: (ctx, v, seed) => {
         const ms = evolutions(ctx);
@@ -68,7 +84,9 @@ export const EVOLVE: Preset = {
         const half = ctx.end / 2;
         const first = sample(ctx.srcChords, Math.max(1, targetHalves(ctx) >> 1));
         const B = blockOf(ctx);
-        const answer = v[4] ? m.chords.map((_, i) => ms[(v[0] + Math.floor(i / B)) % ms.length].chords[i]) : m.chords;
+        /* EACH goes round its own section: a 2 answer stays two chords. */
+        const pool = ms.filter((x) => x.count === m.count), at = pool.indexOf(m);
+        const answer = v[4] ? m.chords.map((_, i) => pool[(at + Math.floor(i / B)) % pool.length].chords[i]) : m.chords;
         const plan = { chords: [...first, ...answer], sit: 'asis' as const, pedal: m.pedal, label: m.name };
         const tail = toEvents(ctx.src.filter((n) => n.tick >= half));
         const shaped = rhythmStage(ctx, tail, v[2], rng(seed)).filter((e) => e.tick >= half);

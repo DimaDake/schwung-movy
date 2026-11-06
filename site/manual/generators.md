@@ -67,7 +67,7 @@ A knob name means the same thing on every generator:
 | **COLOUR** | More colour notes (9ths, 11ths, 13ths); left goes back to plain chord tones. |
 | **CHORD RATE** | Chords change more often under the part. |
 | **FIX NOTES** | Puts more of the notes that clash with the chords right, worst first. |
-| **HARMONY** | Further from the original chords; its value shows them (`AM F C G`). Turned all the way left, a New Clip part stays on one chord; the far right holds the boldest moves. |
+| **HARMONY** | Further from the original chords; its value shows them (`AM F C G`). Turned all the way left, a New Clip part stays on one chord. On a New Clip, turning right goes through progressions of 2 chords (two bars each), then 4, then 8 (half a bar each), and each group ends with its boldest moves. Where other tracks already set the chords, HARMONY adds passing chords between them instead. |
 | **RHYTHM** | A new rhythm for the same notes: push, syncopate, double, half, Euclid… |
 | **DRIFT** | Walks the take away from itself one small change per click. Turn back to walk home. |
 | **SEED** | Other takes of the same idea, closest first: each click right sounds a little further from the one you started on. |

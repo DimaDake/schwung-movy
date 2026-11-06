@@ -105,11 +105,12 @@ export function harmonyApplies(ctx: GenCtx): boolean {
 }
 
 /** HARMONY's value: the chords themselves, or how a locked part sits on the
- *  band's chords (AS PLAYED, ROOTS…), whose chords are the same throughout. */
+ *  band's chords (AS PLAYED, ROOTS…; New Clip: the approach chords it adds),
+ *  whose chords are the same throughout. */
 export function harmonyLabel(ctx: GenCtx, h: number): string {
     const p = planAt(ctx, h);
     if (!p) return '';
-    return ctx.task === 'variation' && ctx.freedom === 'locked' ? p.label : chordsLabel(p.chords);
+    return ctx.freedom === 'locked' && ctx.task !== 'quantize' ? p.label : chordsLabel(p.chords);
 }
 
 /** Where HARMONY opens: a free scene moves somewhere (a B section changes
@@ -128,15 +129,16 @@ export function planAt(ctx: GenCtx, h: number, changes = 0): HarmonyPlan {
     const key = `${h}:${changes}`;
     const hit = changesCache.get(ctx)?.get(key);
     if (hit) return hit;
-    const col = (c: Chord) => colourPcs(c, ctx.key);
-    const ok = (c: Chord, beat: number) => {
-        const pins = ctx.pinned.length ? ctx.pinned[Math.floor(beat / 2) % ctx.pinned.length] : [];
-        return holds(c, pins, col);
-    };
-    const out = { ...p, chords: withChanges(p.chords, changes, ctx.key, ok), label: p.label };
+    const out = { ...p, chords: withChanges(p.chords, changes, ctx.key, pinOk(ctx)), label: p.label };
     if (!changesCache.has(ctx)) changesCache.set(ctx, new Map());
     changesCache.get(ctx)!.set(key, out);
     return out;
+}
+
+/** Whether a chord may sound at a beat: it holds what the others pin there. */
+export function pinOk(ctx: GenCtx): (c: Chord, beat: number) => boolean {
+    const col = (c: Chord) => colourPcs(c, ctx.key);
+    return (c, beat) => holds(c, ctx.pinned.length ? ctx.pinned[Math.floor(beat / 2) % ctx.pinned.length] : [], col);
 }
 
 /* A plan at a CHANGES level is asked for on every knob turn: built once. */

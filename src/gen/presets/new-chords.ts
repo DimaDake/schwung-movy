@@ -92,14 +92,15 @@ export const CHORDS: Preset = withFeel({
 const PAD_FIGS: [string, number[]][] = [['HELD', []], ['BAR', [0]], ['HALVES', [0, 8]], ['3-3-2', [0, 6, 12]],
     ['CHARLESTON', [0, 6]], ['PUSH', [0, 14]], ['2+4', [4, 12]]];
 
-/** Each change of the harmony, as [start, end) spans; `bars` also splits them at the bar. */
+/** Each change of the harmony, as [start, end) spans; `bars` also splits
+ *  them at the bar. Read by the beat: an approach chord may last one. */
 function changes(ctx: GenCtx, h: number, bars: boolean): [number, number][] {
     const spans: [number, number][] = [];
     let at = 0;
     while (at < ctx.end) {
         const c = chordUnder(ctx, h, at);
-        let to = at + TPS * 8;
-        while (to < ctx.end && !(bars && to % BAR === 0) && sameChord(chordUnder(ctx, h, to), c)) to += TPS * 8;
+        let to = at + TPS * 4;
+        while (to < ctx.end && !(bars && to % BAR === 0) && sameChord(chordUnder(ctx, h, to), c)) to += TPS * 4;
         spans.push([at, to]);
         at = to;
     }

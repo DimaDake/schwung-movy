@@ -49,6 +49,8 @@ export interface HarmonyPlan {
     /** A named loop's place among them, which a take's opening is drawn by;
      *  absent on one the grammar derived (on the map, never a take's opening). */
     seed?: number;
+    /** New Clip: the chords a 4-bar phrase moves through, HARMONY's section (2, 4 or 8). */
+    count?: number;
 }
 
 export type PresetClass = 'close' | 'rhythm' | 'exp';

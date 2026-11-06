@@ -36,11 +36,12 @@ export const runPlan = (ctx: GenCtx): number => {
     if (n <= 1) return 0;
     /* Drawn among the named loops in their own order, not the map's, so the
      * map's layout never changes which loop a run opens on. */
-    const ok = ctx.plans.map((p, i) => i).filter((i) => !ctx.plans[i].label.startsWith('TONIC') && !ctx.plans[i].ext && ctx.plans[i].seed !== undefined)
+    const ok = ctx.plans.map((p, i) => i).filter((i) => !ctx.plans[i].label.startsWith('TONIC') && !ctx.plans[i].ext && ctx.plans[i].seed !== undefined
+        && (ctx.plans[i].count ?? 4) === 4)
         .sort((a, b) => ctx.plans[a].seed! - ctx.plans[b].seed!);
     const rich = ok.filter((i) => uniqueChords(ctx.plans[i]) > 4);
     const pool = rich.length ? rich : ok;
-    return pool[ctx.seed % pool.length];
+    return pool.length ? pool[ctx.seed % pool.length] : 0;
 };
 
 export const HARMONY: KnobDef = { name: 'HARMONY', steps: (c) => Math.max(1, c.plans.length), def: runPlan,

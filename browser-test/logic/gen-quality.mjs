@@ -186,11 +186,16 @@ for (const [id, role] of [['q-tight', 'lead'], ['qd-tight', 'drums']]) {
     const ctx = G.prepare(createInput(false, 'empty', 1));
     const labels = ctx.plans.map((p) => p.label);
     /* The tonic holds the left end (§2.8); the map itself opens on the first named loop. */
-    eq('harmony_map_opens_on_the_tonic_then_the_first_named_loop', labels.slice(0, 2).join(), 'TONIC,POP');
+    const four = ctx.plans.filter((p) => p.count === 4);
+    eq('harmony_map_opens_on_the_tonic_then_the_first_named_loop', [labels[0], four[1].label].join(), 'TONIC,POP');
+    /* Sections by chords a 4-bar phrase moves through (user, 2026-11-06): 2, then 4, then 8. */
+    const counts = ctx.plans.slice(1).map((p) => p.count);
+    ok('harmony_sections_run_two_four_eight', counts.every((c, i) => i === 0 || c >= counts[i - 1]) && counts[0] === 2 && counts.includes(4));
     ok('harmony_map_holds_every_named_loop', ['POP', 'DOO-WOP', 'CADENCE', 'II-V-I', 'VAMP', 'LIFT', 'SOUL', 'TONIC', 'ROYAL ROAD', 'MIXOLYDIAN', 'BACKDOOR']
         .every((l) => labels.includes(l)));
-    ok('harmony_new_scene_offers_a_hundred_or_more', labels.length >= 100 && labels.length <= 128);
-    ok('harmony_colour_sits_at_the_end', ctx.plans.findIndex((p) => p.ext) > 0 && ctx.plans.slice(ctx.plans.findIndex((p) => p.ext)).every((p) => p.ext));
+    ok('harmony_new_scene_offers_a_hundred_or_more', four.length >= 100 && four.length <= 128);
+    ok('harmony_colour_sits_at_each_sections_end', [2, 4].every((n) => { const s = ctx.plans.filter((p) => p.count === n), e = s.findIndex((p) => p.ext);
+        return e > 0 && s.slice(e).every((p) => p.ext); }));
     const takes = new Set(Array.from({ length: 40 }, (_, n) => { const c = G.prepare(createInput(false, 'empty', n)); return c.plans[G.runPlan(c)]; }));
     ok('harmony_a_take_never_opens_on_colour', [...takes].every((p) => !p.ext && p.seed !== undefined) && [...takes].some((p) => ['SENSITIVE', 'ROYAL ROAD', 'TURNAROUND', 'SWAY'].includes(p.label)));
     const moves = G.harmonicMoves([G.diatonic(ctx.key, 0), G.diatonic(ctx.key, 4)], ctx.key);

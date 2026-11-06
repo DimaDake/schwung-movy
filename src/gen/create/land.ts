@@ -10,7 +10,7 @@
 
 import type { GenCtx } from '../analysis/context.js';
 import { nearestPitch, sameChord } from '../theory/pc.js';
-import { type Ev, HALF, TPS } from '../types.js';
+import { BEAT, type Ev, TPS } from '../types.js';
 import { chordUnder } from './common.js';
 import { type Span, T, type Tpl } from './phrase.js';
 
@@ -40,7 +40,7 @@ function inSpan(s: Span, tick: number, end: number): number | null {
 function anchors(ctx: GenCtx, h: number, spans: Span[], laid: Laid, lo: number, hi: number, centre: number): void {
     const covered = (t: number) => spans.some((s) => [t, t + ctx.end].some((x) => x >= s.start - PICK && x < s.end));
     const at: number[] = [];
-    for (let x = 0; x < ctx.end; x += HALF) if (!at.length || !sameChord(chordUnder(ctx, h, x), chordUnder(ctx, h, at[at.length - 1]))) at.push(x);
+    for (let x = 0; x < ctx.end; x += BEAT) if (!at.length || !sameChord(chordUnder(ctx, h, x), chordUnder(ctx, h, at[at.length - 1]))) at.push(x);
     at.forEach((x, i) => {
         if (covered(x)) return;
         const next = Math.min(at[i + 1] ?? ctx.end, ...spans.map((s) => s.start - PICK).filter((t) => t > x), ctx.end);

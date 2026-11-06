@@ -82,9 +82,12 @@ _log('\nTest: rhythm and harmony maps');
 {
     for (const len of [32, 128]) {
         const ctx = G.prepare(createInput(false, 'empty', 1, { len }));
-        const per = ctx.plans[0].chords.length >= 8 ? 2 : 1;
-        const slot = (p) => p.chords.filter((_, i) => i % per === 0).map(G.chordName);
-        const ch = ctx.plans.slice(1).map((p, i) => { const a = slot(ctx.plans[i]), b = slot(p); return b.filter((c, j) => c !== a[j % a.length]).length; });
+        /* Half-bars a chord in each section (create/plans.ts); a turn across a section changes the rate, not a chord. */
+        const n = ctx.plans[0].chords.length;
+        const perOf = (p) => (p.count === 2 ? (n >= 8 ? 4 : 2) : p.count === 8 ? 1 : n >= 8 ? 2 : 1);
+        const slot = (p) => p.chords.filter((_, i) => i % perOf(p) === 0).map(G.chordName);
+        const ch = ctx.plans.slice(1).flatMap((p, i) => { const q = ctx.plans[i]; if (q.count !== p.count) return [];
+            const a = slot(q), b = slot(p); return [b.filter((c, j) => c !== a[j % a.length]).length]; });
         ok(`harmony_${len}_a_turn_changes_a_chord_or_two`, ch.filter((x) => x <= 2).length >= (len > 64 ? 0.45 : 0.75) * ch.length && ch.every((x) => x > 0));
         eq(`harmony_${len}_every_position_is_a_new_loop`, new Set(ctx.plans.map((p) => p.chords.map(G.chordName).join())).size, ctx.plans.length);
     }

@@ -1,88 +1,74 @@
-/* New Clip's harmony (plans/2026-10-28-new-clip-design.md): a locked scene's
- * chords as the others play them; otherwise progressions in the key — the
- * loops groovebox tracks are built on — fitted, in a partial scene, around
- * what the others pin. One chord per bar on four bars or more, per half-bar
- * below, so even a one-bar clip moves; a long clip may develop its
- * progression past four chords. */
+/* New Clip's harmony (plans/2026-10-28-new-clip-design.md): progressions in
+ * the key — the loops groovebox tracks are built on — fitted, in a partial
+ * scene, around what the others pin. HARMONY is three sections by how many
+ * chords a 4-bar phrase moves through (user, 2026-11-06): 2 (two bars a
+ * chord), 4 (a bar a chord on four bars or more, a half-bar below, so even a
+ * one-bar clip moves; a long clip may develop past four chords) and 8 (a
+ * half-bar a chord). A locked scene's chords are the others'; HARMONY there
+ * only adds approach chords between them (theory/changes.ts). */
 
 import type { GenCtx } from '../analysis/context.js';
-import { fits, sample } from '../plan.js';
+import { fits, pinOk, sample } from '../plan.js';
 import { chordOf } from '../theory/pc.js';
 import { diatonic } from '../theory/roman.js';
 import { boldJourney, journey } from '../theory/develop.js';
+import { approachTo, CHANGES, withChanges } from '../theory/changes.js';
 import { walks } from '../theory/walk.js';
 import { grow, type Loop, order } from './harmony-map.js';
+import * as P from './progressions.js';
 import { mix, rng } from '../rng.js';
-import type { Chord, HarmonyPlan, Quality } from '../types.js';
-
-type Prog = [string, number[], boolean?];   // name, degrees (0 = tonic), sevenths
-
-const MAJOR: Prog[] = [
-    ['POP', [0, 4, 5, 3]], ['DOO-WOP', [0, 5, 3, 4]], ['CADENCE', [0, 3, 4, 0]], ['II-V-I', [1, 4, 0, 0], true],
-    ['VAMP', [0, 3, 0, 3]], ['LIFT', [3, 4, 5, 5]], ['SOUL', [0, 2, 3, 4], true], ['TONIC', [0, 0, 0, 0]],
-];
-const MINOR: Prog[] = [
-    ['MINOR LOOP', [0, 5, 2, 6]], ['DESCENT', [0, 6, 5, 4]], ['CADENCE', [0, 3, 4, 0]], ['DRIFT', [0, 6, 5, 6]],
-    ['VAMP', [0, 3, 0, 3]], ['EPIC', [0, 5, 6, 0]], ['DEEP', [0, 3, 6, 2], true], ['TONIC', [0, 0, 0, 0]],
-];
-
-/* More of the loops in the key (user, 2026-10-29: "more harmony options for
- * chord generators on new scenes"), after the first eight so those keep
- * their positions. Diatonic, so a take may open on them. */
-const MORE_MAJOR: Prog[] = [
-    ['SENSITIVE', [5, 3, 0, 4]], ['ROYAL ROAD', [3, 4, 2, 5]], ['TURNAROUND', [0, 5, 1, 4]], ['SWAY', [0, 1, 0, 1], true],
-];
-const MORE_MINOR: Prog[] = [
-    ['HOOK', [0, 2, 6, 5]], ['RISE', [5, 6, 0, 0]], ['SHUTTLE', [0, 6, 0, 6]], ['FALL', [0, 4, 5, 2], true],
-];
-
-/* Borrowed and modal colour, chords from outside the key as semitones over
- * the tonic: the end of the knob, for a more experimental take (user: "extended
- * ranges add more experimental flavor"). Never drawn for a take. */
-type Colour = [string, [number, Quality][]];
-const COLOUR_MAJOR: Colour[] = [
-    ['MIXOLYDIAN', [[0, 'maj'], [10, 'maj'], [5, 'maj'], [0, 'maj']]], ['MINOR IV', [[0, 'maj'], [5, 'maj'], [5, 'min'], [0, 'maj']]],
-    ['BVI BVII', [[8, 'maj'], [10, 'maj'], [0, 'maj'], [0, 'maj']]], ['BACKDOOR', [[2, 'm7'], [10, '7'], [0, 'maj7'], [0, 'maj7']]],
-    ['LYDIAN', [[0, 'maj'], [2, 'maj'], [0, 'maj'], [2, 'maj']]],
-];
-const COLOUR_MINOR: Colour[] = [
-    ['DORIAN', [[0, 'min'], [5, 'maj'], [0, 'min'], [5, 'maj']]], ['PHRYGIAN', [[0, 'min'], [1, 'maj'], [0, 'min'], [1, 'maj']]],
-    ['HARMONIC', [[0, 'min'], [5, 'min'], [7, 'maj'], [0, 'min']]], ['ANDALUSIAN', [[0, 'min'], [10, 'maj'], [8, 'maj'], [7, 'maj']]],
-    ['PICARDY', [[0, 'min'], [5, 'min'], [10, 'maj'], [0, 'maj']]],
-];
-
-/* Eight-chord progressions, for clips with eight chord slots or more. */
-const LONG_MAJOR: Prog[] = [['CIRCLE', [0, 3, 6, 2, 5, 1, 4, 0]], ['CANON', [0, 4, 5, 2, 3, 0, 3, 4]], ['ROAD', [0, 5, 3, 4, 0, 2, 3, 4]]];
-const LONG_MINOR: Prog[] = [['CIRCLE', [0, 3, 6, 2, 5, 1, 4, 0]], ['LAMENT', [0, 6, 5, 4, 3, 2, 4, 4]], ['SAGA', [0, 5, 2, 6, 0, 3, 5, 4]]];
+import type { Chord, HarmonyPlan } from '../types.js';
 
 const id = (cs: (Chord | null)[]) => cs.map((c) => (c ? c.root + c.quality : '-')).join();
 
 /** Chord slots: one per bar on four bars or more, per half-bar below. */
 const perOf = (n: number) => (n >= 8 ? 2 : 1);
 
-const degrees = (ctx: GenCtx, p: Prog): Chord[] => p[1].map((d) => diatonic(ctx.key, d, !!p[2]));
+const degrees = (ctx: GenCtx, p: P.Prog): Chord[] => p[1].map((d) => diatonic(ctx.key, d, !!p[2]));
+const colour = (ctx: GenCtx, cs: P.Colour[1]): Chord[] => cs.map(([s, q]) => chordOf(ctx.key.tonic + s, q));
 
-/** A slot list laid over the clip's half-bars, going round when shorter. */
-function lay(slots: (Chord | null)[], n: number): (Chord | null)[] {
-    const per = perOf(n);
+/** A slot list laid over the clip's half-bars, `per` a slot, going round when shorter. */
+function lay(slots: (Chord | null)[], n: number, per: number): (Chord | null)[] {
     return Array.from({ length: n }, (_, h) => slots[Math.floor(h / per) % slots.length]);
 }
 
-/* HARMONY's positions: up to this many loops on the map. */
-const MAP = 128;
+/* HARMONY's positions a section: up to this many loops on its map. */
+const MAP = { 2: 40, 4: 128, 8: 56 } as const;
 
-/** The plans for a New Clip: the named loops, walks and colour as seeds;
- *  on a clip with more slots than four, each also DEVELOPED (every repeat a
- *  different answer, theory/develop.ts) and the eight-chord ones. The grammar
- *  derives more from them, and the whole lot is laid on a line where each
- *  next loop is one chord from the last (create/harmony-map.ts). */
-export function* createPlans(ctx: GenCtx, n: number): Generator<void, HarmonyPlan[], void> {
-    if (ctx.freedom === 'locked') return [{ chords: sample(ctx.fixedChords, n), sit: 'asis', pedal: null, label: 'SCENE' }];
+type Seed = (label: string, chords: (Chord | null)[], ext?: boolean) => void;
+const seeder = (seeds: Loop[]): Seed => (label, chords, ext = false) => seeds.push({ label, chords, ext, seed: seeds.length });
+
+/** One section's map: its seeds grown by the grammar, laid at `per`
+ *  half-bars a chord, then on a line (create/harmony-map.ts). `seen` keeps a
+ *  loop the 4 section already holds out of the others. */
+function* section(ctx: GenCtx, n: number, count: 2 | 4 | 8, per: number, seeds: Loop[], extra: Loop[], seen: Set<string>):
+    Generator<void, HarmonyPlan[], void> {
+    /* Not `for (… of yield* …)`: QuickJS 2025-04-26 (the device's) throws
+     * "stack underflow" on it (browser-test/source-rules.mjs bans it). */
+    const grown = yield* grow(seeds, ctx.key, MAP[count]);
+    const out: HarmonyPlan[] = [];
+    for (const l of [...grown, ...extra]) {
+        const base = lay(l.chords, n, per);
+        const chords = ctx.freedom === 'partial' ? fits(ctx, base, 0) : base;
+        const k = id(chords);
+        if (seen.has(k)) continue;
+        seen.add(k);
+        out.push({ chords, sit: 'asis', pedal: null, label: ctx.freedom === 'partial' ? l.label + ' FIT' : l.label, count,
+            ...(l.ext ? { ext: true } : {}), ...(l.seed !== undefined ? { seed: l.seed } : {}) });
+    }
+    yield;
+    return yield* order(out, ctx.key, per);
+}
+
+/** The 4 section: the named loops, walks and colour; on a clip with more
+ *  slots than four, each also DEVELOPED (every repeat a different answer,
+ *  theory/develop.ts) and the eight-chord ones. */
+function fourSeeds(ctx: GenCtx, n: number): { seeds: Loop[]; bold: Loop[] } {
     const slots = Math.ceil(n / perOf(n));
     const long = slots > 4;
     const seeds: Loop[] = [];
-    const seed = (label: string, chords: (Chord | null)[], ext = false) => seeds.push({ label, chords, ext, seed: seeds.length });
-    const short = ctx.key.minor ? MINOR : MAJOR;
+    const seed = seeder(seeds);
+    const short = ctx.key.minor ? P.MINOR : P.MAJOR;
     for (const p of short) seed(p[0], degrees(ctx, p));
     /* Each development's bold twin goes on after the grammar, so it neither
      * grows loops nor takes a place on the map from one: defaults and takes
@@ -94,33 +80,92 @@ export function* createPlans(ctx: GenCtx, n: number): Generator<void, HarmonyPla
             const b = boldJourney(degrees(ctx, p), Math.ceil(slots / 4), ctx.key);
             if (b) bold.push({ label: p[0] + '+BOLD', chords: b, ext: true });
         }
-        for (const p of ctx.key.minor ? LONG_MINOR : LONG_MAJOR) seed(p[0], degrees(ctx, p));
+        for (const p of ctx.key.minor ? P.LONG_MINOR : P.LONG_MAJOR) seed(p[0], degrees(ctx, p));
     }
-    for (const p of ctx.key.minor ? MORE_MINOR : MORE_MAJOR) seed(p[0], degrees(ctx, p));
+    for (const p of ctx.key.minor ? P.MORE_MINOR : P.MORE_MAJOR) seed(p[0], degrees(ctx, p));
     /* Walks (theory/walk.ts): new loops every run, eight chords long where
      * the clip has room. */
     walks(ctx.key, long ? 8 : 4, 3, rng(mix(ctx.seed, 0x3A1C)), 1).forEach((w, i) => seed('WALK ' + (i + 1), w));
-    for (const [name, cs] of ctx.key.minor ? COLOUR_MINOR : COLOUR_MAJOR) seed(name, cs.map(([s, q]) => chordOf(ctx.key.tonic + s, q)), true);
-    const seen = new Set<string>();
-    const out: HarmonyPlan[] = [];
-    /* Not `for (… of yield* …)`: QuickJS 2025-04-26 (the device's) throws
-     * "stack underflow" on it (browser-test/source-rules.mjs bans it). */
-    const grown = yield* grow(seeds, ctx.key, MAP);
-    for (const l of [...grown, ...bold]) {
-        const base = lay(l.chords, n);
-        const chords = ctx.freedom === 'partial' ? fits(ctx, base, 0) : base;
-        const k = id(chords);
-        if (seen.has(k)) continue;
-        seen.add(k);
-        out.push({ chords, sit: 'asis', pedal: null, label: ctx.freedom === 'partial' ? l.label + ' FIT' : l.label,
-            ...(l.ext ? { ext: true } : {}), ...(l.seed !== undefined ? { seed: l.seed } : {}) });
+    for (const [name, cs] of ctx.key.minor ? P.COLOUR_MINOR : P.COLOUR_MAJOR) seed(name, colour(ctx, cs), true);
+    return { seeds, bold };
+}
+
+function pairSeeds(ctx: GenCtx): Loop[] {
+    const seeds: Loop[] = [];
+    const seed = seeder(seeds);
+    for (const p of ctx.key.minor ? P.PAIR_MINOR : P.PAIR_MAJOR) seed(p[0], degrees(ctx, p));
+    for (const [name, cs] of ctx.key.minor ? P.PAIR_COLOUR_MINOR : P.PAIR_COLOUR_MAJOR) seed(name, colour(ctx, cs), true);
+    return seeds;
+}
+
+/** A four-chord loop with the chord that leads into each next one between
+ *  them; null when no chord of it has one (outside the key). */
+function approached(ctx: GenCtx, cs: Chord[]): Chord[] | null {
+    const seventh = cs.some((c) => c.pcs.length > 3);
+    let any = false;
+    const out = cs.flatMap((c, i) => {
+        const a = approachTo(cs[(i + 1) % cs.length], ctx.key, () => true, seventh);
+        if (a) any = true;
+        return [c, a ?? c];
+    });
+    return any ? out : null;
+}
+
+/** The 8 section: the eight-chord progressions, eight-chord walks, and each
+ *  four-chord loop with its approach chords. */
+function eightSeeds(ctx: GenCtx): Loop[] {
+    const seeds: Loop[] = [];
+    const seed = seeder(seeds);
+    for (const p of ctx.key.minor ? P.LONG_MINOR : P.LONG_MAJOR) seed(p[0], degrees(ctx, p));
+    const four = [...(ctx.key.minor ? P.MINOR : P.MAJOR), ...(ctx.key.minor ? P.MORE_MINOR : P.MORE_MAJOR)].filter((p) => p[0] !== 'TONIC');
+    for (const p of four) {
+        const a = approached(ctx, degrees(ctx, p));
+        if (a) seed(p[0] + ' 8', a);
     }
-    yield;
-    const laid = yield* order(out, ctx.key, perOf(n));
+    walks(ctx.key, 8, 3, rng(mix(ctx.seed, 0x8C8)), 1).forEach((w, i) => seed('WALK 8-' + (i + 1), w));
+    for (const [name, cs] of ctx.key.minor ? P.COLOUR_MINOR : P.COLOUR_MAJOR) {
+        const a = approached(ctx, colour(ctx, cs));
+        if (a) seed(name + ' 8', a, true);
+    }
+    return seeds;
+}
+
+/** One plan, then with approach chords added where they hold what the
+ *  others play (theory/changes.ts): a locked scene's chords, or the one fit
+ *  a partial scene's pins leave. */
+function withRates(ctx: GenCtx, first: HarmonyPlan): HarmonyPlan[] {
+    const base = first.chords;
+    const out: HarmonyPlan[] = [first];
+    if (!base.some((c) => c)) return out;
+    const seen = new Set([id(base.flatMap((c) => [c, c]))]);
+    const ok = pinOk(ctx);
+    for (let level = 1; level < CHANGES.length; level++) {
+        const chords = withChanges(base, level, ctx.key, ok);
+        if (seen.has(id(chords))) continue;
+        seen.add(id(chords));
+        out.push({ chords, sit: 'asis', pedal: null, label: CHANGES[level] });
+    }
+    return out;
+}
+
+/** The plans for a New Clip: TONIC, then the 2, 4 and 8 sections, each one
+ *  map where a turn changes a chord and its colour at its own end. A section
+ *  shows where its chords fit the clip: 2 from two bars, 8 from four. */
+export function* createPlans(ctx: GenCtx, n: number): Generator<void, HarmonyPlan[], void> {
+    if (ctx.freedom === 'locked') return withRates(ctx, { chords: sample(ctx.fixedChords, n), sit: 'asis', pedal: null, label: 'SCENE' });
+    const seen = new Set<string>();
+    const { seeds, bold } = fourSeeds(ctx, n);
+    /* The 4 section first, so its map is the one HARMONY always had. */
+    const laid = yield* section(ctx, n, 4, perOf(n), seeds, bold, seen);
+    const two = n >= 4 ? yield* section(ctx, n, 2, n >= 8 ? 4 : 2, pairSeeds(ctx), [], seen) : [];
+    const eight = n >= 8 ? yield* section(ctx, n, 8, 1, eightSeeds(ctx), [], seen) : [];
     /* HARMONY's left end stays on the tonic (user, 2026-11-01: the left ends
      * mean "nothing moves"); a take never opens on it (runPlan). */
     const t = laid.findIndex((p) => p.label.startsWith('TONIC'));
-    return t > 0 ? [laid[t], ...laid.slice(0, t), ...laid.slice(t + 1)] : laid;
+    const four = t >= 0 ? [...laid.slice(0, t), ...laid.slice(t + 1)] : laid;
+    const all = [...(t >= 0 ? [laid[t]] : []), ...two, ...four, ...eight];
+    /* Pins that leave one fit would leave HARMONY dark: its rates instead. */
+    return all.length === 1 ? withRates(ctx, all[0]) : all;
 }
 
 /** How many different chords a plan moves through. */

@@ -12,7 +12,7 @@
 
 import type { GenCtx } from '../analysis/context.js';
 import { sameChord } from '../theory/pc.js';
-import { BAR, BEAT, HALF } from '../types.js';
+import { BAR, BEAT } from '../types.js';
 import { chordUnder } from './common.js';
 
 export interface Span { start: number; land: number; end: number; answer: boolean; last: boolean }
@@ -64,7 +64,7 @@ export function planSpans(ctx: GenCtx, t: Tpl, h: number, quiet = false): Span[]
     const out: Span[] = [];
     if (t.change) {
         const at: number[] = [];
-        for (let x = 0; x < ctx.end; x += HALF) if (!at.length || !sameChord(chordUnder(ctx, h, x), chordUnder(ctx, h, at[at.length - 1]))) at.push(x);
+        for (let x = 0; x < ctx.end; x += BEAT) if (!at.length || !sameChord(chordUnder(ctx, h, x), chordUnder(ctx, h, at[at.length - 1]))) at.push(x);
         if (at.length > 1 && sameChord(chordUnder(ctx, h, at[0]), chordUnder(ctx, h, at[at.length - 1]))) at.pop();
         at.forEach((x, i) => {
             const next = at[i + 1] ?? ctx.end + at[0];

@@ -30,7 +30,11 @@ eq('new_clip_per_pad_writes_only_its_pad', [...new Set(drm.picks[0].notes.map((n
 
 /* A locked scene: the parts sit on the others' chords (Fmaj7 G7 Am7 E7). */
 const lk = G.generateAll(createInput(false, 'locked', 2));
-eq('new_clip_locked_scene_plays_the_scenes_chords', lk.ctx.plans.map((p) => p.label).join(), 'SCENE');
+eq('new_clip_locked_scene_plays_the_scenes_chords', lk.ctx.plans[0].label, 'SCENE');
+eq('new_clip_locked_scene_opens_on_them', G.runPlan(lk.ctx), 0);
+/* HARMONY there only adds approach chords (user, 2026-11-06: no dead knob). */
+ok('new_clip_locked_harmony_adds_approach_chords', lk.ctx.plans.length > 1 && lk.ctx.plans.slice(1).every((p) => ['APPROACH', 'APPROACH + BEAT', 'EVERY HALF BAR'].includes(p.label))
+    && lk.ctx.plans.slice(1).every((p) => p.chords.length === 2 * lk.ctx.plans[0].chords.length));
 const chords = lk.picks.find((p) => p.preset.id === 'n-chords').notes;
 const PROG_B = [[5, 9, 0, 4], [7, 11, 2, 5], [9, 0, 4, 7], [4, 8, 11, 2]];
 const inChord = chords.filter((n) => PROG_B[Math.floor(n.tick / (8 * G.TPS)) % 4].includes(pcOf(n.pitch)));
@@ -215,7 +219,8 @@ ok('its_chords_part_plays_more_than_four', rich.every((r) => chordsIn(r.ctx, r.p
 const chordsKey = (p) => p.chords.map((c) => (c ? c.root + c.quality : '-')).join(' ');
 const boldOf = (r) => r.ctx.plans.map((p, i) => [p, i]).filter(([p]) => p.label.endsWith('+BOLD'));
 ok('long_clips_add_bold_developments', rich.every((r) => boldOf(r).length > 0 && boldOf(r).every(([p]) => p.ext)));
-ok('bold_developments_sit_at_the_far_end', rich.every((r) => { const e = r.ctx.plans.findIndex((p) => p.ext); return e > 0 && r.ctx.plans.slice(e).every((p) => p.ext); }));
+const fourOf = (r) => r.ctx.plans.filter((p) => p.count === 4);
+ok('bold_developments_sit_at_the_far_end', rich.every((r) => { const f = fourOf(r), e = f.findIndex((p) => p.ext); return e > 0 && f.slice(e).every((p) => p.ext); }));
 ok('a_bold_development_turns_where_a_plain_one_does_not', rich.every((r) => boldOf(r).every(([b]) => !r.ctx.plans.some((p) => !p.ext && chordsKey(p) === chordsKey(b)))));
 ok('a_take_never_opens_on_a_bold_development', rich.every((r) => !r.ctx.plans[G.runPlan(r.ctx)].ext && !r.ctx.plans[G.defaultHarmony(r.ctx)].ext));
 eq('short_clips_have_no_bold_developments', G.prepare(createInput(false, 'free', 1)).plans.filter((p) => p.label.endsWith('+BOLD')).length, 0);

@@ -12,7 +12,7 @@ import { keyFor, keyHint } from '../theory/key.js';
 import { bandHits, type Hit } from './band.js';
 import { heardOf } from './heard.js';
 import { type Groove, grooveOf } from './groove.js';
-import { type Kit, kitOf } from './kit.js';
+import { type Kit, kitHints, kitOf } from './kit.js';
 import { heardPcs, profile, sceneTicks, soundingSegments } from './sounding.js';
 
 export interface GenCtx {
@@ -113,7 +113,7 @@ export function buildCtx(input: GenInput): GenCtx {
         /* A Variation hears the band too: in a scene built track by track,
          * the parts varied before it (paths bench, scene B). */
         band: input.task === 'double' || input.task === 'create' || input.task === 'variation' ? bandHits(input, end, k) : [],
-        kit: input.drum ? kitOf(input.kit.length ? input.kit : [...new Set(src.map((n) => n.pitch))], me?.padNames ?? null,
+        kit: input.drum ? kitOf(input.kit.length ? input.kit : [...new Set(src.map((n) => n.pitch))], kitHints(me),
             (me?.clips ?? []).flatMap((c) => c.notes)) : null,
         loops: input.task === 'variation'
             ? (me?.clips ?? []).filter((c) => c.slot !== input.target.slot && c.notes.length > 0).map((c) => c.notes) : [],

@@ -7,6 +7,7 @@ import { buildViewModel }   from './viewmodel.js';
 import { processTick, reReadModule } from './tick.js';
 import { NAME_POLL_TICKS } from './constants.js';
 import { rememberFileDir, defaultDirFor } from './file-dirs.js';
+import { padKeyDefs, type PadKeyDef } from './pad-identity.js';
 
 /* Everything the file browser needs to open on one parameter. `gi` is movy's
  * own index, and the only handle its file-value cache answers to. */
@@ -77,6 +78,7 @@ export function createModel(port: TrackPort, componentKey = 'synth') {
         },
 
         getModuleName(): string { return s.activeModuleName; },
+        getModuleId(): string { return s.moduleId; },
 
         reset(): void {
             s.touchedSlots.length = 0;
@@ -201,6 +203,8 @@ export function createModel(port: TrackPort, componentKey = 'synth') {
          * declared none). A gesture has to name the voice it moved, and the
          * view model's `drumPadName` is the FOCUSED pad's — the wrong one. */
         getDrumPadNames(): string[] { return s.drumPadNames; },
+        getDrumPadRoles(): string[] { return s.drumPadRoles; },
+        padKeyDefs(pad: number): PadKeyDef[] { return padKeyDefs(s, pad); },
         getDrumCurrentPad(): number { return s.drumCurrentPad; },
         getDrumCurrentPhysPad(): number { return s.drumCurrentPhysPad; },
 

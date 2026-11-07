@@ -45,7 +45,7 @@ export function readSurface(hierarchy: any): DeclaredSurface | null {
  *  than imported, to keep the layering one-way. */
 export interface DeclaredSurface {
     layout: string | null;
-    voices: { note: number; name: string; level: string }[];
+    voices: { note: number; name: string; level: string; role?: string | null }[];
     focusParam: string | null;
     /* The live-press param, carried past `effectiveDrumConfig` rather than INTO
      * it: `focus_press_param` is a hierarchy ROOT field, so a module need not

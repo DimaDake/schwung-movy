@@ -179,6 +179,13 @@ between genres (four on the floor, disco, backbeat, 2-step, breakbeat, half
 time, trap, broken beat) with separate kick, snare and hat counts, and can end
 on a fill.
 
+The kick, snare and hats go on the pads that play them. movy reads that from
+the drum module itself: the names and roles it gives its voices, the sample a
+pad plays, or the sound or algorithm chosen on the pad. Change a pad's sound
+and the next options follow it. A module that names nothing gets the General
+MIDI layout (kick on the first pad) unless its clip already shows which pad
+plays what.
+
 On every New Clip option, **DRIFT** walks the part away from itself one small
 change per click: turn it slowly while it plays to let the part evolve.
 

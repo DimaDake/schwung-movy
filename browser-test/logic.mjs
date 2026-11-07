@@ -41,6 +41,7 @@ import { run as run_ai_retune } from './logic/ai-retune.mjs';
 import { run as run_gen_engine } from './logic/gen-engine.mjs';
 import { run as run_gen_merges } from './logic/gen-merges.mjs';
 import { run as run_gen_layout } from './logic/gen-layout.mjs';
+import { run as run_gen_kit_voices } from './logic/gen-kit-voices.mjs';
 import { run as run_ai_session_undo } from './logic/ai-session-undo.mjs';
 import { run as run_ai_preview_knobs } from './logic/ai-preview-knobs.mjs';
 import { run as run_ai_sessions } from './logic/ai-sessions.mjs';
@@ -161,6 +162,7 @@ const SUITES = [
     run_gen_engine,
     run_gen_merges,
     run_gen_layout,
+    run_gen_kit_voices,
     run_ai_session_undo,
     run_ai_preview_knobs,
     run_ai_sessions,

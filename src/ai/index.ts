@@ -4,6 +4,7 @@ export * from './role.js';
 export * from './same-loop.js';
 export * from './target.js';
 export * from './set-input.js';
+export { padHints } from './pad-labels.js';
 export * from './job.js';
 export * from './preview.js';
 export { SESSION_CAP, SessionUndo } from './session-undo.js';

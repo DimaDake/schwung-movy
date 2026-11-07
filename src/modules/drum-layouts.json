@@ -1,0 +1,26 @@
+{
+  "_why": "What a drum module's pads play when the module itself says nothing movy can read: no declared names or roles, and no per-pad param whose value names the drum. Read by src/ai/pad-labels.ts only as the LAST word before guessing; anything the module declares or holds wins. Each entry is a stand-in for an upstream declaration (child_roles / child_names, or enum options on the per-pad param) and should go once the module ships one.",
+  "krautdrums": {
+    "_source": "krautdrums-move src/dsp/krautdrums.c VOICES[]: sixteen fixed voices, one per pad in order",
+    "names": ["Bass-drum", "Conga", "Tom 1", "Tom 2", "Claves", "Snare", "Short cym", "Long cym",
+              "Cow Bell", "Bass-drum 2", "Tom 3", "Conga 2", "Claves 2", "Snare 2", "Mid cym", "Cow Bell 2"]
+  },
+  "strut": {
+    "_source": "strut-move src/dsp/dice.c ROLES[]: every factory and rolled kit keeps this layout; a pad's SOUND reads 'Own' after a kit load",
+    "roles": ["kick", "snare", "hat", "open", "kick", "clap", "rim", "cymbal",
+              "tom", "tom", "tom", "perc", "perc", "bell", "bass", "fx"]
+  },
+  "weird-dreams": {
+    "_source": "weird-dreams-move src/dsp/weird_dreams.c PRESET_NAMES[]: v<N>_preset reads back as an index the module declares as a bare int",
+    "valueNames": {
+      "cv_preset": ["Sub Kick", "Punch Kick", "FM Kick", "Dusty Kick", "Long Kick",
+                    "Snare", "Snap Snare", "Fat Snare", "Crack Snare", "Noise Snare",
+                    "Low Tom", "Mid Tom", "High Tom", "Acid Tom", "Conga",
+                    "Closed HH", "Open HH", "Pedal HH", "Metal HH", "Trash HH",
+                    "Crash", "Ride", "Ride Bell", "Dark Crash", "Sizzle",
+                    "Clap 808", "Tight Clap", "Big Clap", "Dirty Clap", "Snap Clap",
+                    "Rimshot", "Cowbell", "Clave", "Shaker", "Tamb",
+                    "Zap", "Glitch", "Drone Hit", "Blip", "Noise Burst", "Custom"]
+    }
+  }
+}

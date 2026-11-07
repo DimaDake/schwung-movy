@@ -54,6 +54,9 @@ export interface ModelState {
     /* What the MODULE calls each pad, pad-ordered. Only a declared rack has
      * these; movy's own table names banks, never voices. */
     drumPadNames:        string[];
+    /* ...and the part it says each plays (schwung's free-form `role`), '' where
+     * it says none. The drum generators read it (gen/analysis/kit.ts). */
+    drumPadRoles:        string[];
     /* The declared hierarchy's per-instance levels (`model/child-keys.ts`). */
     childLevels:         any[];
     /* Per pad, the keys only that pad's voice owns (`model/voice-keys.ts`);
@@ -101,6 +104,7 @@ export function createModelState(port: TrackPort, componentKey: string): ModelSt
         drumPadCount:        0,
         drumConfig:          null,
         drumPadNames:        [],
+        drumPadRoles:        [],
         childLevels:         [],
         voiceKeys:           [],
         declared:            null,

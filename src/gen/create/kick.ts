@@ -3,7 +3,7 @@
  * 70% in pop, and the band's accents alone (common.ts bandSteps) mix the kick
  * with snares and struck chords, which drew the bass off it (41%). */
 
-import { kitOf } from '../analysis/kit.js';
+import { kitHints, kitOf } from '../analysis/kit.js';
 import type { GenCtx } from '../analysis/context.js';
 import { TPS } from '../types.js';
 import { bandSteps, withBand } from './common.js';
@@ -17,7 +17,7 @@ export function kickSteps(ctx: GenCtx): number[] {
         if (!t.drum || t.index === input.target.track) continue;
         for (const c of t.clips) {
             if (c.slot !== input.target.slot || !c.notes.length || c.len <= 0) continue;
-            const kit = kitOf([...new Set(c.notes.map((n) => n.pitch))], t.padNames ?? null, c.notes);
+            const kit = kitOf([...new Set(c.notes.map((n) => n.pitch))], kitHints(t), c.notes);
             const kicks = new Set(kit.by.kick);
             const m = c.scaleDen / c.scaleNum / ctx.k;
             const w0 = c.loopStart * TPS;

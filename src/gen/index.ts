@@ -13,6 +13,7 @@ export * from './analysis/sounding.js';
 export * from './analysis/events.js';
 export * from './analysis/groove.js';
 export * from './analysis/kit.js';
+export * from './analysis/drum-lexicon.js';
 export * from './analysis/context.js';
 export * from './plan.js';
 export * from './knobs.js';

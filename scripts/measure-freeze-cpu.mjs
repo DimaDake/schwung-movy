@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* measure-freeze-cpu.mjs — what freezing gives back (FROZEN-DOC.md; plan
+/* measure-freeze-cpu.mjs — what freezing gives back (site/manual/sounds.md; plan
  * 2026-10-23-stems-freeze-export-wifi.md, F3), measured on movy-host.
  *
  *   npm run build:test-device

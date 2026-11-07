@@ -1,5 +1,5 @@
 /* Freeze on the device (plans/2026-10-23-stems-freeze-export-wifi.md, F3;
- * FROZEN-DOC.md). The gesture, the dialog, the guards and the pad scroll are
+ * site/manual/sounds.md). The gesture, the dialog, the guards and the pad scroll are
  * pinned in browser-test/logic/freeze.mjs and the bank in freeze_bank.rs's
  * unit tests; what only the box can show is the whole loop through a real
  * chain, the audio thread and the Set's files.

@@ -42,9 +42,12 @@ fn frz_on_an_empty_slot_is_noclip() {
 
 /// Reviewed: the UI sends the Set's chains right after `set open`, before the
 /// engine's own restore, so a frozen track's synth loaded (0.3-0.5 s on the
-/// audio thread) only to be retired again by `freeze_install`.
+/// audio thread) only to be retired again by `freeze_install`. Held until the
+/// open lands — and, found on device (automation p3, page-lifecycle L4), never
+/// reported as "nothing pending" meanwhile: the UI delivers the chains' saved
+/// state once `chpend` drains, so a 0 while held lost every preset.
 #[test]
-fn the_uis_chains_wait_for_the_open_and_apply_only_if_it_fails() {
+fn the_uis_chains_wait_for_the_open_and_count_as_pending() {
     let doc = chain_state::pack(&["2".into(), "synth".into(), "obxd".into(),
                                   String::new(), String::new(), String::new()]);
     let dir = super::tests_support::saver_tmp("held-chains");
@@ -57,9 +60,11 @@ fn the_uis_chains_wait_for_the_open_and_apply_only_if_it_fails() {
 
     inst.set_param("set", "open s1");
     inst.set_param("chains", &chain_state::pack(&["2".into(), "synth".into(), "obxd".into()]));
-    assert!(inst.get_param("status").unwrap().contains(" chpend=0"), "applied before the open");
+    assert!(inst.held_chains.is_some(), "held while the open is in flight");
+    assert!(!inst.get_param("status").unwrap().contains(" chpend=0"),
+            "a held document is a pending load: the UI must not deliver the saved state yet");
     settle(&mut inst, &mut audio);
-    assert!(inst.held_chains.is_none(), "dropped: the open restored its own");
+    assert!(inst.held_chains.is_none(), "applied when the open landed");
     assert!(inst.chains.loaded_report().contains("2:synth=obxd"), "{}", inst.chains.loaded_report());
 
     // What the UI sends: `slot, component, module` triples (chain-persist.ts).

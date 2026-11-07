@@ -206,10 +206,14 @@ struct Instance {
     /// write the PREVIOUS sequence under it.
     open_pending: bool,
     /// The UI's chain document for the Set being opened, held until the
-    /// engine's own restore: the UI sends it right after `set open`, and
-    /// applying it first would load a frozen track's synth (0.3-0.5 s on this
-    /// thread) only for `freeze_install` to retire it again. Applied after
-    /// all when the open brings no chains document, or fails.
+    /// open lands: the UI sends it right after `set open`, and its loads
+    /// would run before the Set's frozen tracks are known — a frozen track's
+    /// synth loaded (0.3-0.5 s on this thread) only for `freeze_install` to
+    /// retire it again. Applied in the block the open lands (or fails), just
+    /// before the restore, so `freeze_install` takes those loads back before
+    /// one runs. While held it counts as a pending load (`chpend`): the UI
+    /// sends the chains' saved state once the loads drain (set-settle.ts), and
+    /// a 0 then would deliver it before a single chain exists.
     held_chains: Option<String>,
     /// How many Set payloads this engine has APPLIED — not requested, not read
     /// off disk: applied, on this thread, by `service_set`.
@@ -695,7 +699,8 @@ impl Instance {
                  * is the one thing it already reads every few ticks. */
                 s.push_str(&format!(" chgen={} chact={} chslp={} chpend={}",
                     self.chains.generation(), self.chains.active_count(),
-                    self.chains.asleep_count(), self.chains.pending_loads()));
+                    self.chains.asleep_count(),
+                    self.chains.pending_loads() + usize::from(self.held_chains.is_some())));
                 /* Rides the same poll, for the same reason: the CPU page
                  * repaints from `status` and must not buy an IPC of its own. */
                 s.push_str(&self.chains.cost_status());
@@ -886,14 +891,11 @@ impl Instance {
             if seq_core::persist::load(&mut self.engine, &payload) {
                 self.engine.dirty = false;
             }
-            let held = self.held_chains.take();
+            if let Some(doc) = self.held_chains.take() {
+                self.chains.set_chain_set(&doc);
+            }
             if !chain_state::restore(&mut self.chains, &chains) && !chains.is_empty() {
                 host::log("set: malformed chains.json ignored");
-            }
-            if chains.trim().is_empty() {
-                if let Some(doc) = held {
-                    self.chains.set_chain_set(&doc);
-                }
             }
             /* The Set's frozen tracks (freeze_files.rs), read with these bytes:
              * installed right after the restore queued their chains, so those

@@ -24,11 +24,12 @@ export const SHAPES: [string, Shape][] = [
 ];
 
 /** The onsets of a span `n` steps long (from `at`, the span's first step),
- *  in steps from its start, at DENSITY `density` (0..10). */
-export function phraseOnsets(n: number, at: number, density: number, shape: Shape, r: Rng): number[] {
+ *  in steps from its start, at DENSITY `density` (0..10); `lean` is the
+ *  band's pull on a step (common.ts bandLean). */
+export function phraseOnsets(n: number, at: number, density: number, shape: Shape, r: Rng, lean: (step: number) => number = () => 0): number[] {
     if (n <= 0) return [];
     const count = Math.max(1, Math.min(n, Math.round(n * (0.1 + density * 0.045))));
-    const w = Array.from({ length: n }, (_, k) => ({ k, w: shape(k / n, at + k, n) * (0.3 + strength((at + k) * TPS)) + r() * 0.12 }));
+    const w = Array.from({ length: n }, (_, k) => ({ k, w: shape(k / n, at + k, n) * (0.3 + strength((at + k) * TPS) + lean(at + k)) + r() * 0.12 }));
     /* A phrase starts on its downbeat unless its shape enters late. */
     if (shape(0, at, n) > 0) w[0].w += 10;
     return w.filter((x) => x.w > 0.05).sort((a, b) => b.w - a.w).slice(0, count).map((x) => x.k).sort((a, b) => a - b);

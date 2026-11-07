@@ -5,7 +5,10 @@
  * [start, dur, pitch, vel] in beats. */
 
 const q = (x) => Math.round(x * 4);
-const TRIADS = [[0, 4, 7], [0, 3, 7], [0, 3, 6], [0, 4, 8], [0, 5, 7], [0, 2, 7]];
+export const TRIADS = [[0, 4, 7], [0, 3, 7], [0, 3, 6], [0, 4, 8], [0, 5, 7], [0, 2, 7]];
+
+/** Do three pitch classes spell one of TRIADS on any of them? */
+export const isTriad = (pcs) => pcs.length === 3 && pcs.some((r) => TRIADS.some((t) => t.every((i) => pcs.includes((r + i) % 12))));
 export const median = (a) => { const s = [...a].sort((x, y) => x - y); return s.length ? s[s.length >> 1] : null; };
 
 /** Per 16th: { pcs, low, root } of the chords sounding, carried over rests. */

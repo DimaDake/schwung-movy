@@ -38,6 +38,14 @@ export function patternMap(ctx: GenCtx, s: PatternSpec): RhythmMap {
     return m;
 }
 
+/** New Clip with nothing else in the scene: the part alone sets the pulse.
+ *  An offbeat figure only syncopates against a beat someone plays; alone it
+ *  is heard as on the beat, displaced (bench: paths, bass and chords made
+ *  first took offbeat figures, LHL 6-7.5 against real 0-5). A take alone
+ *  strikes beat 1, and beat 3 too where the part has such figures, so the
+ *  half-bar pulse is stated. */
+export const unpulsed = (ctx: GenCtx): boolean => ctx.task === 'create' && ctx.band.length === 0;
+
 /** The PATTERN knob; a take is drawn from the named figures in `pool`
  *  (indexes into `figs`, `figs.length` for the band's), repeats weighting
  *  the draw as `choice` pools do. A figure the band's accents duplicate, or
@@ -48,7 +56,10 @@ export function patternKnob(s: PatternSpec, pool: number[]): KnobDef {
         const id = (f: number[]) => [...new Set(f)].sort((a, b) => a - b).join();
         const ps = pool.map((i) => id(i < s.figs.length ? s.figs[i] : bandFigure(c, s)))
             .map((w) => m.takes.find((t) => m.steps[t].join() === w)).filter((t): t is number => t !== undefined);
-        return ps.length ? ps : m.takes.length ? m.takes : [0];
+        const all = ps.length ? ps : m.takes.length ? m.takes : [0];
+        if (!unpulsed(c)) return all;
+        const on = (beats: number[]) => all.filter((t) => beats.every((b) => m.steps[t].includes(b)));
+        return [on([0, 8]), on([0]), all].find((x) => x.length)!;
     };
     return {
         name: 'PATTERN',

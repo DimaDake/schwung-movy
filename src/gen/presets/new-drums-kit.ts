@@ -6,7 +6,7 @@
 import type { GenCtx } from '../analysis/context.js';
 import { strength } from '../analysis/events.js';
 import type { PadRole } from '../analysis/kit.js';
-import { amount, bandSteps, choice, place, SEED } from '../create/common.js';
+import { amount, bandLean, choice, place, SEED } from '../create/common.js';
 import type { Preset } from '../preset.js';
 import { withFeel } from '../create/feel.js';
 import { mix, type Rng, rng, shuffled } from '../rng.js';
@@ -40,11 +40,11 @@ export const BROKEN: Preset = withFeel({
     knobs: [amount('DENSITY', 10, 4, 7), amount('SYNC', 10, 2, 7), amount('GHOSTS', 10, 0, 5), SEED],
     generate: (ctx, v, seed) => {
         const r = rng(mix(seed, v[3]));
-        const band = new Set(bandSteps(ctx).slice(0, 4));
+        const lean = bandLean(ctx);
         /* One two-bar phrase, played through the clip: a broken beat repeats. */
         const one: Note[] = [];
         for (let bar = 0; bar < 2; bar++) {
-            const w = Array.from({ length: 16 }, (_, s) => strength(s * TPS) + (v[1] / 10) * (1 - strength(s * TPS)) * r() + (band.has(s) ? 0.4 : 0));
+            const w = Array.from({ length: 16 }, (_, s) => strength(s * TPS) + (v[1] / 10) * (1 - strength(s * TPS)) * r() + lean(s));
             const kicks = [0, ...w.map((x, s) => [x, s]).filter(([, s]) => s !== 0 && s !== 4 && s !== 12)
                 .sort((a, b) => b[0] - a[0]).slice(0, 1 + Math.round(v[0] / 3)).map((x) => x[1])];
             for (const s of kicks) hit(ctx, one, pad(ctx, 'kick'), bar * 16 + s, s === 0 ? 118 : 96 + r() * 12);

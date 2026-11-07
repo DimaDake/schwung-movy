@@ -42,8 +42,14 @@ _log('\nTest: rhythm and harmony maps');
         /* CHORDS holds its chords at 0, the map follows one up (§2.8). */
         const off = id === 'n-chords' ? 1 : 0;
         eq(`${name}_knob_spans_the_map`, p.knobs[k].steps(ctx), m.steps.length + off);
-        const rolls = new Set(Array.from({ length: 60 }, (_, n) => G.rolled(p, ctx, n % 4, n)[k] - off));
-        ok(`${name}_takes_land_on_named_figures`, [...rolls].every((v) => m.takes.includes(v)) && rolls.size >= 4);
+        const rollsIn = (c) => new Set(Array.from({ length: 60 }, (_, n) => G.rolled(p, c, n % 4, n)[k] - off));
+        /* Alone in its scene a take strikes beat 1 (pattern-knob.ts unpulsed). */
+        const rolls = rollsIn(ctx);
+        ok(`${name}_takes_land_on_named_figures`, [...rolls].every((v) => m.takes.includes(v)) && rolls.size >= 3);
+        ok(`${name}_takes_alone_strike_beat_1`, [...rolls].every((v) => m.steps[v].includes(0)));
+        const band = G.prepare(createInput(false, 'locked', 1));
+        const banded = rollsIn(band);
+        ok(`${name}_takes_in_a_band_reach_off_the_beat`, banded.size >= 4 && [...banded].some((v) => !G.patternMap(band, spec).steps[v].includes(0)));
         /* Every position is heard: a different take each click. */
         const outs = Array.from({ length: m.steps.length + off }, (_, v) => { const w = G.defaults(p, ctx); w[k] = v; return sig(G.regenerate(ctx, p, w) ?? []); });
         /* HELD may equal the map's one-a-bar position where the chords change by the bar. */

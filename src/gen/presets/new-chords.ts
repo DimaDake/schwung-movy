@@ -6,12 +6,12 @@
 import type { GenCtx } from '../analysis/context.js';
 import { chordFloor } from '../shape/band-pitch.js';
 import { choice, CHORD_REGISTER as R, chordUnder, everyBar, HARMONY, place, register, velAt } from '../create/common.js';
-import { DENSITY, patternAt, patternDense, patternKnob, type PatternSpec } from '../create/pattern-knob.js';
+import { DENSITY, patternDense, patternKnob, type PatternSpec, unpulsed } from '../create/pattern-knob.js';
 import { struck } from '../create/push.js';
 import type { Preset } from '../preset.js';
 import type { KnobDef } from '../knobs.js';
 import { withFeel } from '../create/feel.js';
-import { rng } from '../rng.js';
+import { pick, rng } from '../rng.js';
 import { COMPS } from '../shape/rhythm.js';
 import { sameChord } from '../theory/pc.js';
 import { STYLE_LABELS } from '../theory/voicing-styles.js';
@@ -91,6 +91,10 @@ export const CHORDS: Preset = withFeel({
  * in is still struck where it starts, so every change is heard. */
 const PAD_FIGS: [string, number[]][] = [['HELD', []], ['BAR', [0]], ['HALVES', [0, 8]], ['3-3-2', [0, 6, 12]],
     ['CHARLESTON', [0, 6]], ['PUSH', [0, 14]], ['2+4', [4, 12]]];
+const PAD_PATTERN = choice('PATTERN', PAD_FIGS.map((x) => x[0]), [0, 0, 1, 2, 3, 4, 5, 6]);
+/* A pad alone holds: the user's own pads strike under once a bar, and a
+ * rhythm figure with nothing under it is the part's only pulse. */
+const PAD_ALONE = [0, 0, 1, 2];
 
 /** Each change of the harmony, as [start, end) spans; `bars` also splits
  *  them at the bar. Read by the beat: an approach chord may last one. */
@@ -119,7 +123,7 @@ export const PAD: Preset = withFeel({
     id: 'n-pad', name: 'PAD', task: 'create', drum: false, cls: 'close',
     /* MOTION is fixed at SMOOTH (user, 2026-11-01): its knob went to PATTERN. */
     knobs: [VOICING([4, 1, 2, 5, 6, 8]), register([R.LOW, R.LOW + 1, R.MID, R.MID]), HARMONY,
-        choice('PATTERN', PAD_FIGS.map((x) => x[0]), [0, 0, 1, 2, 3, 4, 5, 6])],
+        { ...PAD_PATTERN, roll: (c, r) => (unpulsed(c) ? pick(r, PAD_ALONE) : PAD_PATTERN.roll!(c, r)) }],
     generate: (ctx, v, seed) => {
         const r = rng(seed);
         const fig = PAD_FIGS[v[3] ?? 0]?.[1] ?? [];

@@ -14,14 +14,14 @@ import { chordUnder } from '../create/common.js';
 const BASS_TOP = 55;    // ai/role.ts: a part whose median sits below this is a bass
 
 const median = (a: number[]) => { const s = [...a].sort((x, y) => x - y); return s[s.length >> 1]; };
-const cache = new WeakMap<GenCtx, { held: Note[]; bass: number }>();
+const cache = new WeakMap<GenCtx, { held: Note[]; bass: number; mid: number }>();
 
-function band(ctx: GenCtx): { held: Note[]; bass: number } {
+function band(ctx: GenCtx): { held: Note[]; bass: number; mid: number } {
     const hit = cache.get(ctx);
     if (hit) return hit;
     const { tracks, target } = ctx.input;
     const held: Note[] = [];
-    let bass = -1;
+    let bass = -1, mid = -1;
     const clips = tracks.filter((t) => t.index !== target.track && !t.drum)
         .flatMap((t) => t.clips.filter((c) => c.slot === target.slot && c.notes.length));
     /* A clip shorter than its scene loops under all of it: a one-bar motif
@@ -34,6 +34,7 @@ function band(ctx: GenCtx): { held: Note[]; bass: number } {
         if (!heard.length) continue;
         const m = median(heard.map((n) => n.pitch));
         if (m < BASS_TOP) bass = Math.max(bass, m);
+        else mid = Math.max(mid, m);
         for (let off = 0; off < scene; off += span) {
             for (const n of heard) {
                 if (n.tick - from + off >= scene) continue;
@@ -44,7 +45,7 @@ function band(ctx: GenCtx): { held: Note[]; bass: number } {
             }
         }
     }
-    const out = { held, bass };
+    const out = { held, bass, mid };
     cache.set(ctx, out);
     return out;
 }
@@ -54,6 +55,25 @@ function band(ctx: GenCtx): { held: Note[]; bass: number } {
 export function chordFloor(ctx: GenCtx): number {
     const b = band(ctx).bass;
     return b < 0 ? 0 : b + 7;
+}
+
+/** The lowest middle a line over the band's chords may have: a fifth over
+ *  the highest of their middles, so the lead is heard over them, not inside
+ *  them (bench: paths, an ARP or RIFF in a pad's octave flagged 'mud' in 36%
+ *  of scenes, real ones 9-21%). 0: no chords, or a track that already plays
+ *  in other scenes: its register is the user's (a Variation's New Clip
+ *  options, design §2.3, stay where the part was). */
+export function lineFloor(ctx: GenCtx): number {
+    const m = band(ctx).mid;
+    return m < 0 || ownMiddle(ctx) !== null ? 0 : m + 7;
+}
+
+/** The middle of what the target track plays in its other scenes: the
+ *  register the user gave it (null: a new part). */
+export function ownMiddle(ctx: GenCtx): number | null {
+    const me = ctx.input.tracks.find((t) => t.index === ctx.input.target.track);
+    const ps = (me?.clips ?? []).filter((c) => c.slot !== ctx.input.target.slot).flatMap((c) => c.notes.map((n) => n.pitch));
+    return ps.length ? median(ps) : null;
 }
 
 /** A minor second or ninth: the rub the corpus's real parts avoid. */

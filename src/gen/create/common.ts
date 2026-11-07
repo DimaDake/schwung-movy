@@ -80,6 +80,15 @@ export function bandSteps(ctx: GenCtx): number[] {
     return [...w].sort((a, b) => b[1] - a[1] || a[0] - b[0]).map(([s]) => s);
 }
 
+/** What the band's strongest accents add to a step's pull (0..15, per bar):
+ *  a part made into a band leans its onsets on them, as real parts do
+ *  (bench: paths, a lead shares 0.79 of its chords' onsets in the public
+ *  scenes, all of them in the user's), without being forced onto them. */
+export function bandLean(ctx: GenCtx): (step: number) => number {
+    const top = new Set(bandSteps(ctx).slice(0, 4));
+    return (s) => (top.has(((s % 16) + 16) % 16) ? 0.4 : 0);
+}
+
 /** A figure in steps, or the band's own accents when it has enough of them. */
 export function withBand(ctx: GenCtx, n: number, fallback: number[]): number[] {
     const s = bandSteps(ctx).slice(0, n).sort((a, b) => a - b);

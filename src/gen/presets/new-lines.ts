@@ -18,6 +18,7 @@ import { answerBar, answerCell, approachTo, riffCell, riffPitch } from '../creat
 import { lockFigure } from '../create/kick.js';
 import { type Chord, type Note, TPS } from '../types.js';
 import { LIB, type Part } from './var-bass.js';
+import { lineFloor } from '../shape/band-pitch.js';
 
 /* PATTERN walks a map through the bass figures (create/pattern-knob.ts),
  * the band's accents (WITH KICK's successor) and Euclidean figures between. */
@@ -135,11 +136,14 @@ export const ARP: Preset = withFeel({
         const r = rng(seed);
         const rate = RATES[v[1]];
         const shuffle = Array.from({ length: 8 }, () => Math.floor(r() * 16));
+        /* Over chords its middle sits over theirs (lineFloor), its top in reach. */
+        const floor = lineFloor(ctx);
         const out: Note[] = [];
         for (let t = 0, i = 0; t < ctx.end; t += rate, i++) {
             const c = chordUnder(ctx, v[3], t);
             const oct = OCTS[v[2]];
-            const tones = ladder(c.pcs, Math.max(48, Math.min(57, 93 - 12 * oct)), oct);
+            const lo = Math.max(48, Math.min(57, 93 - 12 * oct));
+            const tones = ladder(c.pcs, Math.max(lo, Math.min(floor - 6 * oct, 96 - 12 * oct)), oct);
             const tick = rate === TPS ? place(ctx, t / TPS) : t;
             out.push({ tick, pitch: tones[order(v[0], tones.length, i, shuffle)], gate: Math.round(rate * 0.7), vel: velAt(t, 90, r) });
         }

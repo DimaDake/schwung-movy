@@ -176,7 +176,7 @@ Everything else on the quality bench is unchanged (`plans/gen-quality-keyfix.md`
 One merge-baseline fixture moved with it: the messy pad (A harmonic minor in an
 A minor Set) was recorded while it read as F major.
 
-### Open, by weight (next rounds)
+### Open after round 1 (all taken in round 2, below)
 
 1. **Chords made first are busier than chords in context and than real pads.**
    Alone, CHORDS strikes 3-3-4-3-3 and PAD a dotted rhythm three times a bar
@@ -190,3 +190,46 @@ A minor Set) was recorded while it read as F major.
 5. **Lead after chords shares few of their onsets** (0.33 vs real 0.79): a
    counter-rhythm; judge by ear before treating it as a fault.
 6. Drums after bass: kick on bass 0.50 vs 0.67 — drums still never read the bass.
+
+## Round 2 results (2026-11-07)
+
+Bench: `paths-run.mjs --label round2 --compare base3` (base3 = round 1's code with
+the new `chords.onOne` metric). Quality bench: `plans/gen-quality-round2.md`
+against `keyfix`: nothing regressed; pieces broken 17% → 13%, knob dead clicks
+15% → 12%, DRIFT's promise 87% → 89%.
+
+| open item | what the evidence was | fix | before → after (in band) |
+|---|---|---|---|
+| 1. chords made first busy | a lone part rolled offbeat / SYNC 16 figures: nothing else plays, so an offbeat is heard as a displaced downbeat (LHL is relative to a felt metre) | `pattern-knob.ts unpulsed`: New Clip on an empty scene takes figures that strike beat 1 and, where the part has them, beat 3; a lone PAD holds (HELD / BAR / HALVES), as the user's pads do | `chords.sync` made first 33% → 100% |
+| 2. chords made last skip downbeats | new metric `chords.onOne` (harmony sounding on beat 1, a push held across it counts): public scenes skip it in 2%, user's in 9%; made last was already 98% | none needed: the misses were chords made first (item 1) | `chords.onOne` 90% → 99% |
+| 3. bass in the chord, chords after bass | rolls: STABS' thin voicing E4-G4 over a C bass is C major with the root left to the bass (shell / rootless voicing), counted as "not in chord" | metric: under a dyad the bass is in the chord when it completes a triad (`bassFits`, shared `isTriad`); plus item 4's anchored bass | `bc.inChord` after 75% → 100% (median 0.60 → 0.80; real 0.67-0.75) |
+| 4. bass first never anchors | OFFBEAT / 3-3-2 takes alone | item 1's rule (beats 1 and 3) | `bass.sync` made first 50% → 100%, anchor 50% → 100% |
+| 5. lead after chords | MELODY and RIFF drew their rhythm without the band; COUNTER answers it on purpose | `common.ts bandLean`: the band's four strongest accents add 0.4 to a step's pull (BROKEN's kick already did; now shared), in MELODY's rhythm, its phrased onsets and RIFF's cell | `lc.coincide` 68% → 96%, gap -53 → -6 |
+| 6. drums never read the bass | the gap came from item 4: an offbeat bass first, a four-on-the-floor kick never meets it | none needed (BROKEN leans on the band) | `bk.kickOnBass` 96% → 100%, gap 0 |
+
+Found on the way:
+
+- **Lead inside the chords** (`lc.mud`, H4): ARP and RIFF sat in a pad's octave.
+  `band-pitch.ts lineFloor`: a new line over chords puts its middle a fifth over
+  theirs (RIFF's register take, ARP's window), as `chordFloor` keeps chords over
+  the bass. A track that already plays in another scene keeps its own register
+  (`ownMiddle`; a Variation's New Clip options, where RIFF also takes the
+  register nearest it). `lc.mud` 64% → 74%.
+- **DRIFT did nothing to a line of roots on the beats**: a strong-beat note was
+  held to chord tones within one scale step. It now moves to the next chord tone
+  that way, and a voice keeps the direction it first drifted, so turning further
+  never walks it home.
+- **WALK's passing note was a whole step whatever the scale**, so a Set in a
+  named mode heard notes outside it. It is now the scale's neighbour (chromatic
+  stays at high TENSION).
+
+### Open after round 2
+
+1. **Chords made after the lead land in its octave** (`lc.mud` 60% in band when
+   the lead came first, 88% the other way): a chord ceiling under a lead, the
+   mirror of `lineFloor`.
+2. **A lead made first is busy** (`lead.perBar` 8 alone, 67% in band).
+3. `bk.offbeat` order gap (-15): a bass made after drums is more offbeat (0.31
+   vs 0.20), still inside the real band (≤ 0.52); house convention, by ear.
+4. Step 6 of the plan: chains and form (Variation / Double depth, identity
+   decay, collapse, energy arc), clicks-to-keepable, missing operations.

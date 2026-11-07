@@ -15,7 +15,7 @@ import type { KnobDef } from './knobs.js';
 import type { Preset } from './preset.js';
 import { homePlan, planAt } from './plan.js';
 import { hash, mix, type Rng, rng, shuffled } from './rng.js';
-import { nearestPitch, pc, stepScale } from './theory/pc.js';
+import { pc, stepScale } from './theory/pc.js';
 import { type Chord, type Ev, type Note, TPS } from './types.js';
 
 export const DRIFT: KnobDef = { name: 'DRIFT', steps: () => 21, def: () => 0, label: (v) => (v ? '+' + v : 'OFF') };
@@ -26,17 +26,22 @@ function nextTone(p: number, dir: number, pcs: number[], taken: number[]): numbe
     return p;
 }
 
-function moveVoice(ctx: GenCtx, e: Ev, chord: Chord | null, r: Rng, lo: number, hi: number): void {
+/** One move of one voice; `way` holds each voice's direction, so a voice
+ *  moved again keeps going and never walks back to where it was. */
+function moveVoice(ctx: GenCtx, e: Ev, chord: Chord | null, r: Rng, lo: number, hi: number, way: Map<object, number>): void {
     const i = Math.floor(r() * e.voices.length);
     const x = e.voices[i];
-    let dir = r() < 0.5 ? -1 : 1;
+    let dir = way.get(x) ?? (r() < 0.5 ? -1 : 1);
     if (x.pitch + dir * 2 > hi || x.pitch + dir * 2 < lo) dir = -dir;
+    way.set(x, dir);
     if (e.voices.length > 1 && chord) {
         x.pitch = nextTone(x.pitch, dir, chord.pcs, e.voices.map((y) => y.pitch));
         return;
     }
     const step = stepScale(x.pitch, dir * (r() < 0.25 ? 2 : 1), ctx.key);
-    x.pitch = chord && isStrong(e.tick) ? nearestPitch(step, chord.pcs, Math.min(step, x.pitch + dir), Math.max(step, x.pitch + dir)) : step;
+    /* On a strong beat the next chord tone that way: held to the scale step,
+     * a line of roots on the beats had nowhere to go and never drifted. */
+    x.pitch = chord && isStrong(e.tick) ? nextTone(x.pitch, dir, chord.pcs, []) : step;
 }
 
 function moveHit(ctx: GenCtx, evs: Ev[], i: number, r: Rng): void {
@@ -65,10 +70,11 @@ export function driftNotes(ctx: GenCtx, notes: Note[], d: number, seed: number, 
     const moves = Math.max(d, Math.round((d * order.length) / 10));
     const ps = notes.map((n) => n.pitch);
     const lo = Math.min(...ps) - 5, hi = Math.max(...ps) + 5;
+    const way = new Map<object, number>();
     for (let j = 0; j < moves; j++) {
         const i = order[j % order.length];
         if (ctx.drum) moveHit(ctx, evs, i, r);
-        else moveVoice(ctx, evs[i], chordAt(chords, evs[i].tick, ctx.k) ?? chordAt(ctx.srcChords, evs[i].tick, ctx.k), r, lo, hi);
+        else moveVoice(ctx, evs[i], chordAt(chords, evs[i].tick, ctx.k) ?? chordAt(ctx.srcChords, evs[i].tick, ctx.k), r, lo, hi, way);
     }
     return fromEvents(evs.sort((a, b) => a.tick - b.tick), ctx.end);
 }

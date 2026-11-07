@@ -8,7 +8,7 @@ import { custom, K } from '../knobs.js';
 import { planAt } from '../plan.js';
 import type { Preset } from '../preset.js';
 import { type Rng, rng } from '../rng.js';
-import { nearestPitch, pc, sameChord } from '../theory/pc.js';
+import { nearestPitch, pc, sameChord, stepScale } from '../theory/pc.js';
 import { type Ev, HALF } from '../types.js';
 import { finish, over, partEvs, someOf, targetAt } from './helpers.js';
 
@@ -71,7 +71,8 @@ export const HOLD: Preset = {
 };
 
 /** A walking approach into each chord change: the last notes before it step
- *  toward the new root, diatonic or chromatic. */
+ *  toward the new root, diatonic (the scale's neighbours, so a Set's mode
+ *  holds) or, at high TENSION, chromatic. */
 export const WALK: Preset = {
     id: 'v-walk', name: 'WALK', task: 'variation', drum: false, cls: 'rhythm', fit: () => 0.55, roles: ['bass', 'lead'],
     knobs: [K.amount(6), K.tension(4), K.harmony(1), K.density(6)],
@@ -85,7 +86,7 @@ export const WALK: Preset = {
             for (let j = 1; j <= n && i - j >= 0 && !isStrong(out[i - j].tick); j++) {
                 const T = targetAt(ctx, v[2], out[i - j].tick);
                 const p = v[1] >= 7 ? target + (out[i - j].voices[0].pitch > target ? j : -j)
-                    : nearestPitch(target + (out[i - j].voices[0].pitch > target ? 2 * j : -2 * j), T ? T.pcs.concat([pc(target + 2), pc(target - 2)]) : [pc(target)]);
+                    : nearestPitch(target + (out[i - j].voices[0].pitch > target ? 2 * j : -2 * j), T ? T.pcs.concat([pc(stepScale(target, 1, ctx.key)), pc(stepScale(target, -1, ctx.key))]) : [pc(target)]);
                 out[i - j].voices[0].pitch = p;
             }
         }

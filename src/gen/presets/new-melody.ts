@@ -8,7 +8,7 @@
 import type { GenCtx } from '../analysis/context.js';
 import { strength } from '../analysis/events.js';
 import { ACCENT } from '../analysis/band.js';
-import { amount, choice, chordUnder, HARMONY, LINE_REGISTER as L, place, register, SEED, velAt } from '../create/common.js';
+import { amount, bandLean, choice, chordUnder, HARMONY, LINE_REGISTER as L, place, register, SEED, velAt } from '../create/common.js';
 import type { Preset } from '../preset.js';
 import { withFeel } from '../create/feel.js';
 import { onGuides } from '../create/guide.js';
@@ -19,6 +19,7 @@ import { scaleUnder } from '../theory/category.js';
 import { type Note, TPS } from '../types.js';
 import type { Span } from '../create/phrase.js';
 import { phraseOnsets, SHAPES } from '../create/phrase-rhythm.js';
+import { lineFloor, ownMiddle } from '../shape/band-pitch.js';
 
 const CONTOURS: ((x: number) => number)[] = [
     (x) => Math.sin(Math.PI * x), (x) => x, (x) => 1 - x, (x) => (Math.sin(2 * Math.PI * x) + 1) / 2,
@@ -33,10 +34,11 @@ function tone(ctx: GenCtx, h: number, tick: number, target: number, lo: number, 
     return nearestPitch(target, strength(tick) >= 0.7 ? c.pcs : scaleUnder(ctx.key, c), lo, hi);
 }
 
-/** A phrase's onsets in steps: the downbeat, then each step by its weight. */
-function rhythm(steps: number, density: number, r: Rng): number[] {
+/** A phrase's onsets in steps: the downbeat, then each step by its weight
+ *  and the band's pull on it (`lean`, from step `at` of the clip). */
+function rhythm(steps: number, density: number, r: Rng, lean: (step: number) => number, at = 0): number[] {
     const out = [0];
-    for (let s = 1; s < steps; s++) if (r() < (density / 10) * (0.3 + strength(s * TPS))) out.push(s);
+    for (let s = 1; s < steps; s++) if (r() < (density / 10) * (0.3 + strength(s * TPS) + lean(at + s))) out.push(s);
     return out;
 }
 
@@ -52,7 +54,7 @@ function phrased(ctx: GenCtx, v: number[], r: Rng, spans: readonly Span[], lo: n
     for (const s of spans) {
         const a = Math.round(s.start / TPS), n = Math.round(s.land / TPS) - a;
         let on = rhythms.get(n);
-        if (!on) { on = phraseOnsets(n, a, v[1], shape, r); rhythms.set(n, on); }
+        if (!on) { on = phraseOnsets(n, a, v[1], shape, r, bandLean(ctx)); rhythms.set(n, on); }
         /* LONG TONES: a span that is only its landing gets one note to land. */
         if (n <= 0) on = [0];
         for (const k of on) {
@@ -73,8 +75,9 @@ export const MELODY: Preset = withFeel({
         const span = SPANS[v[2]];
         const lo = 72 - Math.round(span / 2), hi = lo + span;
         if (spans) return onGuides(ctx, v[4], phrased(ctx, v, r, spans, lo, hi), lo, hi);
-        const call = rhythm(phrase, v[1], r);
-        const answer = rhythm(Math.min(8, phrase), v[1], r).map((s) => s + phrase - Math.min(8, phrase));
+        const lean = bandLean(ctx);
+        const call = rhythm(phrase, v[1], r, lean);
+        const answer = rhythm(Math.min(8, phrase), v[1], r, lean, phrase - Math.min(8, phrase)).map((s) => s + phrase - Math.min(8, phrase));
         const out: Note[] = [];
         const home = new Set<Note>();
         for (let off = 0; off < ctx.len; off += phrase) {
@@ -96,17 +99,38 @@ export const MELODY: Preset = withFeel({
 }, [3, 9], false, 'melody', ['BREATH', 'CALL+ANSWER']);
 
 const CELLS = [4, 8, 6, 16];
+
+/** A riff cell's onsets after its first: drawn at random, and into a band
+ *  leaning on the steps its accents fall on as the cell repeats through the bar. */
+function cellSteps(ctx: GenCtx, cell: number, n: number, r: Rng): number[] {
+    if (!ctx.band.length) return choose(r, cell - 1, n - 1).map((s) => s + 1);
+    const lean = bandLean(ctx);
+    const reps = Math.max(1, Math.floor(16 / cell));
+    const pull = (s: number) => Array.from({ length: reps }, (_, i) => lean(i * cell + s)).reduce((a, x) => a + x, 0) / reps;
+    return Array.from({ length: cell - 1 }, (_, i) => ({ s: i + 1, w: r() + 2 * pull(i + 1) }))
+        .sort((a, b) => b.w - a.w).slice(0, n - 1).map((x) => x.s).sort((a, b) => a - b);
+}
 const OFFSETS = [0, 0, 2, 4, 7, -1, 1, 3];
 const CENTRE = [36, 48, 60, 72, 84];
+const RIFF_REG = register([L.LOW, L.MID, L.MID, L.HIGH], L.labels);
+/* A take sits where the track already plays (a Variation's New Clip
+ * options), else over the band's chords (band-pitch.ts); the knob still
+ * reaches every register. */
+const RIFF_REGISTER: KnobDef = { ...RIFF_REG, roll: (c, r) => {
+    const v = RIFF_REG.roll!(c, r), own = ownMiddle(c);
+    if (own !== null) return CENTRE.reduce((b, x, i) => (Math.abs(x - own) < Math.abs(CENTRE[b] - own) ? i : b), 0);
+    const up = CENTRE.findIndex((x) => x >= lineFloor(c));
+    return up < 0 || up <= v ? v : up;
+} };
 
 export const RIFF: Preset = withFeel({
     id: 'n-riff', name: 'RIFF', task: 'create', drum: false, cls: 'rhythm',
-    knobs: [choice('CELL', ['1 BEAT', '2 BEATS', '3/8', '1 BAR'], [1, 1, 2, 3]), amount('NOTES', 6, 2, 4), register([L.LOW, L.MID, L.MID, L.HIGH], L.labels), SEED, HARMONY],
+    knobs: [choice('CELL', ['1 BEAT', '2 BEATS', '3/8', '1 BAR'], [1, 1, 2, 3]), amount('NOTES', 6, 2, 4), RIFF_REGISTER, SEED, HARMONY],
     generate: (ctx, v, seed) => {
         const r = rng(mix(seed, v[3]));
         const cell = CELLS[v[0]];
         const n = Math.max(2, Math.min(cell, v[1]));
-        const at = [0, ...choose(r, cell - 1, n - 1).map((s) => s + 1)];
+        const at = [0, ...cellSteps(ctx, cell, n, r)];
         const deg = at.map((_, i) => (i === 0 ? 0 : OFFSETS[Math.floor(r() * OFFSETS.length)]));
         const out: Note[] = [];
         for (let off = 0; off < ctx.len; off += cell) {

@@ -4,7 +4,7 @@
  * { len (beats), kick, snare, hats, perc, bass, chords: [notes...], lead },
  * notes as [start, dur, pitch, vel] in beats. The bass's own metrics stay in
  * bass-metrics.mjs; root and voicing low note come from there. */
-import { bassMetrics, chordTrack, median } from './bass-metrics.mjs';
+import { bassMetrics, chordTrack, isTriad, median } from './bass-metrics.mjs';
 import { rubs } from './musical.mjs';
 
 const q = (x) => Math.round(x * 4);
@@ -78,6 +78,10 @@ export function coincide(a, b) {
 const sounding = (ns, s) => ns.filter((n) => q(n[0]) <= s && s < q(n[0]) + Math.max(1, q(n[1])));
 const share = (xs, f) => (xs.length ? xs.filter(f).length / xs.length : null);
 
+/** The bass in its chord: one of its tones, or, under a dyad, the note
+ * that completes it to a triad (a shell voicing leaves the root to the bass). */
+const bassFits = (pcs, b) => pcs.has(b) || (pcs.size <= 2 && isTriad([...pcs, b]));
+
 function bassChords(m, sc, L, ct, bOn) {
     const b = bassMetrics({ len: sc.len, notes: sc.bass, chords: sc.chords, kick: sc.kick });
     if (b) Object.assign(m, { 'bc.root': b.root, 'bc.voicingLow': b.voicingLow });
@@ -86,7 +90,7 @@ function bassChords(m, sc, L, ct, bOn) {
     m['bc.inChord'] = share(arrive, (s) => {
         const at = sounding(sc.bass, s);
         const near = at.length ? at : sc.bass.filter((n) => Math.abs(q(n[0]) - s) <= 1);
-        return near.length > 0 && ct[s].pcs.has(Math.min(...near.map((n) => n[2])) % 12);
+        return near.length > 0 && bassFits(ct[s].pcs, Math.min(...near.map((n) => n[2])) % 12);
     });
     m['bc.changeAlign'] = share(arrive, (s) => bOn.some((x) => Math.abs(x - s) <= 1));
     /* A chord note a semitone above the bass's pitch class, in any octave:
@@ -128,6 +132,9 @@ export function relations(sc) {
     };
     part('kick', kOn); part('hats', hOn); part('drums', dOn); part('bass', bOn); part('chords', cOn); part('lead', lOn);
     if (sOn.length) m.backbeat = share([...Array(bars).keys()], (b) => sOn.includes(b * 16 + 4) || sOn.includes(b * 16 + 12));
+    /* The harmony sounds on beat 1: struck there, or pushed and held across
+     * it (the loop's last push sounds on its first beat). */
+    if (cOn.length) m['chords.onOne'] = share([...Array(bars).keys()], (b) => sounding(sc.chords.flat(), b * 16).length + (b ? 0 : sounding(sc.chords.flat(), L).length) > 0);
     if (kOn.length || bOn.length) m.anchor = share([...Array(bars).keys()], (b) => kOn.includes(b * 16) || bOn.includes(b * 16));
     const all = [dOn, bOn, cOn, lOn].filter((o) => o.length);
     if (all.length > 1) m['ens.sync'] = syncopation(on([...sc.kick, ...sc.snare, ...sc.hats, ...sc.perc, ...sc.bass, ...sc.chords.flat(), ...sc.lead]), L);
@@ -158,6 +165,7 @@ export function relations(sc) {
 export const METRICS = {
     'kick.perBar': ['drums'], 'hats.perBar': ['drums'], 'drums.sync': ['drums'], 'drums.phraseEnd': ['drums'],
     'bass.perBar': ['bass'], 'bass.sync': ['bass'], 'bass.phraseEnd': ['bass'], 'chords.perBar': ['chords'], 'chords.sync': ['chords'],
+    'chords.onOne': ['chords'],
     'lead.perBar': ['lead'], 'lead.sync': ['lead'], 'lead.phraseEnd': ['lead'], 'lead.pcEntropy': ['lead'], 'lead.scale': ['lead', 'hi'],
     anchor: ['drums', 'bass', 'hi'], 'ens.sync': [], 'ens.scale': ['hi'],
     'bk.lock': ['bass', 'drums'], 'bk.kickOnBass': ['drums', 'bass'], 'bk.offbeat': ['bass', 'drums'], 'bk.neither': ['bass', 'drums', 'flag'],

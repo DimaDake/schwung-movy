@@ -57,6 +57,20 @@ eq('coincide_over_the_sparser_part', coincide([0, 4], [0, 2, 4, 6]), 1);
     eq('lead_c_sharp_over_c_major_rubs_half_its_notes', rub['lc.rub'], 0.5);
 }
 
+/* A dyad leaves the root to the bass: E-G over C is C major, F-A over B is no triad. */
+{
+    const dyad = (a, b, bass) => relations({ ...empty, len: 4, chords: [[[0, 4, a, 90], [0, 4, b, 90]]], bass: at([0], bass, 4) })['bc.inChord'];
+    eq('bass_completing_a_dyad_to_a_triad_is_in_chord', dyad(64, 67, 36), 1);
+    eq('bass_under_a_dyad_it_does_not_complete_is_not', dyad(65, 69, 35), 0);
+}
+
+/* The harmony on beat 1: struck there, or pushed and held across it; short off-beat stabs miss it. */
+{
+    const one = (notes) => relations({ ...empty, len: 4, chords: [notes] })['chords.onOne'];
+    eq('chords_pushed_and_held_over_beat_1_sound_on_it', one([[3.5, 1, 60, 90], [3.5, 1, 64, 90]]), 1);
+    eq('short_off_beat_stabs_miss_beat_1', one([0.75, 1.5, 2.75, 3.5].map((s) => [s, 0.25, 60, 90])), 0);
+}
+
 /* The order gap groups by which of a metric's two roles was made last. */
 eq('group_bass_after_drums', groupOf('bk.lock', ['drums', 'bass', 'chords', 'lead']), 'after');
 eq('group_bass_before_drums', groupOf('bk.lock', ['bass', 'lead', 'drums', 'chords']), 'before');

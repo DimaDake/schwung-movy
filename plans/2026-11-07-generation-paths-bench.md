@@ -136,3 +136,57 @@ adds what no single-part bench can see: pairs of parts and order.
    a test that fails without the fix.
 6. Chains and form (F3, F4, energy), then clicks-to-keepable and missing
    operations.
+
+## Round 1 results (2026-11-07)
+
+Built: `ref-sources.mjs` (the set and MidiCaps readers, shared with
+`bass-refs.mjs`, whose output is byte-identical), `refs.mjs` (143 public + 151
+user reference scenes with every role), `relations.mjs` (the rules above as
+metrics, `browser-test/logic/gen-paths.mjs`), `paths.mjs` (24 orders × seeds,
+the scene measured after every step too), `paths-score.mjs` / `paths-run.mjs`
+(bands, order gap, first-step table, the Set's key, rolls and MIDI per run in
+`.gen-data/paths/<label>/`). 144 scenes run in ~5 s.
+
+What the references say (P10–P90 / median, public · user): bass under a lead
+never rubs (`lb.rub` 0); a chord note a semitone over the bass's pitch class
+almost never (`bc.rub` P90 0.06 · 0); the user's bass lines vary their phrase
+ends far more than public ones (`bass.phraseEnd` median 0.25 · 0.00) and the
+user's pads strike under once a bar (0.75). "Neither lock nor complement"
+kick/bass happens in 9 · 14% of real scenes, so it is rare, not forbidden.
+
+### Fixed: key finding left the Set's key on a sparse part
+
+Reading the rolls of the scenes out of band found chords made **after a bass**
+playing Cmaj7 (E natural) over a C minor bass that plays Eb, and D major / B
+naturals over a D minor bass on Bb. Cause: `keyFor` took the Krumhansl key with
+the Set's key only as a 0.03 tie-break, and a 5-8 note bass correlates better
+with a key a fifth away (D minor riff → G major). Every one of its notes was in
+D minor. Fix (`theory/key.ts` HOLDS): while ≥ 95% of the sounding duration
+sits in the Set's scale (minor with its raised 7th), only keys with the Set's
+key signature can win; the notes still choose the tonic (an A minor riff in a C
+major Set reads A minor) and notes off the scale still move the key.
+
+| | before | after |
+|---|---|---|
+| bass / chords / lead scenes < 90% in the Set's key (of 72 each, made after their partner) | 6 / 4 / 2 | 0 / 0 / 0 |
+| bass in the chord at chord changes, chords made after the bass (median) | 0.54 | 0.60 |
+| quality bench: pieces broken / role breaks | 21% / 4 | 17% / 3 |
+
+Everything else on the quality bench is unchanged (`plans/gen-quality-keyfix.md`).
+One merge-baseline fixture moved with it: the messy pad (A harmonic minor in an
+A minor Set) was recorded while it read as F major.
+
+### Open, by weight (next rounds)
+
+1. **Chords made first are busier than chords in context and than real pads.**
+   Alone, CHORDS strikes 3-3-4-3-3 and PAD a dotted rhythm three times a bar
+   (`chords.sync` 6 vs 2 in context; the user's pads 0.75 strikes a bar).
+   Starting a Set from chords is a common way in.
+2. **Chords made last can skip every downbeat** (CHORDS 3, 6, 11, 14).
+3. **Bass in the chord at changes, chords after the bass: 0.60 vs 0.80** when
+   the chords lead; read the rolls after the key fix before deciding.
+4. **Bass first, on an empty Set**: offbeat (2, 6, 10, 14) or 3-3-2 takes
+   that never touch beat 1 with nothing yet to anchor them.
+5. **Lead after chords shares few of their onsets** (0.33 vs real 0.79): a
+   counter-rhythm; judge by ear before treating it as a fault.
+6. Drums after bass: kick on bass 0.50 vs 0.67 — drums still never read the bass.

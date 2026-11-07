@@ -71,8 +71,11 @@ report('merge_qd_groove_into_tight', misses('qd-groove', 'qd-tight', { TIMING: 9
 report('merge_q_invert_into_mode', misses('q-invert', 'q-mode', { MODE: 'MIRROR', WHERE: '2ND HALF', PIVOT: 'MID' }));
 report('q_tight_default_kept', misses('q-tight', 'q-tight', {}));
 report('qd_tight_default_kept', misses('qd-tight', 'qd-tight', {}));
-/* A drone is no longer offered MODE: its one pitch had no mode to move to. */
-report('q_mode_default_kept', misses('q-mode', 'q-mode', {}, ['messy:drone/free/quantize']));
+/* A drone is no longer offered MODE: its one pitch had no mode to move to.
+ * The messy pad (C D F G G# A B, an A minor Set) was recorded while key
+ * finding read it as F major, a key with neither its B nor its G#; it now
+ * reads A minor (theory/key.ts HOLDS), so its PARALLEL take moved with it. */
+report('q_mode_default_kept', misses('q-mode', 'q-mode', {}, ['messy:drone/free/quantize', 'messy:pad/free/quantize']));
 /* Variation melodic (Task 3). */
 report('merge_v_anticipate_into_displace', misses('v-anticipate', 'v-displace', { MODE: 'PUSH 1/8', LENGTH: 6, COLOUR: 4 }));
 report('merge_v_spread_into_revoice', misses('v-spread', 'v-revoice', { AMOUNT: 0, SPREAD: 'DROP 2', TOP: 'HOLD' }));

@@ -99,6 +99,20 @@ eq('set_scale_modes_carry_their_degrees', ['dorian', 'phrygian', 'lydian', 'mixo
 const dDor = G.keyHint('D', 'dorian');
 eq('mode_a_silent_scene_takes_the_sets_mode', G.keyFor(Array(12).fill(0), dDor).mode?.join(), G.DORIAN.join());
 eq('mode_notes_in_the_mode_keep_it', G.keyFor(prof([2, 4, 5, 7, 9, 11, 0], 2), dDor).mode?.join(), G.DORIAN.join());
+/* A sparse bass in the Set's key, with a chromatic approach note: its profile
+ * (from the paths bench, D minor, drums then BASS) correlates best with G
+ * major, whose chords then put F# and B over a Bb bass. The notes all sit in
+ * D minor, so the key signature holds; an A minor riff in a C major Set still
+ * reads as A minor, and notes that leave the scale still move the key. */
+{
+    const dmBass = [0.125, 0.063, 0.172, 0, 0.109, 0.078, 0, 0.266, 0, 0.109, 0.078, 0];
+    const dm = G.keyHint('D', 'minor');
+    eq('key_sparse_bass_in_the_sets_key_keeps_its_signature', [5, 2].includes(G.keyFor(dmBass, dm).tonic) && G.keyFor(dmBass, dm).minor === (G.keyFor(dmBass, dm).tonic === 2), true);
+    const am = G.keyFor(prof([0, 2, 4, 5, 7, 9, 11], 9), G.keyHint('C', 'major'));
+    eq('key_relative_minor_riff_in_a_major_set_reads_minor', `${am.tonic}${am.minor ? 'm' : ''}`, '9m');
+    const eMinor = G.keyFor(prof([4, 6, 7, 9, 11, 0, 2], 4), G.keyHint('C', 'major'));
+    eq('key_notes_out_of_the_sets_scale_still_move_it', `${eMinor.tonic}${eMinor.minor ? 'm' : ''}`, '4m');
+}
 eq('mode_a_heard_b_flat_drops_it', G.keyFor(prof([2, 4, 5, 7, 9, 10, 0], 2), dDor).mode, undefined);
 
 /* A mode's chords: its own, a stand-in that carries its odd note where the

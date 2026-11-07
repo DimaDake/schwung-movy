@@ -6,8 +6,8 @@
  * Scene A': each A clip copied and Smart Doubled, track by track. The piece
  * is then judged as a listener hears it: the tracks together, scene by scene. */
 
-const KIT = [36, 37, 38, 39, 42, 44, 46, 49, 51, 41, 43, 45];
-const KEYS = [['C', 'minor'], ['F', 'major'], ['A', 'minor'], ['D', 'minor'], ['G', 'major'], ['E', 'minor'], ['Bb', 'major'], ['F#', 'minor']];
+export const KIT = [36, 37, 38, 39, 42, 44, 46, 49, 51, 41, 43, 45];
+export const KEYS = [['C', 'minor'], ['F', 'major'], ['A', 'minor'], ['D', 'minor'], ['G', 'major'], ['E', 'minor'], ['Bb', 'major'], ['F#', 'minor']];
 const ROOT = { C: 0, 'C#': 1, D: 2, Eb: 3, E: 4, F: 5, 'F#': 6, G: 7, Ab: 8, A: 9, Bb: 10, B: 11 };
 export const PARTS = [
     { index: 0, name: 'Drums', drum: true, want: ['n-groove', 'n-broken', 'n-euclid-kit'] },
@@ -17,9 +17,9 @@ export const PARTS = [
 ];
 const LEN = 64;
 
-const clip = (track, slot, len, notes) => ({ track, slot, len, loopStart: 0, scaleNum: 1, scaleDen: 1, transpose: 0, quant: 0, notes });
+export const clip = (track, slot, len, notes) => ({ track, slot, len, loopStart: 0, scaleNum: 1, scaleDen: 1, transpose: 0, quant: 0, notes });
 
-function put(tracks, track, slot, c) {
+export function put(tracks, track, slot, c) {
     const t = tracks.find((x) => x.index === track);
     t.clips = [...t.clips.filter((x) => x.slot !== slot), c];
 }
@@ -36,7 +36,7 @@ function motif(G, seed, root, minor) {
     });
 }
 
-const base = (set, drum) => ({ level: 'BALANCED', tracks: set.tracks, scale: [1, 1], drum, kit: drum ? KIT : [], root: set.root, mode: set.mode });
+export const base = (set, drum) => ({ level: 'BALANCED', tracks: set.tracks, scale: [1, 1], drum, kit: drum ? KIT : [], root: set.root, mode: set.mode });
 
 export function buildPiece(G, seed, withMotif) {
     const [root, mode] = KEYS[seed % KEYS.length];

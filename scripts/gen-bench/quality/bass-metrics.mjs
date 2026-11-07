@@ -9,7 +9,7 @@ const TRIADS = [[0, 4, 7], [0, 3, 7], [0, 3, 6], [0, 4, 8], [0, 5, 7], [0, 2, 7]
 export const median = (a) => { const s = [...a].sort((x, y) => x - y); return s.length ? s[s.length >> 1] : null; };
 
 /** Per 16th: { pcs, low, root } of the chords sounding, carried over rests. */
-function chordTrack(chords, L) {
+export function chordTrack(chords, L) {
     const notes = chords.flat();
     const out = [];
     let prev = null;

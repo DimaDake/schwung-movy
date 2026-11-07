@@ -6,7 +6,7 @@
  * and lets anything that neither repaints nor toasts run underneath it. */
 
 import { seqState } from './state.js';
-import { seqCmd } from './engine.js';
+import { writeClipQuant } from './clip-quant.js';
 import { appState } from '../app/state.js';
 import { quantCandidates, candidateIndex } from './quant.js';
 import { endEdit } from '../undo/group.js';
@@ -85,8 +85,7 @@ export function quantOverlayJog(delta: number, nowMs: number): void {
      * 100 % into 0 % — raw timing, from what felt like a small overshoot. */
     const next = Math.max(0, Math.min(cands.length - 1, (cur < 0 ? 0 : cur) + n));
     if (cands[next] !== seqState.clipQuant) {
-        seqState.clipQuant = cands[next];
-        seqCmd('cq ' + watchedTrack() + ' ' + cands[next]);
+        writeClipQuant(watchedTrack(), cands[next]);
     }
     appState.dirty = true;
 }

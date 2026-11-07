@@ -365,6 +365,7 @@ await esbuild.build({
         resolve(root, 'src/seq/step-params-contract.ts'),
         resolve(root, 'src/seq/drum-sync.ts'),
         resolve(root, 'src/seq/quant.ts'),
+        resolve(root, 'src/seq/clip-quant.ts'),
         resolve(root, 'src/seq/prefs.ts'),
         resolve(root, 'src/seq/click-volume.ts'),
         resolve(root, 'src/seq/quant-overlay.ts'),

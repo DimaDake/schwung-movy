@@ -22,6 +22,7 @@ import { doubleLoop } from './loop-mode.js';
 import { seqToast } from './render.js';
 import { seqState, setFullVelocity } from './state.js';
 import { nextQuantCandidate } from './quant.js';
+import { writeClipQuant } from './clip-quant.js';
 import { armQuantOverlay } from './quant-overlay.js';
 import { watchedTrack } from './watch.js';
 import { mlog } from '../log.js';
@@ -83,7 +84,6 @@ export function cycleQuantize(): void {
     const next = nextQuantCandidate(seqState.clipQuant, seqState.defaultQuant);
     mlog('quant: cycle t' + track + ' ' + seqState.clipQuant + '->' + next + ' def ' + seqState.defaultQuant);
     beginGesture('quant:' + track, 'CLIP QUANT', trackLabel(track));
-    seqState.clipQuant = next;
-    seqCmd('cq ' + track + ' ' + next);
+    writeClipQuant(track, next);
     armQuantOverlay(Date.now());
 }

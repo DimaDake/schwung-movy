@@ -111,6 +111,22 @@ export async function run() {
     for (let i = 0; i < 10; i++) seqEngineTick();
     eq('one stamped after it has', engineCaughtUp(mark), true);
 
+    /* Shift+Step 16 on the device: the status parsed straight after a `cq`
+     * predates it, and adopting it put the panel's box back on the old value. */
+    const { writeClipQuant } = await import('../../dist/esm/seq/clip-quant.js');
+    engine.status.quant = 0;
+    for (let i = 0; i < 10; i++) seqEngineTick();
+    engine.holdServed = engine.submitted;
+    writeClipQuant(0, 100);
+    for (let i = 0; i < 10; i++) seqEngineTick();
+    eq('a stale status does not undo a quant write', seqState.clipQuant, 100);
+    engine.status.quant = 100; engine.holdServed = null;
+    for (let i = 0; i < 10; i++) seqEngineTick();
+    engine.status.quant = 40;
+    for (let i = 0; i < 10; i++) seqEngineTick();
+    eq('once applied, the engine owns quant again', seqState.clipQuant, 40);
+    delete engine.status.quant;
+
     /* Boot is one question. No answer: the engine did not load, and movy-host
      * never reloads it, so there is nothing to wait for. */
     const dead = installMockEngine();

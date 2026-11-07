@@ -12,6 +12,7 @@ import { activeFromStr, adoptLoopWindow, muteFromStr, occFromHex, padMutesFromSt
 import { rationalToIdx } from './clip-scale.js';
 import { noteProbeGen } from './probe-bridge.js';
 import { markUiStateDirty } from './ui-dirty.js';
+import { localWritePending } from './local-writes.js';
 import { noteReportedTrack } from './watch.js';
 import { requestLabelSync } from './label-sync.js';
 
@@ -43,7 +44,7 @@ export function takeNoopSnapId(): number {
  * transitions are always logged. */
 let lastEnginePlay: boolean | null = null;
 
-export function parseStatus(s: string): void {
+export function parseStatus(s: string, served = Infinity): void {
     seqState.engineOk = true;
     /* Cleared each poll rather than only overwritten: an engine that predates
      * the fields sends none of them, and last poll's numbers standing in for
@@ -76,9 +77,8 @@ export function parseStatus(s: string): void {
             seqState.clipScaleIdx = rationalToIdx(n || 1, d || 1);
         }
         else if (key === 'ctr') seqState.clipTranspose = Number(val) || 0;
-        else if (key === 'quant') {   // trace: a stale snapshot undoing a just-sent `cq`
-            if ((Number(val) || 0) !== seqState.clipQuant) mlog('quant: status ' + seqState.clipQuant + '->' + val);
-            seqState.clipQuant = Number(val) || 0;
+        else if (key === 'quant') {
+            if (!localWritePending('quant', served)) seqState.clipQuant = Number(val) || 0;
         }
         else if (key === 'dquant') seqState.defaultQuant = Number(val) || 0;
         /* The engine's count of serviced chain-module changes. A movy chain

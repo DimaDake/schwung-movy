@@ -25,6 +25,7 @@ import { watchedTrack } from '../seq/watch.js';
 import { seqToast } from '../seq/render.js';
 import { seqState } from '../seq/state.js';
 import { TRACK_COUNT } from '../track/ref.js';
+import { freezeGuard } from '../seq/freeze.js';
 import { beginEdit, endEdit, CLOSE } from '../undo/group.js';
 
 /* The mirror as it applies to one track, or null when the payload on hand
@@ -64,6 +65,8 @@ function padLabel(track: number, note: number): string {
  *  exclusive and moving, and pressing the soloed voice again clears it. */
 export function padMuteGesture(track: number, note: number, solo: boolean): void {
     if (track < 0 || track >= TRACK_COUNT || note < 0 || note > 127) return;
+    /* A frozen loop is one stereo signal: it cannot honour a voice's mute. */
+    if (freezeGuard(track)) return;
     const before = mirror(track);
     const wasSolo = before ? before.solo === note : false;
     const wasMuted = before ? before.mutes.has(note) : false;

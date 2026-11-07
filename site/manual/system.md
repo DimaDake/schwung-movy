@@ -51,9 +51,12 @@ it; pressing **Shift** + **Step 12** again resets the peak marks.
   effects, a dotted line for its peak. A short dash means the track is loaded but
   silent, and costs nothing right now.
 - When send effects are loaded, three more columns appear on the right under `SND`.
+- An **F** over a column is a [frozen](sounds.md#freezing-a-track) track: the
+  column is what its loop costs, a microsecond or two.
 
 Six or seven tracks of ordinary synths is typical; light modules go much further.
-A silent track costs nothing.
+A silent track costs nothing, and a [frozen](sounds.md#freezing-a-track) one
+almost nothing.
 
 ## The built-in speaker
 

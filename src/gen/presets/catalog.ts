@@ -44,9 +44,12 @@ const LISTED: Preset[] = [
     TIGHT_D, GHOSTS_D, FILL_D, MUTATE_D, RATCHET_D, HUMANIZE_D,
     TURNAROUND, CADENCE, PUSH, RUN, ECHO, STYLE_X, STOP, EVOLVE,
     FILL_X, ROLL, REPEAT, BREAK_D, STYLE_XD,
-    /* New Clip: shown in this order, one option each. */
+    /* New Clip: shown in this order, one option each. On drums the whole
+     * kits lead now the kit's voices are known (analysis/kit.ts): they put
+     * kick, snare and hats on the right pads, so option 1 is a beat; the
+     * per-pad ones build a kit a voice at a time and come after. */
     CHORDS, PAD, STABS, BASS, ARP_N, MELODY, RIFF, COUNTER, HOLD_N, PULSE_N, WALK_N, LOOPER_N, HARMONIZE_N, FOLLOW_N,
-    PAD_EUCLID, PAD_PATTERN, DRUM_MAP, EUCLID_KIT, BROKEN, PERC,
+    DRUM_MAP, EUCLID_KIT, BROKEN, PERC, PAD_EUCLID, PAD_PATTERN,
 ];
 
 /* The ones that roll dice and had knobs to spare get SEED (seeded.ts). */

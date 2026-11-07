@@ -23,10 +23,10 @@ G.forgetOptions();
 const mel = G.generateAll(createInput(false, 'empty', 1));
 eq('new_clip_melodic_offers_every_part', ids(mel), 'n-chords n-pad n-stabs n-bass n-arp n-melody n-riff n-counter n-hold n-pulse n-walk n-looper');
 const drm = G.generateAll(createInput(true, 'empty', 1));
-eq('new_clip_drums_offers_two_per_pad_then_four_kits', ids(drm), 'n-pad-euclid n-pad-pattern n-drum-map n-euclid-kit n-broken n-perc');
-ok('new_clip_per_pad_options_come_first', drm.picks.slice(0, 2).every((p) => p.preset.perPad) && drm.picks.slice(2).every((p) => !p.preset.perPad));
+eq('new_clip_drums_offers_four_kits_then_two_per_pad', ids(drm), 'n-drum-map n-euclid-kit n-broken n-perc n-pad-euclid n-pad-pattern');
+ok('new_clip_whole_kit_options_come_first', drm.picks.slice(0, 4).every((p) => !p.preset.perPad) && drm.picks.slice(4).every((p) => p.preset.perPad));
 eq('new_clip_a_silent_set_takes_the_key_setting', `${mel.ctx.key.tonic}${mel.ctx.key.minor ? 'm' : ''}`, '0');
-eq('new_clip_per_pad_writes_only_its_pad', [...new Set(drm.picks[0].notes.map((n) => n.pitch))].join(), String(G.padOf(drm.ctx)));
+eq('new_clip_per_pad_writes_only_its_pad', [...new Set(drm.picks.find((p) => p.preset.perPad).notes.map((n) => n.pitch))].join(), String(G.padOf(drm.ctx)));
 
 /* A locked scene: the parts sit on the others' chords (Fmaj7 G7 Am7 E7). */
 const lk = G.generateAll(createInput(false, 'locked', 2));
@@ -182,7 +182,7 @@ const again = mel.picks.filter((p) => sig(G.regenerate(mel.ctx, p.preset, p.knob
 eq('new_clip_a_default_is_remade_by_its_knobs', again.join(' '), '');
 
 /* DENSITY 0 empties a per-pad option; the guard lets it through. */
-const pe = drm.picks[0];
+const pe = drm.picks.find((p) => p.preset.perPad);
 eq('new_clip_density_zero_is_silence', G.regenerate(drm.ctx, pe.preset, [0, ...pe.knobs.slice(1)]).length, 0);
 
 /* The feel row (user, 2026-10-28: chords need not be full length, a gate

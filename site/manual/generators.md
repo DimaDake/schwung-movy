@@ -171,13 +171,13 @@ in, keeping the figure. On **PAD**, **PATTERN**: `HELD` changes chord with the h
 `BAR`, `HALVES`, `3-3-2`, `CHARLESTON`, `PUSH` and `2+4` re-strike the chord on
 a rhythm. Every chord change still sounds.
 
-**Drum tracks** get six options. **PAD EUCLID** and **PAD PATTERN** write only
-the **selected pad**: press another pad and it gets its own part, so you build
-a kit one voice at a time (DENSITY at 0 removes it again). **DRUM MAP**,
-**EUCLID KIT**, **BROKEN** and **PERC** write the whole kit. DRUM MAP morphs
-between genres (four on the floor, disco, backbeat, 2-step, breakbeat, half
-time, trap, broken beat) with separate kick, snare and hat counts, and can end
-on a fill.
+**Drum tracks** get six options. The first four, **DRUM MAP**, **EUCLID KIT**,
+**BROKEN** and **PERC**, write the whole kit. DRUM MAP morphs between genres
+(four on the floor, disco, backbeat, 2-step, breakbeat, half time, trap, broken
+beat) with separate kick, snare and hat counts, and can end on a fill. The last
+two, **PAD EUCLID** and **PAD PATTERN**, write only the **selected pad**: press
+another pad and it gets its own part, so you build a kit one voice at a time
+(DENSITY at 0 removes it again).
 
 The kick, snare and hats go on the pads that play them. movy reads that from
 the drum module itself: the names and roles it gives its voices, the sample a

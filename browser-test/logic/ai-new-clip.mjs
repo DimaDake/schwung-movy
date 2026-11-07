@@ -50,7 +50,11 @@ G.forgetOptions();
 
 const r = G.generateAll(createInput(true, 'empty', 4, { pad: 36 }));
 boot(asPreview(r, 32));
-eq('opens_on_the_first_per_pad_option', previewIndex(), 1);
+/* The whole kits lead (presets/catalog.ts); the per-pad pair follows them. */
+const PP = r.picks.findIndex((p) => p.preset.perPad) + 1;
+ok('the_per_pad_pair_follows_the_kits', PP > 1 && r.picks[PP].preset.perPad);
+eq('opens_on_the_first_option', previewIndex(), 1);
+previewSwitch(PP - 1);
 ticks();
 
 /* Another pad: its notes join the kick's, and the kick's stay. */
@@ -59,10 +63,10 @@ const added = lastClip(ticks());
 eq('another_pad_adds_its_notes', added?.pads.join(), '36,38');
 
 /* DENSITY to 0 on that pad: its notes go, the kick's stay. */
-const before = knobsOf(1)[0];
+const before = knobsOf(PP)[0];
 for (let i = 0; i < 12; i++) { previewInput(KNOB(0, -1)); aiPreviewTick(); }
 const cleared = lastClip(ticks());
-ok('density_turned_down', before > 0 && knobsOf(1)[0] === 0);
+ok('density_turned_down', before > 0 && knobsOf(PP)[0] === 0);
 eq('density_zero_removes_the_selected_pads_notes', cleared?.pads.join(), '36');
 
 /* Back up to 3, then the other per-pad option: pad 38 comes along at 3. */
@@ -71,18 +75,18 @@ ticks();
 /* And the kick, which both per-pad options already play, down to 1. */
 seqState.watchLane = 36;
 ticks();
-while (knobsOf(1)[0] > 1) { previewInput(KNOB(0, -1)); aiPreviewTick(); }
+while (knobsOf(PP)[0] > 1) { previewInput(KNOB(0, -1)); aiPreviewTick(); }
 ticks();
 previewSwitch(1);
 const other = lastClip(ticks(4));
-eq('density_follows_a_pad_both_options_play', knobsOf(2)[0], 1);
+eq('density_follows_a_pad_both_options_play', knobsOf(PP + 1)[0], 1);
 seqState.watchLane = 38;
 ticks();
-eq('density_follows_the_pad_into_the_other_per_pad_option', knobsOf(2)[0], 3);
+eq('density_follows_the_pad_into_the_other_per_pad_option', knobsOf(PP + 1)[0], 3);
 eq('the_other_per_pad_option_writes_every_pad_touched', other?.pads.join(), '36,38');
 
 /* The whole-kit options ignore the pad: a pad press only plays it. */
-previewSwitch(1);
+previewSwitch(-PP);
 ticks();
 seqState.watchLane = 42;
 eq('a_kit_option_is_not_rewritten_by_a_pad_press', lastClip(ticks()), null);
@@ -93,7 +97,7 @@ loopStepOnAt(0, 1000); loopStepOff(0);
 loopStepOnAt(0, 1100); loopStepOff(0);
 const one = lastClip(ops());
 eq('a_loop_length_remakes_the_option_showing', one?.len, 16);
-eq('the_preview_stays_open', previewIndex(), 3);
+eq('the_preview_stays_open', previewIndex(), 1);
 eq('the_engine_got_no_loop_command', eng.ops.filter((o) => o.startsWith('loop ')).length, 0);
 previewSwitch(1);
 eq('every_option_is_remade_at_the_new_length', lastClip(ops())?.len, 16);

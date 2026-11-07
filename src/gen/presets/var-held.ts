@@ -79,14 +79,20 @@ export const WALK: Preset = {
     generate: (ctx, v, seed) => {
         const r = rng(seed);
         const out = over(ctx, partEvs(ctx), { h: v[2], tension: v[1] });
-        const n = Math.max(1, Math.round(1 + (v[0] / 10) * 3));
+        const base = 1 + (v[0] / 10) * 3;
         for (let i = 1; i < out.length; i++) {
             if (!isStrong(out[i].tick)) continue;
             const target = out[i].voices[0].pitch;
+            /* The seed sets each walk's length around AMOUNT and, one walk in
+             * four, comes in from the other side: walked from where the line
+             * was, every SEED gave one take (variety bench). */
+            const n = Math.max(1, Math.round(base + (r() - 0.5) * 2));
+            const flip = r() < 0.25;
             for (let j = 1; j <= n && i - j >= 0 && !isStrong(out[i - j].tick); j++) {
                 const T = targetAt(ctx, v[2], out[i - j].tick);
-                const p = v[1] >= 7 ? target + (out[i - j].voices[0].pitch > target ? j : -j)
-                    : nearestPitch(target + (out[i - j].voices[0].pitch > target ? 2 * j : -2 * j), T ? T.pcs.concat([pc(stepScale(target, 1, ctx.key)), pc(stepScale(target, -1, ctx.key))]) : [pc(target)]);
+                const above = (out[i - j].voices[0].pitch > target) !== flip;
+                const p = v[1] >= 7 ? target + (above ? j : -j)
+                    : nearestPitch(target + (above ? 2 * j : -2 * j), T ? T.pcs.concat([pc(stepScale(target, 1, ctx.key)), pc(stepScale(target, -1, ctx.key))]) : [pc(target)]);
                 out[i - j].voices[0].pitch = p;
             }
         }

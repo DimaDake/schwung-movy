@@ -10,6 +10,7 @@ import type { Preset } from '../preset.js';
 import { hash, mix, rng } from '../rng.js';
 import { type Candidate, difference, MIN_PAIR, scoreCandidate } from '../select.js';
 import { unmeaning } from './checks.js';
+import { TPS } from '../types.js';
 
 export const TAKES = 4;
 const ROLLS = 8;
@@ -32,14 +33,26 @@ export function createTake(p: Preset, ctx: GenCtx, which: number): Candidate | n
     return null;
 }
 
+/** How far under the best a take may score and still be preferred for a new rhythm. */
+const NEAR = 0.01;
+
+/** A part's onsets in 16ths: its rhythm, whatever its notes. */
+const beatOf = (ns: Candidate['notes']) => [...new Set(ns.map((n) => Math.round(n.tick / TPS)))].sort((a, b) => a - b).join();
+
 export function selectCreate(cands: Candidate[], recent: Candidate['notes'][]): Candidate[] {
     const chosen: Candidate[] = [];
+    const beats = new Set(recent.map(beatOf));
     const presets = [...new Set(cands.map((c) => c.preset))];
     for (const p of presets) {
         const mine = cands.filter((c) => c.preset === p).sort((a, b) => b.score - a.score);
         const apart = (c: Candidate) => chosen.every((x) => difference(x.notes, c.notes) >= MIN_PAIR);
         const fresh = (c: Candidate) => recent.every((x) => difference(x, c.notes) >= MIN_PAIR);
-        const c = mine.find((x) => apart(x) && fresh(x)) ?? mine.find(fresh) ?? mine.find(apart) ?? mine[0];
+        /* A new rhythm before new notes on an old one, among takes as good
+         * as the best: a bass alone came back on one figure 7 presses in 10,
+         * its notes moved (variety bench); further down it gave up fit with
+         * the band (the quality bench's New Clip with band). */
+        const newBeat = (x: Candidate) => !beats.has(beatOf(x.notes)) && x.score >= mine[0].score - NEAR;
+        const c = mine.find((x) => apart(x) && fresh(x) && newBeat(x)) ?? mine.find((x) => apart(x) && fresh(x)) ?? mine.find(fresh) ?? mine.find(apart) ?? mine[0];
         if (c) chosen.push(c);
     }
     return chosen;

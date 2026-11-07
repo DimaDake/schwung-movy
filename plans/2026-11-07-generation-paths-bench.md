@@ -346,3 +346,53 @@ bass, NEXT CHORDS displaced by NUDGE, one each), coherence 0.91 → 0.88
 2. Lead vs chords onsets in B (`lc.coincide`), 35 scenes.
 3. PULSE over real scenes stays at 58%.
 4. The best-of-six gate's density rule against Step 14's New Clip options.
+
+## Round 5: variety (2026-11-07)
+
+`quality/variety.mjs`, `variety-run.mjs` (~20 s): do the metrics tell scenes
+apart, and do the generators give a different part each time?
+
+- **Metrics**: per metric, generated against real: distinct values, the
+  commonest's share, the P10-P90 width. "generators constant / narrow" means
+  the generators never go where real music does; "measures nothing" would be
+  a dead metric (none is). `accent` and `ens.sync` are near-automatic
+  wherever hats play every 8th: weak.
+- **New Clip pressed 10 times** (history on, as on the device), per
+  generator, empty and in a band: distance between takes, rhythms, the
+  commonest rhythm's share, knob settings. Across scenes: the first press in
+  each.
+- **Variation, Smart Double, Smart Quantize**: the six apart, a second
+  press, SEED turned 0-5 on every option that has it.
+
+### Found and fixed
+
+| finding | cause | fix | before → after |
+|---|---|---|---|
+| a second press of Variation or Double gave the same six | only New Clip carried a per-press nonce | `ai/job-algo.ts`: every press but Smart Quantize's is its own run (a quantize fixes the take as played) | same on a second press 100% → 0% |
+| HARMONIZE, FOLLOW: one line every press; LOOPER: one rhythm | adopted Variation knobs (`custom`, `count`, `K.*`) are never drawn by a take | `common.ts drawn(knob, pool)` (pool[0] = the default): their musical knobs drawn | rhythms in 10 presses: HARMONIZE 1 → 8.7, FOLLOW 1 → 9.3, LOOPER 1 → 6.6 |
+| a bass alone came back on one figure 7 presses in 10 | take choice by score ties to one figure; history compared notes, not rhythm | `takes.ts`: among takes within 0.01 of the best, one whose rhythm was not offered lately | commonest rhythm 70% → 48% (empty), 39% → 34% (in a band) |
+| MELODY's SEED gave 3.7 takes in 6 | phrased, its pitches followed the contour alone | the seed bends the contour by up to 2 semitones a note | 5.7 of 6 |
+| DECORATE's SEED gave one take in 6 | with no more candidates than AMOUNT, every seed chose them all | the seed also places each passing note in its room | 6 of 6 |
+| WALK's SEED gave one take in 6 (New Clip's, on a bass track) | the walk was set by where the line was | the seed sets each walk's length and one in four comes from the other side | 4.5 of 6 (the rest: figures with nothing to walk) |
+
+Not taken: PULSE's DENSITY and OCTAVE drawn (as good as the real bass 58% →
+48% with them; its rhythm varies through PATTERN, 10 of 10), WALK's densest
+take. Quality bench (`plans/gen-quality-round5.md` vs round 4): nothing
+moved but Variation's best-of-six gate 72% → 67%, its density rule (under
+0.4x the source) failing THIN, which thins by design, and Step 14's New Clip
+options (open item 4 of round 4).
+
+### What variety is by design
+
+- ARP's rhythm is its rate, HOLD a drone, PAD alone holds: few rhythms,
+  their notes 0.88-0.96 apart press to press.
+- GRIDS's randomness is CHAOS's (default 2), FILL's a beat or a bar, FEEL
+  at AMOUNT 100% changes every hit: SEED moves little there.
+- Smart Quantize repeats: a fix, not a search.
+
+### Open: where generators lack real music's range
+
+`kick.perBar` 3-4 (real 2-5.5), `interlock` 0.43-0.58 (real to 0.86: parts
+double each other's hits more), no pedal bass (`bc.pedal`), no passing
+dissonance against chords (`lc.rub`), never chromatic (`ens.scale`), harmony
+always on beat 1 and the anchor always there.

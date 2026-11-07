@@ -198,5 +198,8 @@ longer than 8 bars can't be doubled.
 
 - While a generator works, the header shows `QUANTIZING...`, `VARIATION...`,
   `DOUBLING...` or `NEW CLIP...`, and the sequencer keeps playing. **Back** cancels.
+- Holding **Step 14** or **Step 15** again on the same clip gives new options each
+  time. Smart Quantize gives the same options each time: it fixes your take as
+  you played it.
 - If nothing can be made, a message says why (`NOTHING TO QUANTIZE`), and the clip is unchanged.
 - Open previews are not saved with the Set. When you load another Set, each clip keeps the option it was showing.

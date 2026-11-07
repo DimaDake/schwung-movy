@@ -42,7 +42,7 @@ export interface Running {
     tracks: AiTrackInput[];
     ctx: JobCtx | null;
     gen: Request | null;      // the generators' request, once the reads are in
-    nonce: number;            // New Clip: this run's own seed (gen/create)
+    nonce: number;            // this run's own seed (New Clip, Variation, Smart Double)
 }
 
 

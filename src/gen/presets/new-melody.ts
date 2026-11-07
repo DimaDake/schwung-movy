@@ -59,7 +59,11 @@ function phrased(ctx: GenCtx, v: number[], r: Rng, spans: readonly Span[], lo: n
         if (n <= 0) on = [0];
         for (const k of on) {
             const t = ((a + k) % ctx.len) * TPS;
-            out.push({ tick: t, pitch: tone(ctx, v[4], t, lo + CONTOURS[v[0]](n > 0 ? k / n : 0.5) * (hi - lo), lo, hi), gate: TPS, vel: velAt(t, 96, r) });
+            /* The seed bends the contour a little at each note before it lands
+             * on a chord or scale tone: a phrased melody's SEED moved only its
+             * rhythm's small noise, and half of SEED's turns gave the same take. */
+            const target = lo + CONTOURS[v[0]](n > 0 ? k / n : 0.5) * (hi - lo) + (r() - 0.5) * 4;
+            out.push({ tick: t, pitch: tone(ctx, v[4], t, target, lo, hi), gate: TPS, vel: velAt(t, 96, r) });
         }
     }
     return out;

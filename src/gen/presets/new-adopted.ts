@@ -7,7 +7,7 @@
  * follows the chords the melody already sets (no HARMONY). */
 
 import type { RoleKind } from '../../ai/role.js';
-import { choice, HARMONY, LINE_REGISTER as L, register, runPlan, SEED } from '../create/common.js';
+import { choice, drawn, HARMONY, LINE_REGISTER as L, register, runPlan, SEED } from '../create/common.js';
 import { withFeel } from '../create/feel.js';
 import { patternAt, patternKnob } from '../create/pattern-knob.js';
 import { asSource, otherMelody, seedPart, type SeedKind } from '../create/seed-part.js';
@@ -67,27 +67,31 @@ export const HOLD_N = adopt({ id: 'n-hold', name: 'HOLD NOTE', cls: 'close', bas
     own: [choice('NOTE', ['PIVOT', 'ROOT', 'FIFTH', 'THIRD'], [1, 1, 2, 3, 0]), HARMONY, register([L.LOW, L.MID, L.MID], L.labels), choice('SHARED', ['TIE', 'RESTRIKE'], [0, 0, 1])],
     centre: (at) => LINE_CENTRES[at('REGISTER')] });
 
+/* PULSE's takes pulse the root, the fifth one in four: on the third it
+ * stands on an inversion, not a bass (leave-one-out: bc.root its top miss). */
 export const PULSE_N = adopt({ id: 'n-pulse', name: 'PULSE', cls: 'rhythm', base: PULSE, seed: 'root', role: 'bass', g: [5, 9], sp: 'bass',
-    own: [BASS_PATTERN, K.density(5), HARMONY, custom('OCTAVE', ['LOW', 'MIDDLE', 'HIGH', 'OCTAVE UP']), custom('NOTE', ['ROOT', 'FIFTH', 'THIRD'])],
+    own: [BASS_PATTERN, K.density(5), HARMONY, custom('OCTAVE', ['LOW', 'MIDDLE', 'HIGH', 'OCTAVE UP']),
+        drawn(custom('NOTE', ['ROOT', 'FIFTH', 'THIRD']), [0, 0, 0, 1])],
     centre: () => 40 });
 
 export const WALK_N = adopt({ id: 'n-walk', name: 'WALK', cls: 'rhythm', base: withSeed(WALK), seed: 'root', role: 'bass', g: [6, 10], sp: 'bass',
-    own: [BASS_PATTERN, K.density(6), HARMONY, choice('OCTAVE', ['DEEP', 'LOW', 'MID', 'HIGH'], [1, 1, 2]), K.tension(4), SEED],
+    own: [BASS_PATTERN, drawn(K.density(6), [6, 5, 6, 7]), HARMONY, choice('OCTAVE', ['DEEP', 'LOW', 'MID', 'HIGH'], [1, 1, 2]), drawn(K.tension(4), [4, 3, 5, 6]), SEED],
     centre: (at) => BASS_CENTRES[at('OCTAVE')] });
 
 export const LOOPER_N = adopt({ id: 'n-looper', name: 'LOOPER', cls: 'exp', base: LOOPER, seed: 'line', role: 'lead', g: [2, 7], sp: 'line',
-    own: [custom('LOOP', ['3', '4', '5', '6', '7', '8', '12', '16'], 5), count('LOCK', 10, 6), HARMONY, count('SPREAD', 10, 4),
-        custom('CLOCK', ['1/16', '1/8', '1/4'], 1), SEED],
+    own: [drawn(custom('LOOP', ['3', '4', '5', '6', '7', '8', '12', '16'], 5), [5, 1, 3, 4, 6, 7]), drawn(count('LOCK', 10, 6), [6, 4, 5, 7, 8]), HARMONY,
+        drawn(count('SPREAD', 10, 4), [4, 2, 3, 5, 6]), drawn(custom('CLOCK', ['1/16', '1/8', '1/4'], 1), [1, 1, 0, 2]), SEED],
     centre: () => 64 });
 
 export const HARMONIZE_N = adopt({ id: 'n-harmonize', name: 'HARMONIZE', cls: 'close', base: HARMONIZE, seed: 'melody', role: 'lead', g: [3, 8], sp: 'melody',
     /* No HARMONY: a second line is under a melody that already sets the chords (§2.8). */
-    own: [custom('INTERVAL', ['3RD UP', '6TH UP', '3RD DOWN', '6TH DOWN', '10TH UP'], 2), K.amount(10), K.tension(4)],
+    own: [drawn(custom('INTERVAL', ['3RD UP', '6TH UP', '3RD DOWN', '6TH DOWN', '10TH UP'], 2), [2, 0, 1, 2, 3, 4]), drawn(K.amount(10), [10, 6, 8, 10]),
+        drawn(K.tension(4), [4, 2, 5])],
     centre: () => 64 });
 
 export const FOLLOW_N = adopt({ id: 'n-follow', name: 'FOLLOW', cls: 'exp', base: FOLLOW, seed: 'melody', role: 'lead', g: [3, 8], sp: 'melody',
     /* RHYTHM, not DIRECTION: with the melody's own chords there is no root motion to follow. */
-    own: [K.rhythm(0), K.density(5), custom('VOICES', ['+1', '+2', '+3']), K.tension(3)],
+    own: [drawn(K.rhythm(0), [0, 0, 1, 2, 3]), drawn(K.density(5), [5, 3, 4, 6, 7]), drawn(custom('VOICES', ['+1', '+2', '+3']), [0, 0, 1, 2]), drawn(K.tension(3), [3, 2, 4, 5])],
     /* Its added voices are the line: VOICES +1 is FOLLOW's +1 (AS IS would be the melody itself). */
     map: { VOICES: (v) => v + 2 },
     centre: () => 64 });

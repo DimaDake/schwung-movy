@@ -14,3 +14,4 @@ export * from './preview-render.js';
 export * from './hold.js';
 export * from './hold-render.js';
 export * from './gestures.js';
+export { startAlgo } from './job-algo.js';

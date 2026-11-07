@@ -19,6 +19,12 @@ export function choice(name: string, labels: readonly string[], pool?: number[])
     return { ...k, roll: (_c, r) => pick(r, pool ?? labels.map((_, i) => i)) };
 }
 
+/** A knob whose take is drawn from `pool` (its first entry is the knob's
+ *  default): a Variation knob adopted by New Clip has none of its own, so
+ *  every press played it at one position (variety bench: HARMONIZE and
+ *  FOLLOW gave one line every press, LOOPER one rhythm). */
+export const drawn = (k: KnobDef, pool: number[]): KnobDef => ({ ...k, def: () => pool[0], roll: (_c, r) => pick(r, pool) });
+
 /** A 0..max knob whose take is drawn between lo and hi. */
 export function amount(name: string, max: number, lo: number, hi: number): KnobDef {
     return { name, steps: () => max + 1, def: () => lo, label: (v) => String(v),

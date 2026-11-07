@@ -74,6 +74,8 @@ export function embellish(ctx: GenCtx, notes: Note[], count: number, kind: Ornam
     const sorted = [...notes].sort((a, b) => a.tick - b.tick);
     const taken = new Set(sorted.map((n) => Math.round(n.tick / (TPS / 2))));
     const cands: Note[] = [];
+    /* A passing note's room: the 16ths strictly between its two notes. */
+    const room = new Map<Note, [number, number]>();
     sorted.forEach((n, i) => {
         const next = sorted.slice(i + 1).find((x) => x.tick > n.tick);
         const c = chordAt(chords, n.tick, ctx.k);
@@ -84,7 +86,11 @@ export function embellish(ctx: GenCtx, notes: Note[], count: number, kind: Ornam
         } else if (kind === 'passing' && next && next.tick - n.tick >= TPS * 2 && Math.abs(next.pitch - n.pitch) >= 3) {
             const t = n.tick + Math.round((next.tick - n.tick) / 2 / TPS) * TPS;
             const want = Math.round((n.pitch + next.pitch) / 2);
-            if (!taken.has(Math.round(t / (TPS / 2)))) cands.push({ tick: t, gate: TPS, pitch: nearestPitch(want, tones), vel: Math.round(n.vel * 0.8) });
+            if (!taken.has(Math.round(t / (TPS / 2)))) {
+                const c = { tick: t, gate: TPS, pitch: nearestPitch(want, tones), vel: Math.round(n.vel * 0.8) };
+                cands.push(c);
+                room.set(c, [n.tick + TPS, next.tick - TPS]);
+            }
         } else if (kind === 'neighbour' && n.gate >= TPS * 3) {
             const t = n.tick + TPS;
             const up = nearestPitch(n.pitch + 2, tones, n.pitch + 1, n.pitch + 3);
@@ -92,6 +98,14 @@ export function embellish(ctx: GenCtx, notes: Note[], count: number, kind: Ornam
         }
     });
     const chosen = cands.map((c) => ({ c, w: r() })).sort((a, b) => a.w - b.w).slice(0, count).map((x) => x.c);
+    /* The seed places each passing note in its room too: with no more
+     * candidates than AMOUNT, which ones it chose was every SEED's answer
+     * (variety bench: one take for six seeds). */
+    for (const c of chosen) {
+        const [a, b] = room.get(c) ?? [c.tick, c.tick];
+        const t = a + Math.floor(r() * ((b - a) / TPS + 1)) * TPS;
+        if (!taken.has(Math.round(t / (TPS / 2)))) c.tick = t;
+    }
     /* The note an ornament now interrupts is shortened to make room. */
     const out = notes.map((n) => {
         const cut = chosen.find((c) => c.tick > n.tick && c.tick < n.tick + n.gate && c.pitch !== n.pitch);

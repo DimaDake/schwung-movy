@@ -29,6 +29,7 @@ import { run as run_gen_quality } from './logic/gen-quality.mjs';
 import { run as run_gen_paths } from './logic/gen-paths.mjs';
 import { run as run_gen_band } from './logic/gen-band.mjs';
 import { run as run_gen_evolve } from './logic/gen-evolve.mjs';
+import { run as run_gen_variety } from './logic/gen-variety.mjs';
 import { run as run_gen_voicing } from './logic/gen-voicing.mjs';
 import { run as run_gen_maps } from './logic/gen-maps.mjs';
 import { run as run_gen_follow } from './logic/gen-follow.mjs';
@@ -148,6 +149,7 @@ const SUITES = [
     run_gen_paths,
     run_gen_band,
     run_gen_evolve,
+    run_gen_variety,
     run_gen_voicing,
     run_gen_maps,
     run_gen_follow,

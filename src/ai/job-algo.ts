@@ -16,7 +16,11 @@ function inputOf(r: Running, source: number | null): GenInput {
         task: r.task, tracks: r.tracks, target: { track: r.track, slot: r.slot },
         source: source === null ? null : { track: r.track, slot: source },
         len: c.len, scale: c.scale, drum: c.drum, kit: c.kit, root: h.root, mode: h.mode,
-        ...(r.task === 'create' ? { nonce: r.nonce, pad: c.drum && seqState.watchLane >= 0 ? seqState.watchLane : undefined } : {}),
+        /* Every press of New Clip, Variation and Smart Double is its own run
+         * (variety bench: a second press gave the same six); Smart Quantize
+         * fixes the take as played, the same way each time. */
+        ...(r.task !== 'quantize' ? { nonce: r.nonce } : {}),
+        ...(r.task === 'create' ? { pad: c.drum && seqState.watchLane >= 0 ? seqState.watchLane : undefined } : {}),
     };
 }
 

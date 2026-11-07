@@ -140,8 +140,9 @@ export function strikesChords(notes: Note[]): boolean {
     return groups.length > 0 && groups.filter((p) => p.size >= 2).length * 2 >= groups.length;
 }
 
-/* A New Clip run carries its own nonce: the same Set never gives the same
- * defaults twice. Other tasks stay a function of the Set (the bench). */
+/* A run carries its own nonce (New Clip, Variation, Smart Double on the
+ * device): the same Set never gives the same options twice. Without one (a
+ * Smart Quantize, the benches, the tests) a run is a function of the Set. */
 function seedOf(input: GenInput, src: Note[]): number {
     const h = hash(src.map((n) => `${n.tick}.${n.pitch}`).join(',') + '|' + input.target.slot + '|' + input.task);
     return input.nonce === undefined ? h : mix(h, input.nonce);

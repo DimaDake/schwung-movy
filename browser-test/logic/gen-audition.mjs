@@ -9,6 +9,7 @@ import * as G from '../../dist/esm/gen/index.js';
 import { makeCase, recipeKey, sceneOf } from '../../scripts/gen-bench/audition/case.mjs';
 import { blindRecipes, rebuild, setRecipes } from '../../scripts/gen-bench/audition/sources.mjs';
 import { chunks, interleave, packCase } from '../../scripts/gen-bench/audition/queue.mjs';
+import { firstList, summarise } from '../../scripts/gen-bench/audition/summary.mjs';
 import { caseMidi, drop, earVsBench, enqueue, markAt, nextIndex, ratingDoc, schedule, tracksFor } from '../../scripts/gen-bench/audition/page/core.mjs';
 
 const set2 = () => ({ root: 'C', mode: 'minor', bpm: 124, tracks: [
@@ -115,6 +116,23 @@ eq('ear_vs_bench_agree', earVsBench({ ok: true }, 'keep'), null);
 const mid = caseMidi(pc, 0);
 eq('midi_header', String.fromCharCode(...mid.slice(0, 4)), 'MThd');
 eq('midi_four_tracks', mid[11], 4);
+
+_log('\nTest: audition ratings report');
+
+const bl = { id: 'bk-b1', recipeKey: 'bk', build: 'b1', kind: 'blind', truth: 'gen', generator: 'n-walk', target: 'bass', recipe: { src: 'loo' }, bench: { ok: true, bad: [] }, scene: pc.scene };
+const rl = { id: 'rk-b1', recipeKey: 'rk', build: 'b1', kind: 'blind', truth: 'real', generator: 'real', target: 'bass', recipe: { src: 'loo' }, bench: { ok: false, bad: ['x'] }, scene: pc.scene };
+const rs = [ratingDoc(pc, 1, 'keep', [], [], '', 1), ratingDoc(pc, 1, 'bad', ['clash'], [{ bar: 1, beat: 3 }], '', 2), ratingDoc(pc, 0, 'bad', ['boring'], [], '', 3),
+    ratingDoc(bl, null, 'bad', ['off-groove'], [], '', 4), ratingDoc(rl, null, 'keep', [], [], '', 5)];
+const sum = summarise(rs, [pc, bl, rl]);
+const walk = sum.byGenerator.find((g) => g.generator === 'n-walk');
+eq('report_rerating_counts_once', sum.byGenerator.find((g) => g.generator === 'n-bass').n, 1);
+eq('report_latest_rating_wins', JSON.stringify(walk.reasons), '{"clash":1,"off-groove":1}');
+eq('report_blind_counts_under_generator', walk.n, 2);
+eq('report_blind_shares', JSON.stringify(sum.blind), '{"real":1,"realKeep":1,"gen":1,"genKeep":0}');
+eq('report_ear_vs_bench_ok_but_bad', sum.byGenerator.find((g) => g.generator === 'n-bass').earVsBench.benchOkUserBad, 1);
+eq('report_ear_vs_bench_bad_but_keep', sum.byGenerator.find((g) => g.generator === 'real').earVsBench.benchBadUserKeep, 1);
+eq('report_marks_kept', walk.marks.length, 1);
+eq('first_list_bad_generated_only', firstList(rs, [pc, bl, rl]).map((f) => f.recipeKey).sort().join(), 'abc,bk');
 }
 
 function sceneOfRef(r) { return [...r.bass].map((n) => [Math.round(n[0] * 96) / 96, Math.round(n[1] * 96) / 96, n[2], n[3]]); }

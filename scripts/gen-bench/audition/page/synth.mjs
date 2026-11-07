@@ -50,15 +50,20 @@ export function makeSynth() {
             osc('sawtooth', f, t, end + 0.1, lp); osc('sine', f, t, end + 0.1, g);
         } else if (track === 'chords') {
             const g = gain(bus);
-            g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(v * 0.07, t + 0.04);
-            g.gain.setValueAtTime(v * 0.07, end); g.gain.exponentialRampToValueAtTime(0.0001, end + 0.25);
-            const lp = filter('lowpass', 1900, g);
+            /* Kept low and dark: a 3-4 note voicing of two saws each would bury the lead. */
+            g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(v * 0.028, t + 0.05);
+            g.gain.setValueAtTime(v * 0.028, end); g.gain.exponentialRampToValueAtTime(0.0001, end + 0.25);
+            const lp = filter('lowpass', 1300, g);
             osc('sawtooth', f * 1.003, t, end + 0.3, lp); osc('sawtooth', f * 0.997, t, end + 0.3, lp);
         } else {
-            const g = gain(bus); env(g, t, v * 0.2, 0.003, Math.min(0.6, dur + 0.15));
-            const lp = filter('lowpass', 3200, g);
-            lp.frequency.setValueAtTime(4200, t); lp.frequency.exponentialRampToValueAtTime(900, t + 0.3);
-            osc('triangle', f, t, end + 0.3, lp); osc('square', f, t, end + 0.3, filter('lowpass', 1200, g));
+            /* The lead holds its level for the note's length, so long notes stay heard over the pad. */
+            const g = gain(bus), rel = end + 0.12;
+            g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v * 0.42, t + 0.004);
+            g.gain.exponentialRampToValueAtTime(v * 0.3, t + 0.08); g.gain.setValueAtTime(v * 0.3, end);
+            g.gain.exponentialRampToValueAtTime(0.0001, rel);
+            const lp = filter('lowpass', 2600, g);
+            lp.frequency.setValueAtTime(5200, t); lp.frequency.exponentialRampToValueAtTime(2600, t + 0.15);
+            osc('sawtooth', f, t, rel + 0.02, lp); osc('square', f * 1.002, t, rel + 0.02, lp);
         }
     }
 

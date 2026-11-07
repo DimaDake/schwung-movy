@@ -141,3 +141,7 @@ The user tried the page and found it hard to make decisions: a plain lead "could
 - **Bench-flagged cases are folded into the sets** (my ruling). A flagged take is one of its press's options already, and a generated scene has no real part to A/B against.
 - **The most important cases come first.** The user will not hear everything. The queue runs in laps: one case per cell (a request and role, or an A/B role and whose scene), ordered as A/B on the user's scenes, New Clip, Variation, A/B on public scenes, then Smart Double, and lead, chords, bass, drums within each. Wherever the user stops, every cell has the same count.
 - **The data.** There is one `~pick` document per case (`pickDoc`). The report reads a pick as per-option ratings (picked = keep, the rest meh, None/Neither = bad), so the per-generator table and the regression keep working, and the old Keep/Meh/Bad ratings still count. New tables are "Presses" (picked / none / all alike / option 1) and "Against real parts". `--first` now re-queues the rebuild of each None/Neither case, marked "After fix".
+
+## Parked (2026-11-07)
+
+The user dropped the audition app after two rounds (17 Keep/Meh/Bad ratings and 20 picks): "It doesn't really help." The code, the artifact and its answers are kept and left unused. Do not propose the audition loop or its findings again unless the user brings it back.

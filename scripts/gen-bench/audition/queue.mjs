@@ -1,8 +1,17 @@
-/* The listening queue (plans/2026-11-07-gen-audition-design.md): the case
- * kinds mixed by weight, and inside a kind every generator once before any
- * comes back, so a short session already hears all of them. */
+/* The listening queue (design doc, "Pick, not grade"): the user stops when
+ * they like, so the queue runs in laps. Each lap holds one case from every
+ * cell (a request and role, or an A/B role and whose scene), most important
+ * cell first: wherever the user stops, every generator has as many answers
+ * as any other, and the ones that matter most have them first. */
 
-export const WEIGHTS = { set: 0.5, flagged: 0.3, blind: 0.2 };
+/* The user's own scenes against real parts first: the most direct "would
+ * you keep it" there is. Then New Clip and Variation, the presses used most. */
+const TIERS = ['ab:user', 'create', 'variation', 'ab:public', 'double'];
+const ROLES = ['lead', 'chords', 'bass', 'drums'];
+
+export const cellOf = (c) => (c.kind === 'ab' ? `ab:${c.refKind}:${c.target}` : c.generator);
+const rank = (cell) => { const p = cell.split(':'), t = TIERS.indexOf(p.length === 3 ? `${p[0]}:${p[1]}` : p[0]);
+    return (t < 0 ? TIERS.length : t) * ROLES.length + ROLES.indexOf(p[p.length - 1]); };
 
 function rng(seed) {
     let a = seed >>> 0;
@@ -15,27 +24,13 @@ function shuffle(xs, rand) {
     return out;
 }
 
-/** One kind's cases, round-robin over its generators (each shuffled). */
-function rotate(cases, rand) {
-    const groups = new Map();
-    for (const c of cases) groups.set(c.generator, [...(groups.get(c.generator) ?? []), c]);
-    const lanes = shuffle([...groups.values()], rand).map((g) => shuffle(g, rand));
+/** Every case once, in laps over the cells (each cell's cases shuffled). */
+export function prioritise(cases, seed = 1) {
+    const rand = rng(seed), cells = new Map();
+    for (const c of cases) cells.set(cellOf(c), [...(cells.get(cellOf(c)) ?? []), c]);
+    const lanes = [...cells.entries()].sort((a, b) => rank(a[0]) - rank(b[0])).map(([, cs]) => shuffle(cs, rand));
     const out = [];
     for (let k = 0; out.length < cases.length; k++) for (const l of lanes) if (l[k]) out.push(l[k]);
-    return out;
-}
-
-/** Every case once: at each place the kind furthest behind its weight. */
-export function interleave(pools, weights = WEIGHTS, seed = 1) {
-    const rand = rng(seed);
-    const lanes = Object.fromEntries(Object.entries(pools).map(([k, cs]) => [k, rotate(cs, rand)]));
-    const taken = Object.fromEntries(Object.keys(lanes).map((k) => [k, 0]));
-    const total = Object.values(lanes).reduce((n, l) => n + l.length, 0), out = [];
-    while (out.length < total) {
-        const open = Object.keys(lanes).filter((k) => taken[k] < lanes[k].length);
-        const k = open.reduce((a, b) => ((weights[b] ?? 0) * (out.length + 1) - taken[b] > (weights[a] ?? 0) * (out.length + 1) - taken[a] ? b : a));
-        out.push(lanes[k][taken[k]++]);
-    }
     return out;
 }
 

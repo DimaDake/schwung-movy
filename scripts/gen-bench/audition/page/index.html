@@ -41,9 +41,6 @@ h1 { font: 700 20px/1.1 var(--font-display); letter-spacing: .01em; margin: 0; t
 .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .opt { min-width: 44px; font-family: var(--font-data); position: relative; }
 .opt[aria-current="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
-.opt[data-r="keep"] { background: var(--keep); color: #fff; border-color: transparent; }
-.opt[data-r="meh"] { background: var(--meh); color: #1b1f24; border-color: transparent; }
-.opt[data-r="bad"] { background: var(--bad); color: #fff; border-color: transparent; }
 .chip { font: 700 12px/1 var(--font-data); text-transform: uppercase; letter-spacing: .06em; padding: 9px 10px; }
 .chip[aria-pressed="true"] { opacity: .45; text-decoration: line-through; }
 .chip.target { border: 2px solid var(--accent); }
@@ -59,11 +56,14 @@ canvas { display: block; width: 100%; height: min(44vh, 320px); touch-action: ma
 .reveal .disagree { color: var(--mark); font-weight: 700; }
 .pads { position: fixed; left: 0; right: 0; bottom: 0; background: var(--bg); border-top: 1px solid var(--rule);
   padding: 10px max(16px, env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
-.pads > div { max-width: 560px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.pads > div { max-width: 560px; margin: 0 auto; display: grid; gap: 8px; }
+.answers { display: grid; gap: 8px; }
 .pad { font: 700 18px/1 var(--font-display); text-transform: uppercase; letter-spacing: .06em; padding: 18px 0; color: #fff; border: 0; border-radius: 10px; }
-.pad.keep { background: var(--keep); } .pad.meh { background: var(--meh); color: #1b1f24; } .pad.bad { background: var(--bad); }
+.pad.keep { background: var(--keep); } .pad.meh { background: var(--meh); color: #1b1f24; } .pad.bad { background: var(--bad); } .pad.pick { background: var(--accent); }
+.opt.cycle { font-family: var(--font-body); margin-left: auto; }
+.opt.cycle[aria-pressed="true"] { background: var(--accent); color: #fff; border-color: transparent; }
 .pad[aria-pressed="true"] { box-shadow: inset 0 0 0 3px var(--ink); }
-#next { grid-column: 1 / -1; font: 700 16px/1 var(--font-display); text-transform: uppercase; letter-spacing: .06em; padding: 14px; background: var(--ink); color: var(--bg); border: 0; }
+#next { font: 700 16px/1 var(--font-display); text-transform: uppercase; letter-spacing: .06em; padding: 14px; background: var(--ink); color: var(--bg); border: 0; }
 .sheet { background: var(--panel); border: 1px solid var(--rule); border-radius: 10px; padding: 12px; display: grid; gap: 10px; }
 .reason[aria-pressed="true"] { background: var(--bad); color: #fff; border-color: transparent; }
 textarea { width: 100%; box-sizing: border-box; font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--rule); border-radius: 8px; padding: 8px; min-height: 44px; }
@@ -82,7 +82,7 @@ textarea { width: 100%; box-sizing: border-box; font: inherit; color: var(--ink)
 
 <div class="start" id="start"><div>
   <h1>Generator Audition</h1>
-  <p>Listen to each part over its scene. Rate it, and tap the roll where it goes wrong.</p>
+  <p>Each case plays its options one after another over the same scene. Keep the one you would use, or say none fits or they all sound alike. Tap the roll where something goes wrong.</p>
   <p class="data" id="loadInfo">Loading cases…</p>
   <button id="go" disabled>Start listening</button>
 </div></div>
@@ -91,7 +91,7 @@ textarea { width: 100%; box-sizing: border-box; font: inherit; color: var(--ink)
   <div class="top"><h1>Generator Audition</h1><span class="data" id="progress"></span></div>
   <div class="meta"><span class="badge" id="kind"></span><span class="badge pair" id="pair" hidden></span><span class="data" id="info"></span></div>
   <p class="ask" id="ask"></p>
-  <div class="row" id="options" hidden></div>
+  <div class="row" id="options"></div>
   <div class="row" id="chips"></div>
   <div class="screen"><canvas id="roll" aria-label="Note roll. Tap a beat to mark where it goes wrong."></canvas></div>
   <p class="hint">Tap the roll to mark a beat. Tap a mark again to clear it.</p>
@@ -102,21 +102,14 @@ textarea { width: 100%; box-sizing: border-box; font: inherit; color: var(--ink)
     <span class="data" id="bpm"></span>
   </div>
   <details class="mixer" id="mixer"><summary>Mixer</summary><div id="faders"></div></details>
-  <div class="sheet" id="reasons" hidden>
-    <strong>What is wrong?</strong>
-    <div class="row" id="reasonChips"></div>
-    <textarea id="note" placeholder="Optional note"></textarea>
-    <div class="row"><button id="saveBad">Save as bad</button><button id="cancelBad">Cancel</button></div>
-  </div>
+  <div class="sheet" id="why" hidden><strong>What is wrong? (optional)</strong><div class="row" id="whyChips"></div></div>
   <div class="reveal" id="reveal" hidden></div>
-  <div class="row"><button id="best" hidden aria-pressed="false" title="The option you would keep from this press">☆ My pick</button><button id="midi" hidden>MIDI for the Move</button><button id="skip">Skip case</button></div>
+  <div class="row"><button id="midi" hidden>MIDI for the Move</button><button id="skip">Skip case</button></div>
   <p class="data" id="status"></p>
 </main>
 
 <div class="pads"><div>
-  <button class="pad keep" id="keep">Keep</button>
-  <button class="pad meh" id="meh">Meh</button>
-  <button class="pad bad" id="bad">Bad</button>
+  <div class="answers" id="answers"></div>
   <button id="next" hidden>Next</button>
 </div></div>
 <!--APP-->

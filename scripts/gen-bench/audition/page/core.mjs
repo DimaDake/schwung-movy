@@ -6,12 +6,37 @@ import { writeMidi } from '../../quality/midi-write.mjs';
 export const TRACKS = ['drums', 'bass', 'chords', 'lead'];
 export const REASONS = ['clash', 'too busy', 'too sparse', 'off-groove', 'boring', 'wrong register', "doesn't fit scene", 'other'];
 
-/** One rating's database document: one per case and option, so a second
- *  rating replaces the first. */
+/** The first page's Keep/Meh/Bad document, one per case and option; the
+ *  report still reads the ratings given with it. */
 export function ratingDoc(c, option, rating, reasons, marks, text, at = Date.now()) {
     const o = option ?? null;
     return { id: `${c.id}~${o ?? 'p'}`, data: { caseId: c.id, recipeKey: c.recipeKey, build: c.build, kind: c.kind, generator: c.generator,
         option: o, preset: o === null ? c.generator : c.options[o].preset, rating, reasons, marks, text, at } };
+}
+
+/** The page's answer to one case (the pick redesign, design doc "Pick, not
+ *  grade"): `verdict` is pick | none | alike (option sets) or pick | both |
+ *  neither (A/B), and `option` the picked option. One per case. */
+export function pickDoc(c, verdict, option, reasons, marks, at = Date.now()) {
+    const o = verdict === 'pick' ? option : null;
+    return { id: `${c.id}~pick`, data: { caseId: c.id, recipeKey: c.recipeKey, build: c.build, kind: c.kind, generator: c.generator,
+        verdict, option: o, preset: o === null ? null : c.options[o].preset, presets: c.options.map((x) => x.preset), reasons, marks, at } };
+}
+
+/* Options play one after another over the same first bars of the scene, so
+ * they are compared like for like and a long loop does not hold the cycle. */
+export const segOf = (len) => Math.min(len, 16);
+export const cycleAt = (beat, seg, n, base) => (base + Math.floor(Math.max(0, beat) / seg)) % n;
+
+/** schedule() for a cycling case: each segment plays the option cycleAt names. */
+export function scheduleCycle(c, base, from, to, bpm, muted, solo) {
+    const seg = segOf(c.scene.len), spb = 60 / bpm, out = [];
+    for (let a = from; a < to;) {
+        const b = Math.min(to, (Math.floor(a / seg) + 1) * seg), o = cycleAt(a, seg, c.options.length, base);
+        for (const ev of schedule(tracksFor(c, o), seg, a, b, bpm, muted, solo)) out.push({ ...ev, t: ev.t + (a - from) * spb, opt: o });
+        a = b;
+    }
+    return out;
 }
 
 /** The scene's tracks with option `o`'s notes in the part under test. */

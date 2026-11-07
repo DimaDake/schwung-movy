@@ -131,3 +131,13 @@ the first tap.
 - Stratification algorithm and how "worst first" is scored within flagged.
 - How many cases per file; whether the exporter reuses run outputs or calls
   the builders directly (prefer calling builders: stable ids, full metadata).
+
+## Pick, not grade (2026-11-07, after the first listening)
+
+The user tried the page and found it hard to make decisions: a plain lead "could make sense in some context and be weird without it", and the options of one press "look exactly one like another". Absolute Keep/Meh/Bad gives the ear no reference. A comparison does, and it tells the generator directly which option to offer first.
+
+- **Every case is a choice.** An option set plays its options one after another, each over the same first 4 bars (`segOf`), with the playing one lit. The answers are **Keep N**, **All alike** and **None**. A real scene's part is an **A/B** against New Clip's take for the same slot, with the side fixed per recipe and even over many. The answers are **A**, **B**, **Both fine** and **Neither**. Tapping a number holds that option, and **Cycle** resumes. Reasons are optional and are offered only after None or Neither.
+- **"All alike" is a finding, not a puzzle.** Measured on the first export, the options are not alike in notes: `G.difference` has a median of 0.96 for `variation:lead`, and only 33 of 7,944 pairs fall under 0.15. They are alike in character. For now the report only counts it (the user's choice). A character metric is the next step if the counts are high.
+- **Bench-flagged cases are folded into the sets** (my ruling). A flagged take is one of its press's options already, and a generated scene has no real part to A/B against.
+- **The most important cases come first.** The user will not hear everything. The queue runs in laps: one case per cell (a request and role, or an A/B role and whose scene), ordered as A/B on the user's scenes, New Clip, Variation, A/B on public scenes, then Smart Double, and lead, chords, bass, drums within each. Wherever the user stops, every cell has the same count.
+- **The data.** There is one `~pick` document per case (`pickDoc`). The report reads a pick as per-option ratings (picked = keep, the rest meh, None/Neither = bad), so the per-generator table and the regression keep working, and the old Keep/Meh/Bad ratings still count. New tables are "Presses" (picked / none / all alike / option 1) and "Against real parts". `--first` now re-queues the rebuild of each None/Neither case, marked "After fix".

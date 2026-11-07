@@ -5,7 +5,7 @@
  *   2. node scripts/gen-bench/audition/report.mjs
  *
  * Writes .gen-data/audition/report.md (per generator, worst first) and
- * first.json (the cases rated bad, for export.mjs --first). */
+ * first.json (the cases rated bad or answered None/Neither, for export.mjs --first). */
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { firstList, summarise } from './summary.mjs';
 
@@ -25,14 +25,20 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     if (!existsSync(DIR + 'ratings.json')) { console.error('no ratings: dump the artifact\'s "ratings" collection to .gen-data/audition/ratings.json'); process.exit(1); }
     const ratings = JSON.parse(readFileSync(DIR + 'ratings.json', 'utf8'));
     const cases = allCases();
-    const { byGenerator, blind, picks } = summarise(ratings, cases);
+    const { byGenerator, blind, picks, requests, ab } = summarise(ratings, cases);
     const pct = (a, n) => (n ? `${Math.round((100 * a) / n)}%` : '–');
     const top = (o) => Object.entries(o).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, v]) => `${k} ${v}`).join(', ');
     const lines = [`# Audition ratings: ${ratings.length} ratings`, '',
         `Blind: real parts kept ${pct(blind.realKeep, blind.real)} of ${blind.real}, generated kept ${pct(blind.genKeep, blind.gen)} of ${blind.gen}.`, '',
         '| generator | rated | keep | meh | bad | top reasons | marks | bench ok, ear bad | bench bad, ear keep |', '|---|---|---|---|---|---|---|---|---|',
         ...byGenerator.map((g) => `| ${g.generator} | ${g.n} | ${pct(g.keep, g.n)} | ${pct(g.meh, g.n)} | ${pct(g.bad, g.n)} | ${top(g.reasons)} | ${g.marks.length} | ${g.earVsBench.benchOkUserBad} | ${g.earVsBench.benchBadUserKeep} |`),
-        '', '## Your picks (the option you would keep from one press)', '',
+        '', '## Presses (which option you would keep)', '',
+        '| request | presses | picked | none | all alike | was option 1 | positions picked | presets picked |', '|---|---|---|---|---|---|---|---|',
+        ...requests.map((r) => `| ${r.generator} | ${r.n} | ${pct(r.picked, r.n)} | ${pct(r.none, r.n)} | ${pct(r.alike, r.n)} | ${pct(r.first, r.picked)} | ${top(r.positions)} | ${top(r.presets)} |`),
+        '', '## Against real parts (A/B)', '',
+        '| generator | part | heard | kept real | kept generated | both fine | neither |', '|---|---|---|---|---|---|---|',
+        ...ab.map((a) => `| ${a.generator} | ${a.target} | ${a.n} | ${pct(a.real, a.n)} | ${pct(a.gen, a.n)} | ${pct(a.both, a.n)} | ${pct(a.neither, a.n)} |`),
+        '', '## My pick (first page, the star)', '',
         '| request | picks | was option 1 | positions picked | presets picked |', '|---|---|---|---|---|',
         ...picks.map((p) => `| ${p.generator} | ${p.n} | ${pct(p.first, p.n)} | ${top(p.positions)} | ${top(p.presets)} |`),
         '', '## Marks (read the rolls here)', '',

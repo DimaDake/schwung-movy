@@ -6,10 +6,11 @@
  *   path    New Clip on order[step] after order[0..step) were made (paths.mjs)
  *   chainB  Variation into scene B on order[step] after the others (chains.mjs)
  *   double  Smart Double of one track of scene A (chains.mjs)
- *   loo     a real scene, one part either real or New Clip's (loo.mjs)
- * A recipe with `flagged: true` plays the take the scripted user keeps, not
- * the six. */
-import { makeCase, sceneOf } from './case.mjs';
+ *   loo     a real scene, its part against New Clip's as an A/B (loo.mjs)
+ * Ratings of the first page also name two older recipes, still rebuilt for
+ * the report and the regression: `loo` with a `truth` (one part alone) and
+ * `flagged: true` (the take the scripted user keeps, not the six). */
+import { makeCase, recipeKey, sceneOf } from './case.mjs';
 import { judge } from '../quality/keep.mjs';
 import { LENS, emptySet, newClip, orders, ROLE_PRESETS } from '../quality/paths.mjs';
 import { request, sceneA, spread, vary } from '../quality/chains.mjs';
@@ -77,12 +78,18 @@ function fromLoo(G, recipe, bands, refs, build) {
     const test = tester(bands, without, i, 0, rs.steps);
     const real = rs.set.tracks[i].clips[0].notes;
     const gen = options[0];
-    if (recipe.truth === 'gen' && !gen?.notes.length) return null;
-    const ns = recipe.truth === 'real' ? real : gen.notes;
-    return makeCase({ kind: 'blind', recipe, build, target: ROLE[i], truth: recipe.truth,
-        scene: sceneOf(without, 0, { track: i, clip: clip(i, 0, rs.steps, ns) }),
-        generator: recipe.truth === 'real' ? 'real' : gen.preset.id, knobs: recipe.truth === 'real' ? [] : [...gen.knobs],
-        bench: verdict(test(ns)), refKind: ref.kind });
+    if (!gen?.notes.length) return null;
+    const base = { recipe, build, target: ROLE[i], refKind: ref.kind };
+    if (recipe.truth) {
+        const ns = recipe.truth === 'real' ? real : gen.notes;
+        return makeCase({ ...base, kind: 'blind', truth: recipe.truth, scene: sceneOf(without, 0, { track: i, clip: clip(i, 0, rs.steps, ns) }),
+            generator: recipe.truth === 'real' ? 'real' : gen.preset.id, knobs: recipe.truth === 'real' ? [] : [...gen.knobs], bench: verdict(test(ns)) });
+    }
+    const part = (truth, preset, knobs, ns) => ({ preset, truth, knobs, notes: partOf(without, i, 0, rs.steps, ns), bench: verdict(test(ns)) });
+    const two = [part('real', 'real', [], real), part('gen', gen.preset.id, [...gen.knobs], gen.notes)];
+    /* Which side the real part is on follows the recipe, so it is fixed per case and even over many. */
+    if (parseInt(recipeKey(recipe)[0], 16) & 1) two.reverse();
+    return makeCase({ ...base, kind: 'ab', scene: sceneOf(without, 0, { track: i, clip: null }), generator: gen.preset.id, knobs: [], options: two, bench: two.find((o) => o.truth === 'gen').bench });
 }
 
 /** The case `recipe` names, built at the current generators; null when it plays nothing. */
@@ -112,17 +119,16 @@ export function setRecipes(seeds) {
 const hasPart = (ref, i) => (i === 0 ? ref.kick.length + ref.snare.length + ref.hats.length + ref.perc.length
     : i === 1 ? ref.bass.length : i === 2 ? ref.chords.flat().length : ref.lead.length) > 0;
 
-/** Every real scene x part x truth, the user's and the public scenes alternating. */
-export function blindRecipes(refs) {
-    const of = (kind) => refs.filter((r) => r.kind === kind).flatMap((r) => [0, 1, 2, 3].filter((i) => hasPart(r, i))
-        .flatMap((track) => ['gen', 'real'].map((truth) => ({ src: 'loo', ref: r.src, track, truth }))));
+/** Every real scene x part as an A/B, the user's and the public scenes alternating. */
+export function abRecipes(refs) {
+    const of = (kind) => refs.filter((r) => r.kind === kind).flatMap((r) => [0, 1, 2, 3].filter((i) => hasPart(r, i)).map((track) => ({ src: 'loo', ref: r.src, track })));
     const u = of('user'), p = of('public'), out = [];
     for (let k = 0; k < Math.max(u.length, p.length); k++) { if (u[k]) out.push(u[k]); if (p[k]) out.push(p[k]); }
     return out;
 }
 
-/** The kept takes the bench calls not usable, the most metrics out first. */
-export function flaggedCases(G, bands, seeds, build) {
-    return setRecipes(seeds).map((r) => rebuild(G, { ...r, flagged: true }, bands, [], build))
-        .filter((c) => c && !c.bench.ok).sort((a, b) => b.bench.bad.length - a.bench.bad.length);
+/** An older recipe as the page asks it now: a lone blind part becomes its A/B, a kept take its press. */
+export function current(recipe) {
+    const { truth, flagged, ...now } = recipe;
+    return now;
 }

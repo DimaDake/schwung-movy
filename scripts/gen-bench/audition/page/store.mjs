@@ -36,7 +36,7 @@ export function makeStore(build, onStatus) {
             try {
                 const snap = await db.collection('ratings').where('build', '==', build).limit(1000).get();
                 for (const s of snap.docs) if (!ratings.has(s.id)) ratings.set(s.id, s.data());
-                for (const r of ratings.values()) if (r.kind !== 'set') done.add(r.caseId);
+                for (const r of ratings.values()) if (r.verdict || r.kind !== 'set') done.add(r.caseId);
             } catch { /* read refused: the phone's copy still resumes */ }
         }
         await flush();
@@ -47,7 +47,7 @@ export function makeStore(build, onStatus) {
         rate(doc) { ratings.set(doc.id, doc.data); outbox = enqueue(outbox, doc); keep(OUTBOX, outbox); flush(); },
         finish(caseId) { done.add(caseId); keep(DONE, [...done]); },
         done,
-        ratingOf: (c, o) => ratings.get(`${c.id}~${o ?? 'p'}`) ?? null,
+        answerOf: (c) => ratings.get(`${c.id}~pick`) ?? null,
         count: () => ratings.size,
     };
 }

@@ -26,8 +26,8 @@ export function recipeKey(recipe) {
     return (fnv(2166136261).toString(16).padStart(8, '0') + fnv(84696351).toString(16).padStart(8, '0')).slice(0, 12);
 }
 
-export function makeCase({ kind, recipe, build, scene, target, generator, knobs, options, truth, bench }) {
+export function makeCase({ kind, recipe, build, scene, target, generator, knobs, options, truth, bench, refKind }) {
     const key = recipeKey(recipe);
     return { id: `${key}-${build}`, recipeKey: key, kind, build, recipe, scene, target, generator, knobs,
-        ...(options ? { options } : {}), ...(truth ? { truth } : {}), bench };
+        ...(options ? { options } : {}), ...(truth ? { truth } : {}), ...(refKind ? { refKind } : {}), bench };
 }

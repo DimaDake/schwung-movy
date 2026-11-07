@@ -7,10 +7,10 @@
 import { _log, eq, ok } from './harness.mjs';
 import * as G from '../../dist/esm/gen/index.js';
 import { makeCase, recipeKey, sceneOf } from '../../scripts/gen-bench/audition/case.mjs';
-import { blindRecipes, rebuild, setRecipes } from '../../scripts/gen-bench/audition/sources.mjs';
-import { chunks, interleave, packCase } from '../../scripts/gen-bench/audition/queue.mjs';
+import { abRecipes, current, rebuild, setRecipes } from '../../scripts/gen-bench/audition/sources.mjs';
+import { cellOf, chunks, packCase, prioritise } from '../../scripts/gen-bench/audition/queue.mjs';
 import { compareCase, firstList, regression, summarise } from '../../scripts/gen-bench/audition/summary.mjs';
-import { caseMidi, drop, earVsBench, enqueue, markAt, nextIndex, ratingDoc, schedule, tracksFor } from '../../scripts/gen-bench/audition/page/core.mjs';
+import { caseMidi, cycleAt, drop, earVsBench, enqueue, markAt, nextIndex, pickDoc, ratingDoc, schedule, scheduleCycle, segOf, tracksFor } from '../../scripts/gen-bench/audition/page/core.mjs';
 
 const set2 = () => ({ root: 'C', mode: 'minor', bpm: 124, tracks: [
     { index: 0, name: 'Drums', drum: true, clips: [{ track: 0, slot: 0, len: 16, notes: [{ tick: 0, gate: 12, pitch: 36, vel: 100 }, { tick: 96, gate: 12, pitch: 38, vel: 90 }] }] },
@@ -67,21 +67,32 @@ const gen = rebuild(G, { src: 'loo', ref: 'u1', track: 1, truth: 'gen' }, {}, re
 eq('blind_real_plays_the_ref_part', JSON.stringify(real.scene.tracks.bass), JSON.stringify(sceneOfRef(refs[0])));
 ok('blind_gen_plays_another_part', JSON.stringify(gen.scene.tracks.bass) !== JSON.stringify(real.scene.tracks.bass));
 eq('blind_real_and_gen_share_recipe_but_truth', real.truth + gen.truth, 'realgen');
-eq('blind_recipes_alternate_user_public', blindRecipes(refs).slice(0, 4).map((r) => refs.find((x) => x.src === r.ref).kind).join(), 'user,public,user,public');
+eq('ab_recipes_alternate_user_public', abRecipes(refs).slice(0, 4).map((r) => refs.find((x) => x.src === r.ref).kind).join(), 'user,public,user,public');
+ok('ab_recipes_carry_no_truth', abRecipes(refs).every((r) => !('truth' in r)));
+const ab = rebuild(G, { src: 'loo', ref: 'u1', track: 1 }, {}, refs, 'b1');
+eq('ab_case_is_two_options', ab.kind + ab.options.length, 'ab2');
+eq('ab_case_one_real_one_generated', ab.options.map((o) => o.truth).sort().join(), 'gen,real');
+eq('ab_real_option_plays_the_ref_part', JSON.stringify(ab.options.find((o) => o.truth === 'real').notes), JSON.stringify(sceneOfRef(refs[0])));
+eq('ab_scene_leaves_the_part_out', ab.scene.tracks.bass.length, 0);
+eq('ab_case_keeps_ref_kind', ab.refKind, 'user');
+const firsts = abRecipes(refs).map((r) => rebuild(G, r, {}, refs, 'b1')).filter(Boolean).map((c) => c.options[0].truth);
+ok('ab_order_varies_between_cases', firsts.includes('real') && firsts.includes('gen'));
+eq('current_strips_old_truth', JSON.stringify(current({ src: 'loo', ref: 'u1', track: 1, truth: 'real' })), JSON.stringify({ src: 'loo', ref: 'u1', track: 1 }));
+eq('current_strips_flagged', 'flagged' in current({ ...pr, flagged: true }), false);
 
 _log('\nTest: audition queue');
 
-const fake = (kind, n, gens) => Array.from({ length: n }, (_, k) => ({ id: `${kind}${k}`, kind, generator: gens[k % gens.length] }));
-const pools = { set: fake('set', 100, ['create:bass', 'create:lead', 'variation:chords', 'double:drums']), flagged: fake('flagged', 60, ['n-bass', 'n-arp']), blind: fake('blind', 40, ['real', 'n-pad']) };
-const q = interleave(pools, undefined, 7);
-const share = (k) => q.slice(0, 50).filter((c) => c.kind === k).length / 50;
-ok('queue_set_share_near_half', Math.abs(share('set') - 0.5) <= 0.05);
-ok('queue_flagged_share_near_30', Math.abs(share('flagged') - 0.3) <= 0.05);
-ok('queue_blind_share_near_20', Math.abs(share('blind') - 0.2) <= 0.05);
-eq('queue_keeps_every_case', q.length, 200);
-eq('queue_every_generator_early', new Set(q.filter((c) => c.kind === 'set').slice(0, 4).map((c) => c.generator)).size, 4);
-eq('queue_deterministic_per_seed', interleave(pools, undefined, 7).map((c) => c.id).join(), q.map((c) => c.id).join());
-ok('queue_seed_changes_order', interleave(pools, undefined, 8).map((c) => c.id).join() !== q.map((c) => c.id).join());
+const fake = (kind, n, gens, refKind) => Array.from({ length: n }, (_, k) => ({ id: `${kind}${refKind ?? ''}${k}`, kind, generator: gens[k % gens.length], target: gens[k % gens.length].split(':')[1] ?? 'lead', ...(refKind ? { refKind } : {}) }));
+const all = [...fake('set', 60, ['double:drums', 'create:bass', 'create:lead', 'variation:chords']), ...fake('ab', 20, ['n-arp:lead', 'n-walk:bass'], 'public'), ...fake('ab', 20, ['n-arp:lead', 'n-walk:bass'], 'user')];
+const q = prioritise(all, 7);
+eq('queue_keeps_every_case', q.length, 100);
+eq('cell_of_set_is_its_request', cellOf(all[0]), 'double:drums');
+eq('cell_of_ab_is_role_and_scene_owner', cellOf(all[81]), 'ab:user:bass');
+const lap = q.slice(0, 8).map(cellOf);
+eq('queue_first_lap_every_cell_once', new Set(lap).size, 8);
+eq('queue_lap_most_important_first', lap.join(), 'ab:user:lead,ab:user:bass,create:lead,create:bass,variation:chords,ab:public:lead,ab:public:bass,double:drums');
+eq('queue_deterministic_per_seed', prioritise(all, 7).map((c) => c.id).join(), q.map((c) => c.id).join());
+ok('queue_seed_changes_order_inside_cells', prioritise(all, 8).map((c) => c.id).join() !== q.map((c) => c.id).join());
 const packed = packCase(c1);
 ok('pack_notes_are_integer_96ths', packed.options[0].notes.every((n) => n.every(Number.isInteger)));
 eq('pack_keeps_onsets', packed.options[0].notes[0][0], Math.round(c1.options[0].notes[0][0] * 96));
@@ -103,6 +114,20 @@ const ev = schedule(tracksFor(pc, 0), 4, 3, 5, 120, new Set(), null);
 eq('schedule_wraps_into_next_loop', ev.map((e) => `${e.track}@${e.t}`).join(), 'lead@0.375,drums@0.5,bass@0.5');
 eq('schedule_muted_track_absent', schedule(tracksFor(pc, 0), 4, 0, 4, 120, new Set(['drums']), null).some((e) => e.track === 'drums'), false);
 eq('schedule_solo_one_track', [...new Set(schedule(tracksFor(pc, 0), 4, 0, 8, 120, new Set(), 'bass').map((e) => e.track))].join(), 'bass');
+eq('seg_is_four_bars_or_the_loop', `${segOf(32)},${segOf(8)}`, '16,8');
+/* The player starts 60 ms ahead, so its first frames have a negative beat. */
+eq('cycle_at_before_start_is_base', cycleAt(-0.1, 16, 3, 1), 1);
+eq('cycle_at_moves_on_each_segment', [0, 15.9, 16, 33, 48].map((b) => cycleAt(b, 16, 3, 1)).join(), '1,1,2,0,1');
+const cy = { ...pc, scene: { ...pc.scene, len: 32 } };
+/* Option 0 has a note at 0, option 1 at beat 1: window 15..18 hears option 0's segment end, then option 1 from beat 16. */
+const cev = scheduleCycle(cy, 0, 15, 18, 60, new Set(['drums', 'lead']), null);
+eq('schedule_cycle_switches_option_at_segment', cev.map((e) => `${e.opt}:${e.pitch}@${e.t}`).join(), '1:38@2');
+eq('schedule_cycle_notes_past_segment_silent', scheduleCycle({ ...cy, options: [{ ...cy.options[0], notes: [[20 * 96, 48, 40, 100]] }] }, 0, 0, 64, 60, new Set(), null).filter((e) => e.track === 'bass').length, 0);
+const pd = pickDoc(pc, 'pick', 1, [], [{ bar: 1, beat: 1 }], 9);
+eq('pick_doc_one_per_case', pd.id, 'abc-b1~pick');
+eq('pick_doc_names_picked_preset', pd.data.preset, 'n-walk');
+eq('pick_doc_lists_offered_presets', pd.data.presets.join(), 'n-bass,n-walk');
+eq('pick_doc_none_has_no_preset', pickDoc(pc, 'none', null, ['boring'], [], 9).data.preset, null);
 eq('mark_at_fraction', JSON.stringify(markAt(0.51, { len: 8 })), '{"bar":2,"beat":1}');
 eq('mark_at_end_stays_inside', JSON.stringify(markAt(1, { len: 8 })), '{"bar":2,"beat":4}');
 eq('outbox_same_id_kept_once', enqueue(enqueue([], d1), d2).length, 1);
@@ -156,6 +181,30 @@ eq('picks_counted_per_request_kind', cl.n, 2);
 eq('picks_first_option_share', cl.first, 1);
 eq('picks_positions', JSON.stringify(cl.positions), '{"1":1,"2":1}');
 eq('picks_presets', JSON.stringify(cl.presets), '{"n-walk":1,"n-bass":1}');
+
+_log('\nTest: audition pick answers');
+
+const abc = { id: 'ab1-b1', recipeKey: 'ab1', build: 'b1', kind: 'ab', generator: 'n-walk', target: 'bass', refKind: 'user', recipe: { src: 'loo' }, scene: pc.scene,
+    options: [{ preset: 'real', truth: 'real', notes: [], bench: { ok: true, bad: [] } }, { preset: 'n-walk', truth: 'gen', notes: [], bench: { ok: true, bad: [] } }] };
+const pcs = [pc, { ...pc, id: 'p2-b1', recipeKey: 'p2' }, { ...pc, id: 'p3-b1', recipeKey: 'p3' }, abc, { ...abc, id: 'ab2-b1', recipeKey: 'ab2' }];
+const ps = [pickDoc(pcs[0], 'pick', 1, [], [], 1), pickDoc(pcs[1], 'none', null, ['boring'], [], 1), pickDoc(pcs[2], 'alike', null, [], [], 1),
+    pickDoc(abc, 'pick', 0, [], [], 1), pickDoc(pcs[4], 'neither', null, ['clash'], [], 1)];
+const s2 = summarise(ps, pcs);
+const g2 = (id) => s2.byGenerator.find((g) => g.generator === id);
+eq('pick_keeps_the_picked_option', g2('n-walk').keep, 1);
+eq('pick_not_picked_is_meh', g2('n-bass').meh >= 1, true);
+eq('pick_none_is_bad_for_all', g2('n-bass').bad, 1);
+const rq = s2.requests.find((r) => r.generator === 'create:bass');
+eq('requests_count_presses', rq.n, 3);
+eq('requests_count_alike', rq.alike, 1);
+eq('requests_count_none', rq.none, 1);
+eq('requests_count_first_picked', rq.first, 0);
+const abr = s2.ab.find((a) => a.generator === 'n-walk' && a.target === 'bass');
+eq('ab_summary_counts', JSON.stringify([abr.n, abr.real, abr.gen, abr.both, abr.neither]), '[2,1,0,0,1]');
+eq('ab_real_counts_as_blind_real', s2.blind.real, 2);
+eq('first_list_has_none_and_neither', firstList(ps, pcs).map((f) => f.recipeKey).sort().join(), 'ab2,p2');
+const reg2 = regression(G, [pickDoc(old, 'pick', 0, [], [], 1)], [old], () => moved);
+eq('regress_pick_is_a_keep', reg2.keeps.changed.length, 1);
 }
 
 function sceneOfRef(r) { return [...r.bass].map((n) => [Math.round(n[0] * 96) / 96, Math.round(n[1] * 96) / 96, n[2], n[3]]); }

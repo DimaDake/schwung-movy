@@ -1,147 +1,159 @@
-/* The audition page (plans/2026-11-07-gen-audition-design.md, The page):
- * the queue, the controls and the rating flow. Logic lives in core.mjs. */
-import { caseMidi, earVsBench, markAt, nextIndex, ratingDoc, REASONS, TRACKS, tracksFor } from './core.mjs';
+/* The audition page (plans/2026-11-07-gen-audition-design.md, "Pick, not
+ * grade"): every case is a choice between options heard one after another,
+ * an option set's or an A/B against a real part. Logic lives in core.mjs. */
+import { caseMidi, cycleAt, earVsBench, markAt, nextIndex, pickDoc, REASONS, schedule, scheduleCycle, segOf, TRACKS, tracksFor } from './core.mjs';
+import { mixer } from './mixer.mjs';
 import { makePlayer } from './player.mjs';
 import { makeRoll } from './roll.mjs';
 import { makeStore } from './store.mjs';
 import { makeSynth } from './synth.mjs';
 
 const $ = (id) => document.getElementById(id);
-const KIND = { set: 'Options', flagged: 'Bench flagged', blind: 'Blind' };
-const st = { manifest: null, queue: [], loaded: 0, idx: 0, opt: null, marks: [], muted: new Set(), solo: null, bpm: 120, reasons: new Set(), best: false };
+const el = (tag, props) => Object.assign(document.createElement(tag), props);
+const st = { manifest: null, queue: [], loaded: 0, idx: 0, opt: 0, base: 0, cycle: true, marks: [], muted: new Set(), solo: null, bpm: 120, reasons: new Set() };
 let store, downloads = null;
 
 const roll = makeRoll($('roll'));
-const player = makePlayer(makeSynth, (beat) => roll.frame(beat));
+const player = makePlayer(makeSynth, onFrame);
 const cur = () => st.queue[st.idx];
-const rating = () => (cur() ? store.ratingOf(cur(), st.opt) : null);
-const isDone = (c) => store.done.has(c.id) || (c.options && c.options.every((_, o) => store.ratingOf(c, o)));
+const isAB = (c) => c.kind === 'ab';
+const label = (c, o) => (isAB(c) ? 'AB'[o] : String(o + 1));
+const answer = () => (cur() ? store.answerOf(cur()) : null);
+const isDone = (c) => store.done.has(c.id) || !!store.answerOf(c);
+const undone = { has: (id) => isDone(st.queue.find((x) => x.id === id)) };
 
 async function loadMore() {
     if (st.loaded >= st.manifest.files.length) return false;
-    const cs = await (await fetch(st.manifest.files[st.loaded++])).json();
-    st.queue.push(...cs);
+    st.queue.push(...await (await fetch(st.manifest.files[st.loaded++])).json());
     return true;
 }
 
 function playState() {
-    const c = cur();
-    return { tracks: tracksFor(c, st.opt), len: c.scene.len, bpm: st.bpm, muted: st.muted, solo: st.solo, target: c.target };
+    const c = cur(), base = st.base;
+    const plan = st.cycle ? (f, t, s) => scheduleCycle(c, base, f, t, s.bpm, s.muted, s.solo)
+        : (f, t, s) => schedule(tracksFor(c, base), c.scene.len, f, t, s.bpm, s.muted, s.solo);
+    return { plan, bpm: st.bpm, muted: st.muted, solo: st.solo, target: c.target };
 }
-function restart() { if (player.playing) player.start(playState()); }
+function play() { player.start(playState()); $('play').textContent = 'Stop'; }
+function restart() { if (player.playing) play(); }
 function drawRoll() { const c = cur(); roll.draw({ tracks: tracksFor(c, st.opt), len: c.scene.len, target: c.target, marks: st.marks, muted: st.muted }); }
+
+/* While cycling, the lit option follows the music; the playhead wraps at the segment. */
+function onFrame(beat) {
+    const c = cur();
+    if (beat === null || !c) return roll.frame(null);
+    if (st.cycle) {
+        const seg = segOf(c.scene.len), o = cycleAt(beat, seg, c.options.length, st.base);
+        if (o !== st.opt) { st.opt = o; showOptions(); drawRoll(); }
+        return roll.frame(beat % seg);
+    }
+    roll.frame(beat);
+}
 
 async function showCase() {
     /* Skipping fast can pass the cases loaded so far: fetch on until one is there. */
     while (!cur() && await loadMore());
     const c = cur();
-    if (!c) { player.stop(); $('ask').textContent = 'All cases rated. Thank you.'; return; }
-    st.opt = c.options ? Math.max(0, c.options.findIndex((_, o) => !store.ratingOf(c, o))) : null;
+    if (!c) { player.stop(); $('ask').textContent = 'All cases answered. Thank you.'; $('answers').replaceChildren(); return; }
+    const a = answer();
+    st.opt = a?.option ?? 0; st.cycle = !a; st.base = st.opt;
+    st.marks = a?.marks ? [...a.marks] : []; st.reasons = new Set(a?.reasons ?? []);
     st.muted = new Set(); st.solo = null; st.bpm = c.scene.bpm || 120;
-    $('tempo').value = st.bpm;
-    showOption();
-    if (st.queue.length - st.idx < 10) loadMore();
-}
-
-function showOption() {
-    const c = cur(), r = rating();
-    st.marks = r?.marks ? [...r.marks] : [];
-    st.reasons = new Set(r?.reasons?.filter((x) => x !== 'best') ?? []);
-    st.best = r?.reasons?.includes('best') ?? false;
-    $('kind').textContent = KIND[c.kind];
-    $('pair').hidden = !c.pair;
-    $('pair').textContent = c.pair === 'before' ? 'Before fix' : 'After fix';
+    $('tempo').value = st.bpm; $('bpm').textContent = `${st.bpm} BPM`;
+    $('kind').textContent = isAB(c) ? 'A/B' : c.generator.replace(':', ' · ');
+    $('pair').hidden = !c.pair; $('pair').textContent = 'After fix';
     $('info').textContent = `${c.scene.key} · ${c.scene.len / 4} bars · case ${st.idx + 1}`;
-    $('ask').innerHTML = '';
-    $('ask').append('Rate the ', Object.assign(document.createElement('b'), { textContent: c.target }));
-    $('bpm').textContent = `${st.bpm} BPM`;
-    const opts = $('options');
-    opts.hidden = !c.options;
-    opts.replaceChildren(...(c.options ?? []).map((_, o) => {
-        const b = Object.assign(document.createElement('button'), { className: 'opt', textContent: String(o + 1) });
-        b.setAttribute('aria-current', String(o === st.opt));
-        const or = store.ratingOf(c, o);
-        if (or) b.dataset.r = or.rating;
-        b.onclick = () => { st.opt = o; showOption(); restart(); };
-        return b;
-    }));
+    $('ask').replaceChildren('Which ', el('b', { textContent: c.target }), isAB(c) ? ' would you keep in this song?' : ' would you keep?');
     $('chips').replaceChildren(...TRACKS.map((t) => {
-        const b = Object.assign(document.createElement('button'), { className: 'chip' + (t === c.target ? ' target' : ''), textContent: t });
-        b.setAttribute('aria-pressed', String(st.muted.has(t)));
+        const b = el('button', { className: 'chip' + (t === c.target ? ' target' : ''), textContent: t });
+        b.setAttribute('aria-pressed', 'false');
         b.onclick = () => { st.muted.has(t) ? st.muted.delete(t) : st.muted.add(t); b.setAttribute('aria-pressed', String(st.muted.has(t))); player.set({ muted: st.muted }); drawRoll(); };
         return b;
     }));
-    $('best').hidden = !c.options;
-    $('best').textContent = st.best ? '★ My pick' : '☆ My pick';
-    $('reasons').hidden = true;
-    for (const k of ['keep', 'meh', 'bad']) $(k).setAttribute('aria-pressed', String(r?.rating === k));
-    $('next').hidden = !r;
-    $('next').textContent = c.options && c.options.some((_, o) => !store.ratingOf(c, o)) ? 'Next option' : 'Next case';
-    showReveal(r);
-    progress();
-    drawRoll();
+    showOptions(); showAnswer(); progress(); drawRoll();
+    if (st.queue.length - st.idx < 10) loadMore();
 }
 
-function showReveal(r) {
-    const c = cur(), el = $('reveal');
-    el.hidden = !r;
-    if (!r) return;
-    const o = st.opt === null ? null : c.options[st.opt];
-    const knobs = (o ?? c).knobs;
-    const who = c.kind === 'blind' && c.truth === 'real' ? `Real part, from a ${c.refKind === 'user' ? 'scene of yours' : 'public scene'}`
-        : `Generated: ${o ? o.preset : c.generator}${knobs?.length ? ` · knobs ${knobs.join(' ')}` : ''}`;
-    const bench = (o ?? c).bench;
-    const diff = earVsBench(bench, r.rating);
-    const line = (text, cls) => Object.assign(document.createElement('span'), { textContent: text, className: cls ?? '' });
-    el.replaceChildren(line(who), line(bench.ok ? 'Bench: usable' : `Bench: not usable (${bench.bad.join(', ')})`, 'data'),
-        ...(diff ? [line(diff === 'benchOkUserBad' ? 'Your ear and the bench disagree: the bench passed it.' : 'Your ear and the bench disagree: the bench failed it.', 'disagree')] : []));
-}
-
-function progress() {
-    $('progress').textContent = `${store.count()} rated · ${st.manifest.counts.queued} cases`;
-}
-
-function save(value) {
+function showOptions() {
     const c = cur();
-    const reasons = value === 'bad' ? [...st.reasons] : [];
-    if (st.best) reasons.push('best');
-    store.rate(ratingDoc(c, st.opt, value, reasons, st.marks, value === 'bad' ? $('note').value.trim() : ''));
-    $('note').value = '';
-    if (!c.options) store.finish(c.id);
-    showOption();
+    $('options').replaceChildren(...c.options.map((_, o) => {
+        const b = el('button', { className: 'opt', textContent: label(c, o) });
+        b.setAttribute('aria-current', String(o === st.opt));
+        b.onclick = () => { st.opt = o; st.cycle = false; st.base = o; showOptions(); drawRoll(); restart(); };
+        return b;
+    }), (() => {
+        const b = el('button', { className: 'opt cycle', textContent: st.cycle ? '↻ Cycling' : '↻ Cycle' });
+        b.setAttribute('aria-pressed', String(st.cycle));
+        b.onclick = () => { st.cycle = true; st.base = st.opt; showOptions(); restart(); };
+        return b;
+    })());
+    const keep = $('answers').querySelector('[data-v="pick"]');
+    if (keep && !isAB(c)) keep.textContent = `Keep ${st.opt + 1}`;
+}
+
+/* An option set: keep the one lit, none, or all alike. An A/B: A, B, both, neither. */
+function showAnswer() {
+    const c = cur(), a = answer();
+    const btns = isAB(c) ? [['pick', 0, 'A', 'pick'], ['pick', 1, 'B', 'pick'], ['both', null, 'Both fine', 'keep'], ['neither', null, 'Neither', 'bad']]
+        : [['pick', -1, `Keep ${st.opt + 1}`, 'keep'], ['alike', null, 'All alike', 'meh'], ['none', null, 'None', 'bad']];
+    $('answers').style.gridTemplateColumns = `repeat(${btns.length}, 1fr)`;
+    $('answers').replaceChildren(...btns.map(([v, o, text, cls]) => {
+        const b = el('button', { className: `pad ${cls}`, textContent: text });
+        b.dataset.v = v;
+        b.setAttribute('aria-pressed', String(!!a && a.verdict === v && (o === null || o === -1 || a.option === o)));
+        b.onclick = () => save(v, o === -1 ? st.opt : o);
+        return b;
+    }));
+    const bad = a && ['none', 'neither'].includes(a.verdict);
+    $('why').hidden = !bad;
+    $('whyChips').replaceChildren(...(bad ? REASONS : []).map((r) => {
+        const b = el('button', { className: 'reason', textContent: r });
+        b.setAttribute('aria-pressed', String(st.reasons.has(r)));
+        b.onclick = () => { st.reasons.has(r) ? st.reasons.delete(r) : st.reasons.add(r); resave(); showAnswer(); };
+        return b;
+    }));
+    $('next').hidden = !a;
+    showReveal(a);
+}
+
+function showReveal(a) {
+    const c = cur(), box = $('reveal');
+    box.hidden = !a;
+    if (!a) return;
+    const line = (text, cls) => el('span', { textContent: text, className: cls ?? '' });
+    const who = (o) => (o.truth === 'real' ? `real, from ${c.refKind === 'user' ? 'a scene of yours' : 'a public scene'}` : `${o.preset}${o.knobs?.length ? ` (knobs ${o.knobs.join(' ')})` : ''}`);
+    const rows = c.options.map((o, k) => line(`${label(c, k)}: ${who(o)} · bench ${o.bench.ok ? 'usable' : `not usable (${o.bench.bad.join(', ')})`}`, 'data'));
+    const picked = a.verdict === 'pick' ? c.options[a.option] : null;
+    const diff = picked ? earVsBench(picked.bench, 'keep') : null;
+    const passed = ['none', 'neither'].includes(a.verdict) ? c.options.filter((o) => o.truth !== 'real' && o.bench.ok).length : 0;
+    box.replaceChildren(...rows,
+        ...(diff ? [line('Your ear and the bench disagree: the bench failed the one you kept.', 'disagree')] : []),
+        ...(passed ? [line(`Your ear and the bench disagree: the bench passed ${passed} of these.`, 'disagree')] : []));
+}
+
+function progress() { $('progress').textContent = `${store.count()} answered · ${st.manifest.counts.queued} cases`; }
+
+function save(verdict, option) {
+    if (!['none', 'neither'].includes(verdict)) st.reasons.clear();
+    store.rate(pickDoc(cur(), verdict, option, [...st.reasons], st.marks));
+    store.finish(cur().id);
+    showAnswer(); progress();
+}
+/* Marks and reasons added after the answer ride on the same document. */
+function resave() {
+    const a = answer();
+    if (a && JSON.stringify([a.marks, a.reasons]) !== JSON.stringify([st.marks, [...st.reasons]])) store.rate(pickDoc(cur(), a.verdict, a.option, [...st.reasons], st.marks));
 }
 
 async function next() {
-    const c = cur();
-    const open = c.options ? c.options.findIndex((_, o) => !store.ratingOf(c, o)) : -1;
-    if (open >= 0) { st.opt = open; showOption(); restart(); return; }
-    store.finish(c.id);
-    st.idx = nextIndex(st.queue, { has: (id) => isDone(st.queue.find((x) => x.id === id)) }, st.idx + 1);
+    resave();
+    st.idx = nextIndex(st.queue, undone, st.idx + 1);
     await showCase(); restart();
 }
 
-/* The mixer: one level per track for every case, remembered on this phone. */
-const MIX = 'audition.mix';
-function mixer() {
-    let mix = {};
-    try { mix = JSON.parse(localStorage.getItem(MIX)) ?? {}; } catch { /* private window */ }
-    $('faders').replaceChildren(...TRACKS.flatMap((t) => {
-        const v = mix[t] ?? 100;
-        const label = Object.assign(document.createElement('label'), { htmlFor: `mix-${t}`, textContent: t });
-        const input = Object.assign(document.createElement('input'), { id: `mix-${t}`, type: 'range', min: 0, max: 200, step: 5, value: v });
-        const shown = Object.assign(document.createElement('span'), { className: 'data', textContent: `${v}%` });
-        player.level(t, v / 100);
-        input.oninput = () => {
-            mix[t] = Number(input.value); shown.textContent = `${input.value}%`; player.level(t, mix[t] / 100);
-            try { localStorage.setItem(MIX, JSON.stringify(mix)); } catch { /* in memory only */ }
-        };
-        return [label, input, shown];
-    }));
-}
-
 function wire() {
-    mixer();
-    $('play').onclick = () => { if (player.playing) { player.stop(); $('play').textContent = 'Play'; } else { player.start(playState()); $('play').textContent = 'Stop'; } };
+    mixer($('faders'), player);
+    $('play').onclick = () => { if (player.playing) { player.stop(); $('play').textContent = 'Play'; } else play(); };
     const solo = (on) => { st.solo = on ? cur().target : null; $('solo').classList.toggle('on', on); player.set({ solo: st.solo }); };
     $('solo').onpointerdown = (e) => { e.preventDefault(); solo(true); };
     for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) $('solo').addEventListener(ev, () => solo(false));
@@ -152,27 +164,16 @@ function wire() {
         if (at >= 0) st.marks.splice(at, 1); else st.marks.push(m);
         drawRoll();
     };
-    $('keep').onclick = () => save('keep');
-    $('meh').onclick = () => save('meh');
-    $('bad').onclick = () => { $('reasons').hidden = false; $('reasons').scrollIntoView({ block: 'nearest' }); };
-    $('reasonChips').replaceChildren(...REASONS.map((r) => {
-        const b = Object.assign(document.createElement('button'), { className: 'reason', textContent: r });
-        b.onclick = () => { st.reasons.has(r) ? st.reasons.delete(r) : st.reasons.add(r); b.setAttribute('aria-pressed', String(st.reasons.has(r))); };
-        return b;
-    }));
-    $('saveBad').onclick = () => save('bad');
-    $('cancelBad').onclick = () => { $('reasons').hidden = true; };
-    $('best').onclick = () => { st.best = !st.best; $('best').textContent = st.best ? '★ My pick' : '☆ My pick'; };
     $('next').onclick = next;
     $('skip').onclick = async () => { st.idx = Math.min(st.queue.length, st.idx + 1); await showCase(); restart(); };
     $('midi').onclick = async () => {
-        try { await downloads.save({ filename: `audition-${cur().id}.mid`, data: caseMidi(cur(), st.opt) }); } catch { /* declined */ }
+        try { await downloads.save({ filename: `audition-${cur().id}-${label(cur(), st.opt)}.mid`, data: caseMidi(cur(), st.opt) }); } catch { /* declined */ }
     };
     window.addEventListener('resize', () => cur() && drawRoll());
 }
 
-const STATUS = { connecting: 'Connecting…', saved: 'Ratings saved.', local: 'Ratings kept on this phone only (no database here).',
-    offline: 'Not saving yet: ratings kept on this phone', refused: 'Saving was refused: ratings kept on this phone' };
+const STATUS = { connecting: 'Connecting…', saved: 'Answers saved.', local: 'Answers kept on this phone only (no database here).',
+    offline: 'Not saving yet: answers kept on this phone', refused: 'Saving was refused: answers kept on this phone' };
 
 async function boot() {
     st.manifest = await (await fetch('manifest.json')).json();
@@ -182,12 +183,12 @@ async function boot() {
     });
     await loadMore();
     await store.ready;
-    while (nextIndex(st.queue, { has: (id) => isDone(st.queue.find((x) => x.id === id)) }, 0) >= st.queue.length && await loadMore());
-    st.idx = nextIndex(st.queue, { has: (id) => isDone(st.queue.find((x) => x.id === id)) }, 0);
+    while (nextIndex(st.queue, undone, 0) >= st.queue.length && await loadMore());
+    st.idx = nextIndex(st.queue, undone, 0);
     wire();
-    $('loadInfo').textContent = `${st.manifest.counts.queued} cases · ${store.count()} rated so far`;
+    $('loadInfo').textContent = `${st.manifest.counts.queued} cases · ${store.count()} answered so far`;
     $('go').disabled = false;
-    $('go').onclick = async () => { player.unlock(); $('start').hidden = true; await showCase(); if (cur()) { player.start(playState()); $('play').textContent = 'Stop'; } };
+    $('go').onclick = async () => { player.unlock(); $('start').hidden = true; await showCase(); if (cur()) play(); };
     downloads = (await window.claude?.use?.('downloads').catch(() => null)) ?? null;
     $('midi').hidden = !downloads;
 }

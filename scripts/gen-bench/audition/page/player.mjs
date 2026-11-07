@@ -1,7 +1,7 @@
 /* Look-ahead playback: a 25 ms timer schedules the next 120 ms of notes on
  * the audio clock, so a busy phone main thread never makes the loop late.
- * Beats count up for ever; core.schedule folds them into the loop. */
-import { schedule } from './core.mjs';
+ * Beats count up for ever; the state's `plan` (core.schedule or
+ * core.scheduleCycle) folds them into the loop. */
 
 const AHEAD = 0.12, TICK = 25;
 
@@ -13,7 +13,7 @@ export function makePlayer(makeSynth, onFrame) {
     function pump() {
         const to = beatAt(synth.ctx.currentTime + AHEAD);
         if (to <= ahead) return;
-        for (const ev of schedule(st.tracks, st.len, ahead, to, st.bpm, st.muted, st.solo)) {
+        for (const ev of st.plan(ahead, to, st)) {
             synth.play(ev, t0 + (ahead * 60) / st.bpm + ev.t, ev.track === st.target);
         }
         ahead = to;

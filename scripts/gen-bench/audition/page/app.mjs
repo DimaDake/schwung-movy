@@ -7,7 +7,7 @@ import { makeStore } from './store.mjs';
 import { makeSynth } from './synth.mjs';
 
 const $ = (id) => document.getElementById(id);
-const KIND = { set: 'Six options', flagged: 'Bench flagged', blind: 'Blind' };
+const KIND = { set: 'Options', flagged: 'Bench flagged', blind: 'Blind' };
 const st = { manifest: null, queue: [], loaded: 0, idx: 0, opt: null, marks: [], muted: new Set(), solo: null, bpm: 120, reasons: new Set(), best: false };
 let store, downloads = null;
 
@@ -72,7 +72,7 @@ function showOption() {
         return b;
     }));
     $('best').hidden = !c.options;
-    $('best').textContent = st.best ? '★ Best of the six' : '☆ Best of the six';
+    $('best').textContent = st.best ? '★ My pick' : '☆ My pick';
     $('reasons').hidden = true;
     for (const k of ['keep', 'meh', 'bad']) $(k).setAttribute('aria-pressed', String(r?.rating === k));
     $('next').hidden = !r;
@@ -162,7 +162,7 @@ function wire() {
     }));
     $('saveBad').onclick = () => save('bad');
     $('cancelBad').onclick = () => { $('reasons').hidden = true; };
-    $('best').onclick = () => { st.best = !st.best; $('best').textContent = st.best ? '★ Best of the six' : '☆ Best of the six'; };
+    $('best').onclick = () => { st.best = !st.best; $('best').textContent = st.best ? '★ My pick' : '☆ My pick'; };
     $('next').onclick = next;
     $('skip').onclick = async () => { st.idx = Math.min(st.queue.length, st.idx + 1); await showCase(); restart(); };
     $('midi').onclick = async () => {

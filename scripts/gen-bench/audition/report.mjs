@@ -25,13 +25,16 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     if (!existsSync(DIR + 'ratings.json')) { console.error('no ratings: dump the artifact\'s "ratings" collection to .gen-data/audition/ratings.json'); process.exit(1); }
     const ratings = JSON.parse(readFileSync(DIR + 'ratings.json', 'utf8'));
     const cases = allCases();
-    const { byGenerator, blind } = summarise(ratings, cases);
+    const { byGenerator, blind, picks } = summarise(ratings, cases);
     const pct = (a, n) => (n ? `${Math.round((100 * a) / n)}%` : '–');
     const top = (o) => Object.entries(o).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, v]) => `${k} ${v}`).join(', ');
     const lines = [`# Audition ratings: ${ratings.length} ratings`, '',
         `Blind: real parts kept ${pct(blind.realKeep, blind.real)} of ${blind.real}, generated kept ${pct(blind.genKeep, blind.gen)} of ${blind.gen}.`, '',
         '| generator | rated | keep | meh | bad | top reasons | marks | bench ok, ear bad | bench bad, ear keep |', '|---|---|---|---|---|---|---|---|---|',
         ...byGenerator.map((g) => `| ${g.generator} | ${g.n} | ${pct(g.keep, g.n)} | ${pct(g.meh, g.n)} | ${pct(g.bad, g.n)} | ${top(g.reasons)} | ${g.marks.length} | ${g.earVsBench.benchOkUserBad} | ${g.earVsBench.benchBadUserKeep} |`),
+        '', '## Your picks (the option you would keep from one press)', '',
+        '| request | picks | was option 1 | positions picked | presets picked |', '|---|---|---|---|---|',
+        ...picks.map((p) => `| ${p.generator} | ${p.n} | ${pct(p.first, p.n)} | ${top(p.positions)} | ${top(p.presets)} |`),
         '', '## Marks (read the rolls here)', '',
         ...byGenerator.flatMap((g) => g.marks.map((m) => `- ${g.generator}: case ${m.caseId}${m.option !== null && m.option !== undefined ? ` option ${m.option + 1}` : ''}, bar ${m.bar} beat ${m.beat}`))];
     writeFileSync(DIR + 'report.md', lines.join('\n') + '\n');

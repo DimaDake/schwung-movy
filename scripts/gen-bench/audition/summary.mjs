@@ -18,7 +18,7 @@ const benchOf = (c, d) => (d.option === null || d.option === undefined ? c.bench
 
 export function summarise(ratings, cases) {
     const byId = new Map(cases.map((c) => [c.id, c]));
-    const gens = new Map(), blind = { real: 0, realKeep: 0, gen: 0, genKeep: 0 };
+    const gens = new Map(), picks = new Map(), blind = { real: 0, realKeep: 0, gen: 0, genKeep: 0 };
     for (const d of latest(ratings)) {
         const c = byId.get(d.caseId);
         if (!c) continue;
@@ -29,10 +29,19 @@ export function summarise(ratings, cases) {
         const diff = earVsBench(benchOf(c, d), d.rating);
         if (diff) g.earVsBench[diff]++;
         gens.set(d.preset, g);
+        /* "My pick": the option the user would keep from one press. Not the
+         * first one often means the generator orders its options wrongly. */
+        if (c.options && d.reasons.includes('best')) {
+            const p = picks.get(c.generator) ?? { generator: c.generator, n: 0, first: 0, positions: {}, presets: {} };
+            p.n++; if (d.option === 0) p.first++;
+            p.positions[d.option + 1] = (p.positions[d.option + 1] ?? 0) + 1;
+            p.presets[d.preset] = (p.presets[d.preset] ?? 0) + 1;
+            picks.set(c.generator, p);
+        }
         if (c.kind === 'blind') { blind[c.truth]++; if (d.rating === 'keep') blind[`${c.truth}Keep`]++; }
     }
     const byGenerator = [...gens.values()].sort((a, b) => b.bad - a.bad || b.n - a.n);
-    return { byGenerator, blind };
+    return { byGenerator, blind, picks: [...picks.values()].sort((a, b) => b.n - a.n) };
 }
 
 /** The generated cases rated bad, once per recipe, for export.mjs --first. */

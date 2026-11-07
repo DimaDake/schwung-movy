@@ -146,6 +146,16 @@ const reg = regression(G, [ratingDoc(old, 0, 'bad', [], [], '', 1), ratingDoc(ol
 eq('regress_bad_changed_counted', reg.bads.changed, 1);
 eq('regress_keep_unchanged_not_listed', reg.keeps.changed.length, 0);
 eq('regress_real_blind_skipped', reg.skipped, 1);
+
+_log('\nTest: audition picks (the option the user would keep)');
+
+const pk = summarise([ratingDoc(pc, 1, 'keep', ['best'], [], '', 1), ratingDoc(pc, 0, 'meh', [], [], '', 1),
+    ratingDoc({ ...pc, id: 'abd-b1' }, 0, 'keep', ['best'], [], '', 1)], [pc, { ...pc, id: 'abd-b1' }]).picks;
+const cl = pk.find((p) => p.generator === 'create:bass');
+eq('picks_counted_per_request_kind', cl.n, 2);
+eq('picks_first_option_share', cl.first, 1);
+eq('picks_positions', JSON.stringify(cl.positions), '{"1":1,"2":1}');
+eq('picks_presets', JSON.stringify(cl.presets), '{"n-walk":1,"n-bass":1}');
 }
 
 function sceneOfRef(r) { return [...r.bass].map((n) => [Math.round(n[0] * 96) / 96, Math.round(n[1] * 96) / 96, n[2], n[3]]); }

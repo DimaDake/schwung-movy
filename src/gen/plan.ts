@@ -25,20 +25,42 @@ export const sample = (a: Prog, n: number): Prog => {
 
 export function fits(ctx: GenCtx, base: (Chord | null)[], rank: number): (Chord | null)[] {
     const col = (c: Chord) => colourPcs(c, ctx.key);
-    return base.map((b, i) => {
-        const pins = ctx.pinned.length ? ctx.pinned[i % ctx.pinned.length] : [];
-        if (!pins.length) return b;
+    const pinsAt = (i: number) => (ctx.pinned.length ? ctx.pinned[i % ctx.pinned.length] : []);
+    const bassAt = (i: number) => ctx.pinnedBass[i % Math.max(1, ctx.pinnedBass.length)];
+    /** The diatonic chord that best holds `pins`, or null when none does. */
+    const fit = (b: Chord | null, pins: number[], bass: number | undefined): Chord | null => {
         const cands = Array.from({ length: 7 }, (_, d) => diatonic(ctx.key, d)).filter((c) => tolerates(c, pins, col));
-        if (!cands.length) return b;
+        if (!cands.length) return null;
         /* A pinned bass note is most often the root: a bass alone in the
          * scene is what tells the chords where to go. */
-        const bass = ctx.pinnedBass[i % Math.max(1, ctx.pinnedBass.length)];
         const score = (c: Chord) => (pins.every((p) => c.pcs.includes(p)) ? 0 : 2)
             + (bass !== undefined && bass >= 0 && c.root === bass ? -4 : 0)
             + (b && c.root === b.root ? 0 : b ? 3 - c.pcs.filter((x) => b.pcs.includes(x)).length * 0.5 : 1);
         const sorted = cands.sort((x, y) => score(x) - score(y) || x.root - y.root);
         return sorted[Math.min(rank, sorted.length - 1)];
-    });
+    };
+    const same = (x: Chord | null, y: Chord | null) => x === y || (!!x && !!y && x.root === y.root && x.pcs.join() === y.pcs.join());
+    const out: (Chord | null)[] = [];
+    /* One chord for each of the progression's chords, held over all it
+     * spans: fitted half-bar by half-bar, a bass moving inside a bar became
+     * two chords a bar (paths bench: 1.5-2 changes a bar after a bass or a
+     * lead, the user's scenes 0.4-1). A span no one chord holds splits. */
+    for (let i = 0; i < base.length;) {
+        let j = i + 1;
+        while (j < base.length && same(base[j], base[i])) j++;
+        const pins = [...new Set(Array.from({ length: j - i }, (_, k) => pinsAt(i + k)).flat())];
+        let whole = pins.length ? fit(base[i], pins, bassAt(i)) : base[i];
+        /* Held through: the chord holds what sounds where it arrives, and
+         * each later half-bar may pass one note it does not (a walking bass,
+         * a lead's passing tone); clearRubs keeps a voice off a semitone. */
+        const arrive = pinsAt(i).length ? fit(base[i], pinsAt(i), bassAt(i)) : base[i];
+        const passes = (c: Chord) => Array.from({ length: j - i - 1 }, (_, k) => pinsAt(i + k + 1))
+            .every((ps) => ps.filter((p) => !tolerates(c, [p], col)).length <= 1);
+        if (!whole && arrive && passes(arrive)) whole = arrive;
+        for (let k = i; k < j; k++) out.push(whole ?? (pinsAt(k).length ? fit(base[k], pinsAt(k), bassAt(k)) ?? base[k] : base[k]));
+        i = j;
+    }
+    return out;
 }
 
 /** Runs a staged build to its end. */

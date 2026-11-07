@@ -77,7 +77,13 @@ export function buildCtx(input: GenInput): GenCtx {
     const pinned = otherSegs.map((s) => heardPcs(s));
     const filled = pinned.filter((p) => p.length > 0);
     const chordful = filled.filter((p) => p.length >= 3).length;
-    const freedom: Freedom = !filled.length ? 'free' : chordful * 2 >= filled.length ? 'locked' : 'partial';
+    /* Locked needs a part that strikes chords: a single line spells three
+     * pitch classes in a half-bar as it passes (a riff's C-E-G), and read as
+     * chords its passing notes became chords twice a bar (paths bench: 1.5-2
+     * changes a bar over a bass or lead, the user's scenes 0.4-1). A line
+     * pins the harmony; it does not own it. */
+    const struck = others.some((c) => strikesChords(c.notes));
+    const freedom: Freedom = !filled.length ? 'free' : chordful * 2 >= filled.length && struck ? 'locked' : 'partial';
 
     /* Smart Quantize fits the clip to its own scene: the others' chords when
      * they spell them, else everyone's, the clip included. */
@@ -116,6 +122,20 @@ export function buildCtx(input: GenInput): GenCtx {
         pad: input.pad ?? -1,
         plans: [],
     };
+}
+
+/** A part that strikes chords: two or more notes start together on at least
+ *  half its onsets (a dyad stab counts; an arpeggio or a riff does not).
+ *  Together is within a 32nd of the first: a played chord, or a strum,
+ *  spreads its voices (the bass bench's real chord parts). */
+function strikesChords(notes: Note[]): boolean {
+    const groups: Set<number>[] = [];
+    let head = -Infinity;
+    for (const n of [...notes].sort((a, b) => a.tick - b.tick)) {
+        if (n.tick - head > TPS / 2) { head = n.tick; groups.push(new Set()); }
+        groups[groups.length - 1].add(n.pitch);
+    }
+    return groups.length > 0 && groups.filter((p) => p.size >= 2).length * 2 >= groups.length;
 }
 
 /* A New Clip run carries its own nonce: the same Set never gives the same

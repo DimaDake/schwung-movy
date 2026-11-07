@@ -233,3 +233,90 @@ Found on the way:
    vs 0.20), still inside the real band (≤ 0.52); house convention, by ear.
 4. Step 6 of the plan: chains and form (Variation / Double depth, identity
    decay, collapse, energy arc), clicks-to-keepable, missing operations.
+
+## Round 3: chains, scene B, leave one out, options (2026-11-07)
+
+### What is measured now
+
+- **Chains** (`quality/chains.mjs`, `chains-run.mjs`, ~75 s): scene A by New
+  Clip; **scene B by Variation, track by track, in all 24 orders** (the tracks
+  already varied are B's band); one part varied 5 times in a row; every track
+  Smart Doubled; a loosely played part (gen-fixtures `messy`) Smart Quantized.
+  Report: `.gen-data/chains/<label>/report.md`.
+- **Leave one out** (`quality/loo.mjs`): each part of 294 real scenes (the
+  user's scene rows and public windows) taken away and New Clip asked for it
+  there. Judged "as good as the real part": no more than one metric out of
+  band that the real part had in band.
+- **Options and clicks** (`quality/keep.mjs`), on every request of every
+  bench: options usable of those shown, rank of the first usable, how
+  different they are, whether the kept one is usable, and knob clicks (one knob,
+  up to 3) from it to a usable one.
+- **Usable, calibrated on real parts**: at most one metric out of band.
+  Real parts in the user's scenes have none out 42-49% of the time and at most
+  one 74-82% (P10-P90 bands over ~15 metrics), so "all in band" failed half of
+  real music.
+- **New rule metrics** (`relations-texture.mjs`): `interlock` (R5, doubled
+  onsets), `stratify` (R5, density thins upwards; flag, user band),
+  `chords.changes` (harmonic rhythm: a new chord is neither inside nor around
+  the last, user band 0.38-1 a bar), `bc.pedal` (H2), `accent` (pitched
+  accents with the drums), `bass.seam` / `lead.seam` (the loop's wrap leap,
+  user loops only), `realign` (R4: loop lengths divide the scene).
+- Measurement fixes found by reading notes: a strum's late voices count as one
+  strike (`unstrum`), a revoiced 7th chord is no change, a per-pad drum option
+  is not judged as a whole kit, rhythm likeness beside note likeness.
+
+### Fixed from the evidence
+
+| finding | cause | fix | effect |
+|---|---|---|---|
+| chords made after a bass or a lead changed 1.5-2 times a bar (user's scenes 0.4-1) | a single line spelling C-E-G inside a half-bar made the scene **locked**, so chords were read off the line every half-bar, passing notes included (Em7b5, Gsus4) | `context.ts`: locked needs a part that strikes chords (2+ notes together, within a 32nd, on half its onsets); a line pins the harmony | `chords.changes` in band 44% → 99% |
+| ... and in partial scenes too | `fits()` chose a chord per half-bar | `plan.ts fits`: one chord per span of the progression, holding what sounds where it arrives, one passing note per later half-bar | |
+| comps made after others took offbeat figures (HOUSE, OFFBEATS: LHL above 90% of real comps) | `harmFit` judged every take on the HOME plan, so a take on another HARMONY lost on its strong beats | `select.ts`: a New Clip take is judged on its own HARMONY where it sets the harmony (not locked; Variation unchanged: its B scenes broke more) | `chords.sync` 90% → 100%, `bc.rub` 88% → 99% (vs round 2) |
+| role breaks in the piece bench | Variation's Step 14 New Clip options have no source role to keep | `engine.ts`: takes that break the track's role give way to the preset's others | role breaks 3 → 0, best-of-six gate 67% → 83%, pieces broken 13% → 8% |
+| bench: `KEYS` spelled 'Bb', which `keyHint` does not read (the app sends sharps) | | `piece.mjs` spells sharps, one root table (`scene.mjs PC`) | |
+
+Quality bench (`plans/gen-quality-round3.md` vs round2): nothing regressed.
+
+### Results
+
+- **New Clip, every order** (`paths-run --label round3`): the kept take is
+  usable 69-100% (real parts 74-82%). Weakest: a lead made last (69%), chords,
+  bass or drums made last (75%), mostly one metric past the slack.
+- **Scene B by Variation**: drums 88%, bass 67%, chords 54%, lead 37% usable in
+  the finished B (A: 50/67/100/83%). Each part was usable when made (chords
+  63%, lead 65%), so **later Variations break earlier ones**: `lc.coincide`,
+  `lc.mud`. Variation keeps rhythm 0.33-0.80 of A and almost no note cells (its
+  default HARMONY moves a new section, by design). Order gaps: chords varied
+  after the bass share fewer of its onsets (`bc.coincide` -18); a bass varied
+  before the chords sits on their root less (79% in band vs 100%).
+- **Variation 5 deep**: no collapse (rhythm spread across seeds flat at
+  0.5-0.9); each step moves far (distance 0.8-0.95 for melodic parts, rhythm
+  identity 0.3-0.5 after one), so there is no small-step evolution. Chords
+  fall from 100% usable to 43-67% by depth 2-4 (`chords.sync`, `onOne`,
+  `changes`).
+- **Smart Double**: 17% of fully doubled scenes usable for every part; the 6
+  options are alike (diversity 0.23-0.36).
+- **Smart Quantize** option 1: melodic parts come back toward the clean take
+  (bass 0.64 → 0.84, lead → 0.89), **drums do not** (0.66 → 0.66); chords
+  usable 33%.
+- **Leave one out**: some option is as good as the real part in 83-100% of real
+  scenes. Per generator on the user's scenes: BASS 85%, PULSE 54%, WALK 57%,
+  CHORDS 56%, STABS 47%, PAD 75%, ARP 64%, MELODY 96%, RIFF 94%. Generated
+  leads are busier than real ones (`lead.perBar` the top fail), basses more
+  syncopated (`bass.sync`).
+
+### Open after round 3, by weight
+
+1. **Variation does not hear the band** (`ctx.band` is New Clip's and
+   Double's only): in B a varied part does not lean on, or keep its register
+   from, the parts varied before it, and the next Variation breaks it (chords
+   and lead usable 100/83% in A → 54/37% in B).
+2. **Variation moves far in one step**: no "a little" (each step 0.8-0.95 away);
+   a Set evolves by jumps.
+3. **Smart Quantize drums**: option 1 brings nothing back; chords 33% usable.
+4. **STABS, CHORDS, PULSE, WALK, ARP over real scenes** at 47-64%; leads busy
+   over real parts.
+5. `harmFit` forgives weak beats, so offbeat takes win (`bk.offbeat` gap -29:
+   bass after drums takes OFFBEAT).
+6. Double: options alike; 17% of doubled scenes usable throughout.
+7. `stratify` rests on 25 user scenes; treat as a hint.

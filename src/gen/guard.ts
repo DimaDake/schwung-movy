@@ -41,6 +41,9 @@ export function clampNotes(ctx: GenCtx, notes: Note[]): Note[] {
     return out.slice(0, MAX_NOTES);
 }
 
+/** Whether a part keeps the role of `ctx`'s source (true with no role). */
+export const keepsRole = (ctx: GenCtx, notes: Note[]): boolean => !ctx.role || !roleBreak(notes, ctx.role, ctx.len, ONSET_SLACK);
+
 export function guard(ctx: GenCtx, raw: Note[]): GuardResult {
     const notes = clampNotes(ctx, raw);
     /* A New Clip part may be emptied by hand (a per-pad DENSITY at 0); its

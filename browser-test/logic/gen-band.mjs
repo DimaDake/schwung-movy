@@ -9,6 +9,8 @@
 import { _log, eq, ok } from './harness.mjs';
 import * as G from '../../dist/esm/gen/index.js';
 import { createInput } from '../gen-fixtures.mjs';
+import { buildPiece } from '../../scripts/gen-bench/quality/piece.mjs';
+import * as AI from '../../dist/esm/ai/index.js';
 
 const by = (id) => G.PRESETS.find((p) => p.id === id);
 const median = (xs) => [...xs].sort((a, b) => a - b)[xs.length >> 1];
@@ -62,6 +64,49 @@ ok('alone_is_an_empty_new_clip_scene', G.unpulsed(alone) && !G.unpulsed(band));
         const heard = share(stabs), not = share(deaf);
         ok(`${id}_leans_on_the_bands_accents`, heard > not + 0.08, `${heard.toFixed(2)} vs ${not.toFixed(2)} without the band`);
     }
+}
+
+/* A line pins the harmony, it does not own it: a riff spelling C-E-G in a
+ * half-bar is not a chord part, struck chords are. */
+{
+    const riff = withBand([0, 8, 16, 24].flatMap((s) => [60, 64, 67, 64].map((pitch, k) => ({ tick: (s + 2 * k) * G.TPS, gate: G.TPS, pitch, vel: 100 }))));
+    eq('a_riff_alone_pins_the_harmony', riff.freedom, 'partial');
+    eq('struck_chords_own_it', withBand([0, 8, 16, 24].flatMap((s) => chord(s, [60, 64, 67], 8))).freedom, 'locked');
+}
+
+/* Chords fitted over a walking bass (one note a half-bar) hold each chord of
+ * the progression over its span, not a new chord under every bass note. */
+{
+    const walk = withBand([38, 36, 34, 33].map((pitch, k) => ({ tick: k * 8 * G.TPS, gate: 8 * G.TPS - 4, pitch, vel: 100 })));
+    const plan = G.homePlan(walk);
+    const split = plan.chords.filter((c, i) => i % 2 === 1 && !(c === plan.chords[i - 1] || (c && plan.chords[i - 1] && c.root === plan.chords[i - 1].root)));
+    ok('fitted_chords_hold_over_a_walking_bass', walk.freedom === 'partial' && plan.label.endsWith('FIT') && split.length === 0, `${plan.label}: ${plan.chords.map((c) => c?.root).join(' ')}`);
+}
+
+/* A take is judged on the HARMONY it was made on, not the home plan's. */
+{
+    const ctx = alone;
+    const p = by('n-pad'), hk = G.knobIndex(p, 'HARMONY');
+    const home = G.homeOf(ctx), other = (home + 1) % ctx.plans.length;
+    const v = G.defaults(p, ctx);
+    v[hk] = other;
+    const notes = G.regenerate(ctx, p, v);
+    ok('takes_are_judged_on_their_own_harmony', G.scoreCandidate(ctx, p, notes, v).score > G.scoreCandidate(ctx, p, notes).score);
+}
+
+/* A Variation's own New Clip options (Step 14) keep the track's role, as
+ * its other options must: a WALK or a BASS take could leave a bass's
+ * register or density (the piece bench's role breaks). */
+{
+    const p = buildPiece(G, 7, true);
+    const broke = [];
+    for (const t of p.set.tracks.filter((x) => !x.drum)) {
+        const a = t.clips.find((c) => c.slot === 0);
+        const r = G.generateAll({ task: 'variation', tracks: p.set.tracks.map((x) => ({ ...x, clips: x.clips.filter((c) => c.slot === 0) })),
+            target: { track: t.index, slot: 1 }, source: { track: t.index, slot: 0 }, len: a.len, scale: [1, 1], drum: false, kit: [], root: p.set.root, mode: p.set.mode }, 6);
+        for (const q of r.picks.filter((x) => x.preset.id.startsWith('n-'))) if (AI.roleBreak(q.notes, r.ctx.role, a.len, G.ONSET_SLACK)) broke.push(`${t.name} ${q.preset.id}`);
+    }
+    eq('variation_new_clip_options_keep_the_role', broke.join(', '), '');
 }
 
 /* Over chords, a lead is heard over them: ARP's and RIFF's takes sit their

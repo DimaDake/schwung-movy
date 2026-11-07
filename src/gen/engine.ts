@@ -13,6 +13,7 @@ import { variantKnobs } from './variant.js';
 import { hash } from './rng.js';
 import { createTake, selectCreate, TAKES } from './create/takes.js';
 import { recentOptions, rememberOptions } from './create/history.js';
+import { keepsRole } from './guard.js';
 
 /** An option; `ctx` when it was made in another context than the request's (Step 14's New Clip ones). */
 export interface Pick { preset: Preset; knobs: number[]; notes: Note[]; ctx?: GenCtx }
@@ -85,7 +86,7 @@ export function stepRequest(req: Request): boolean {
     const knobs = t.which < 0 ? base : variantKnobs(p, req.ctx, base, hash(p.id) ^ req.ctx.seed, t.which);
     if (knobs) {
         const g = generateOption(req.ctx, p, knobs);
-        if (g.notes) req.done.push({ preset: p, knobs, notes: g.notes, ...scoreCandidate(req.ctx, p, g.notes) });
+        if (g.notes) req.done.push({ preset: p, knobs, notes: g.notes, ...scoreCandidate(req.ctx, p, g.notes, knobs) });
         else if (t.which < 0) req.dropped.push(`${p.id}:${g.why}`);
     }
     return req.todo.length === 0 && !req.sub;
@@ -101,7 +102,12 @@ export function finishRequest(req: Request, count = optionCountFor(req.ctx.task)
     }
     const picks: Pick[] = selectOptions(req.done, req.ctx.task, count).map((c) => ({ preset: c.preset, knobs: c.knobs, notes: c.notes }));
     if (!req.sub) return picks;
-    /* Step 14: the track's own part as the 3rd option, the neighbour last. */
+    /* Step 14: the track's own part as the 3rd option, the neighbour last.
+     * Made as New Clip, they have no source to keep the role of, so a take
+     * that breaks the track's role (a WALK in a lead's register) gives way to
+     * one of the preset's others, as a Variation's own options must
+     * (guard.ts; the piece bench's role breaks were all these). */
+    req.sub.done = req.sub.done.filter((c) => keepsRole(req.ctx, c.notes));
     const made = finishRequest(req.sub).map((p) => ({ ...p, ctx: req.sub!.ctx }));
     const ids = STEP14[req.ctx.drum ? 'drums' : req.ctx.role?.kind ?? ''] ?? [];
     req.displaced = [];

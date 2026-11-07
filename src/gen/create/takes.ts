@@ -27,7 +27,7 @@ export function createTake(p: Preset, ctx: GenCtx, which: number): Candidate | n
     for (let roll = 0; roll < ROLLS; roll++) {
         const knobs = rolled(p, ctx, which, roll);
         const g = generateOption(ctx, p, knobs);
-        if (g.notes && g.retry === 0 && !unmeaning(ctx, p, g.notes)) return { preset: p, knobs, notes: g.notes, ...scoreCandidate(ctx, p, g.notes) };
+        if (g.notes && g.retry === 0 && !unmeaning(ctx, p, g.notes)) return { preset: p, knobs, notes: g.notes, ...scoreCandidate(ctx, p, g.notes, knobs) };
     }
     return null;
 }

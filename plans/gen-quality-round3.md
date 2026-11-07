@@ -1,0 +1,263 @@
+# Generator quality: round3
+
+42 cases; knobs 8783 ms, pieces 3744 ms, old bench 2148 ms. Method and thresholds: plans/2026-10-29-generator-quality-metrics.md.
+
+| metric | round2 | round3 | verdict |
+| --- | --- | --- | --- |
+| 1 knobs: dead clicks | 12% | 12% | same |
+| 1 knobs: cliffs | 0% | 0% | same |
+| 1 knobs: promise kept | 90% | 90% | same |
+| 1 knobs: broken positions | 1% | 1% | same |
+| 1 knobs: experimental positions | 10% | 10% |  |
+| 1 knobs: duplicate knob pairs | 13 | 13 | same |
+| 1 knobs: refused positions | 1% | 1% | same |
+| 1 knobs: useful clicks | 59327 | 60014 | better |
+| 1 knobs: register reach (semitones) | 20.18 | 20.08 | same |
+| 2 space: musical | 76% | 76% | same |
+| 2 space: broken | 1% | 1% | same |
+| 2 space: refused (turn does nothing) | 3% | 3% | same |
+| 2 space: default musical | 87% | 87% | same |
+| 2 space: next to default broken | 1% | 1% | same |
+| 3 maps: positions played | 20193 | 20313 |  |
+| 3 maps: gradual turns | 80% | 80% | same |
+| 3 maps: mean turn | 1.45 | 1.45 | same |
+| 3 maps: distinct positions | 94% | 94% | same |
+| 3 maps: positions musical | 99% | 99% | same |
+| 3 maps: positions broken | 0% | 0% | same |
+| 3 maps: onset reach (per bar) | 9.84 | 9.84 | same |
+| 5 phrase: SPACE positions | 1200 | 1200 |  |
+| 5 phrase: silent positions | 0% | 0% | same |
+| 5 phrase: room left | 50% | 50% |  |
+| 5 phrase: rests that cut a gesture | 1% | 1% | same |
+| 4 piece: musical | 75% | 79% | same |
+| 4 piece: broken | 13% | 8% | better |
+| 4 piece: clash (strong beats) | 0% | 0% | same |
+| 4 piece: chord fit | 0.94 | 0.94 | same |
+| 4 piece: worst part fit | 0.88 | 0.87 | same |
+| 4 piece: low-end mud scenes | 0 | 0 | same |
+| 4 piece: role breaks | 3 | 0 | better |
+| 4 piece: B copies A | 0 | 0 | same |
+| 4 piece: A to B distance | 0.80 | 0.79 |  |
+| 4 piece: chords in A' | 3.46 | 3.67 | better |
+| 6 bass: chord arrivals on the keyboard's low note | 9% | 6% | better |
+| 6 bass: metrics in the reference band | 91% | 90% | same |
+| old: alignment | 0.62 | 0.63 | same |
+| old: gate | 79% | 81% | same |
+| old: played-drum gate | 100% | 100% | same |
+| old: variation best-of-six gate | 67% | 83% | better |
+| old: variation novelty | 0.65 | 0.63 | same |
+| old: variation coherence | 0.91 | 0.91 | same |
+| old: double first part kept | 0.98 | 0.98 | same |
+| old: double ending novelty | 0.72 | 0.72 | same |
+| old: double coherence | 0.92 | 0.92 | same |
+| old: new clip meaningful | 100% | 100% | same |
+| old: new clip coherence | 0.98 | 0.98 | same |
+| old: new clip with band | 0.77 | 0.76 | same |
+
+## 1. Knobs that break their promise
+
+| knob | kept | swept |
+| --- | --- | --- |
+| LIKENESS | 24% | 54 |
+| FIX NOTES | 61% | 33 |
+| AMOUNT | 74% | 208 |
+| DYNAMICS | 81% | 235 |
+| DRIFT | 90% | 802 |
+| RANGE | 92% | 159 |
+| LENGTH | 93% | 254 |
+| TIMING | 95% | 168 |
+| COLOUR | 95% | 250 |
+| DENSITY | 95% | 473 |
+| GATE | 100% | 374 |
+| HUMAN | 100% | 72 |
+| GHOSTS | 100% | 15 |
+
+## 1. Worst knobs
+
+| generator knob | share | clicks | what |
+| --- | --- | --- | --- |
+| variation:d-form UNIT | 100% | 3 | dead clicks |
+| variation:v-newline COLOUR | 90% | 100 | dead clicks |
+| create:n-harmonize COLOUR | 90% | 70 | dead clicks |
+| variation:v-harmonize COLOUR | 90% | 20 | dead clicks |
+| variation:v-follow COLOUR | 88% | 110 | dead clicks |
+| double:x-evolve COLOUR | 86% | 120 | dead clicks |
+| variation:v-walk AMOUNT | 85% | 60 | dead clicks |
+| create:n-looper SPREAD | 85% | 150 | dead clicks |
+| variation:v-style DENSITY | 85% | 110 | dead clicks |
+| variation:v-looper DENSITY | 84% | 70 | dead clicks |
+| double:x-style DENSITY | 82% | 240 | dead clicks |
+| variation:v-retro AMOUNT | 81% | 100 | dead clicks |
+| double:x-turnaround COLOUR | 80% | 210 | dead clicks |
+| create:n-follow COLOUR | 80% | 10 | dead clicks |
+| quantize:q-tight CLEAN | 80% | 10 | dead clicks |
+| double:xd-fill PADS | 80% | 60 | dead clicks |
+| variation:v-comp RANGE | 78% | 60 | dead clicks |
+| variation:d-grids SNARE | 77% | 30 | dead clicks |
+| quantize:q-embellish AMOUNT | 75% | 240 | dead clicks |
+| quantize:q-shaped VOICING | 73% | 150 | dead clicks |
+| create:n-follow DRIFT | 29% | 140 | cliffs |
+| create:n-pad-euclid DENSITY | 20% | 120 | cliffs |
+| create:n-perc DENSITY | 20% | 120 | cliffs |
+| create:n-melody RANGE | 14% | 180 | cliffs |
+| create:n-counter DENSITY | 13% | 300 | cliffs |
+| variation:v-style LIKENESS | 13% | 150 | cliffs |
+| create:n-hold DRIFT | 10% | 600 | cliffs |
+| create:n-pad-pattern DENSITY | 10% | 120 | cliffs |
+| quantize:q-shaped FIX NOTES | 9% | 22 | cliffs |
+| quantize:q-answer FIX NOTES | 6% | 16 | cliffs |
+| variation:v-form RANGE | 5% | 180 | cliffs |
+| variation:v-style DENSITY | 5% | 110 | cliffs |
+| variation:v-next RANGE | 4% | 168 | cliffs |
+| variation:v-revoice RANGE | 4% | 180 | cliffs |
+| variation:v-style RANGE | 4% | 168 | cliffs |
+| variation:v-retro RANGE | 3% | 120 | cliffs |
+| variation:v-recombine AMOUNT | 3% | 130 | cliffs |
+| variation:v-newline COLOUR | 3% | 100 | cliffs |
+| variation:v-develop RANGE | 2% | 168 | cliffs |
+| variation:v-comp RANGE | 2% | 60 | cliffs |
+| variation:v-bassline HARMONY | 40% | 9 | broken positions |
+| create:n-follow COLOUR | 36% | 10 | broken positions |
+| variation:v-pulse CHORD RATE | 25% | 12 | broken positions |
+| variation:v-bassline SHIFT | 25% | 15 | broken positions |
+| variation:v-bassline CHORD RATE | 25% | 3 | broken positions |
+| variation:v-pulse LENGTH | 23% | 130 | broken positions |
+| variation:v-pulse DYNAMICS | 23% | 130 | broken positions |
+| quantize:qd-ghosts TIMING | 21% | 90 | broken positions |
+| variation:v-bassline LENGTH | 20% | 50 | broken positions |
+| variation:v-bassline DYNAMICS | 20% | 50 | broken positions |
+| create:n-walk OCTAVE | 16% | 90 | broken positions |
+| variation:v-pulse RHYTHM | 14% | 143 | broken positions |
+| variation:v-pulse DENSITY | 14% | 130 | broken positions |
+| variation:v-pulse HARMONY | 12% | 29 | broken positions |
+| variation:v-bassline NOTES | 12% | 20 | broken positions |
+| variation:v-pulse NOTE | 12% | 28 | broken positions |
+| variation:v-bassline PATTERN | 11% | 65 | broken positions |
+| quantize:qd-tight DENSITY | 11% | 90 | broken positions |
+| quantize:qd-ghosts LEVEL | 11% | 27 | broken positions |
+| quantize:qd-ghosts SEED | 11% | 135 | broken positions |
+
+Duplicate knobs: variation:v-pulse OCTAVE=RHYTHM; variation:v-hold AMOUNT=SEED; variation:v-displace HARMONY=COLOUR; variation:v-comp HARMONY=COLOUR; variation:v-develop HARMONY=COLOUR; variation:v-displace SEED=MODE,SEED=COLOUR,MODE=COLOUR; variation:v-retro AMOUNT=SEED; quantize:q-octaves AMOUNT=SEED; double:xd-fill DENSITY=SEED; double:x-style LIKENESS=DENSITY; variation:v-next RHYTHM=VOICES; variation:v-follow RHYTHM=VOICES; double:x-style LIKENESS=DENSITY.
+
+## 2. Knob space by generator (worst first)
+
+Broken reasons: register 68, clash 34, empty 32, wall 25, off harmony 1.
+
+| generator | musical | broken | default broken | next to default broken | samples |
+| --- | --- | --- | --- | --- | --- |
+| quantize:qd-tight | 40% | 9% | 0% | 0% | 108 |
+| quantize:qd-ratchet | 28% | 7% | 0% | 0% | 108 |
+| create:n-pad-pattern | 34% | 6% | 0% | 0% | 144 |
+| create:n-perc | 30% | 6% | 0% | 0% | 144 |
+| quantize:q-mode | 85% | 6% | 0% | 2% | 132 |
+| create:n-follow | 54% | 6% | 0% | 0% | 84 |
+| create:n-walk | 90% | 6% | 0% | 5% | 360 |
+| quantize:qd-ghosts | 29% | 6% | 11% | 12% | 108 |
+| quantize:q-answer | 80% | 5% | 0% | 1% | 132 |
+| create:n-harmonize | 55% | 5% | 0% | 0% | 84 |
+| create:n-pad-euclid | 48% | 4% | 0% | 0% | 144 |
+| variation:v-bassline | 72% | 3% | 20% | 14% | 60 |
+| variation:d-develop | 92% | 3% | 0% | 0% | 36 |
+| variation:v-revoice | 86% | 2% | 0% | 0% | 180 |
+| double:x-run | 86% | 2% | 0% | 2% | 252 |
+| variation:v-pulse | 64% | 2% | 20% | 13% | 180 |
+| variation:v-hold | 92% | 2% | 0% | 0% | 180 |
+| variation:v-comp | 72% | 2% | 0% | 0% | 60 |
+| double:x-turnaround | 86% | 2% | 0% | 1% | 252 |
+| create:n-hold | 50% | 1% | 0% | 0% | 360 |
+| variation:v-answer | 92% | 1% | 0% | 0% | 180 |
+| variation:v-displace | 94% | 1% | 0% | 0% | 180 |
+| variation:v-develop | 92% | 1% | 0% | 0% | 180 |
+| variation:v-style | 90% | 1% | 0% | 0% | 180 |
+| variation:v-form | 87% | 1% | 0% | 0% | 180 |
+
+## 3. Map knobs (every position played)
+
+| generator knob | gradual turns | broken positions | requests |
+| --- | --- | --- | --- |
+| n-walk PATTERN | 41% | 0% | 30 |
+| n-bass PATTERN | 88% | 0% | 30 |
+| n-chords HARMONY | 88% | 0% | 5 |
+| n-stabs PATTERN | 89% | 0% | 30 |
+| n-chords PATTERN | 89% | 0% | 30 |
+| n-pulse PATTERN | 90% | 0% | 30 |
+| v-comp PATTERN | 90% | 0% | 5 |
+| n-drum-map GROOVE | 96% | 0% | 12 |
+
+## 4. Pieces
+
+| piece | verdict | A | B | A' | clash A/B/A' | role breaks | B copies | A→B | chords A/A' | generators |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| scratch 0 | musical | M | M | M | 0%/0%/6% | 0 | 0 | 0.73 | 2/5 | A Drums: n-broken, A Bass: n-bass, A Chords: n-chords, A Lead: n-melody, B Drums: d-kick, B Bass: v-develop, B Chords: n-stabs, B Lead: v-follow, A' Drums: xd-roll, A' Bass: x-turnaround, A' Chords: x-echo, A' Lead: x-style |
+| scratch 1 | musical | M | M | M | 0%/0%/0% | 0 | 0 | 0.74 | 4/6 | A Drums: n-broken, A Bass: n-bass, A Chords: n-stabs, A Lead: n-riff, B Drums: d-shift, B Bass: n-bass, B Chords: v-next, B Lead: v-style, A' Drums: xd-repeat, A' Bass: x-push, A' Chords: x-style, A' Lead: x-run |
+| scratch 2 | musical | M | M | M | 0%/0%/0% | 0 | 0 | 0.91 | 3/3 | A Drums: n-euclid-kit, A Bass: n-bass, A Chords: n-pad, A Lead: n-arp, B Drums: n-drum-map, B Bass: v-bassline, B Chords: v-displace, B Lead: n-riff, A' Drums: xd-repeat, A' Bass: x-style, A' Chords: x-evolve, A' Lead: x-turnaround |
+| scratch 3 | musical | M | M | M | 0%/0%/0% | 0 | 0 | 0.82 | 3/3 | A Drums: n-broken, A Bass: n-bass, A Chords: n-chords, A Lead: n-counter, B Drums: d-develop, B Bass: v-walk, B Chords: n-chords, B Lead: v-thin, A' Drums: xd-roll, A' Bass: x-run, A' Chords: x-cadence, A' Lead: x-stop |
+| scratch 4 | experimental | M | E | M | 0%/0%/0% | 0 | 0 | 0.77 | 3/5 | A Drums: n-broken, A Bass: n-bass, A Chords: n-stabs, A Lead: n-melody, B Drums: d-hats, B Bass: n-walk, B Chords: v-comp, B Lead: v-thin, A' Drums: xd-fill, A' Bass: x-stop, A' Chords: x-push, A' Lead: x-turnaround |
+| scratch 5 | musical | M | M | M | 0%/0%/0% | 0 | 0 | 0.82 | 4/6 | A Drums: n-euclid-kit, A Bass: n-bass, A Chords: n-pad, A Lead: n-riff, B Drums: n-broken, B Bass: v-next, B Chords: v-thin, B Lead: n-melody, A' Drums: xd-repeat, A' Bass: x-turnaround, A' Chords: x-stop, A' Lead: x-turnaround |
+| scratch 6 | musical | M | M | M | 0%/0%/0% | 0 | 0 | 0.73 | 4/5 | A Drums: n-broken, A Bass: n-bass, A Chords: n-chords, A Lead: n-arp, B Drums: d-kick, B Bass: v-thin, B Chords: n-stabs, B Lead: v-thin, A' Drums: xd-repeat, A' Bass: x-turnaround, A' Chords: x-stop, A' Lead: x-echo |
+| scratch 7 | musical | M | M | M | 0%/0%/0% | 0 | 0 | 0.77 | 3/4 | A Drums: n-broken, A Bass: n-bass, A Chords: n-stabs, A Lead: n-counter, B Drums: d-shift, B Bass: n-bass, B Chords: v-style, B Lead: v-style, A' Drums: xd-style, A' Bass: x-push, A' Chords: x-style, A' Lead: x-run |
+| scratch 8 | musical | M | M | M | 0%/0%/5% | 0 | 0 | 0.86 | 4/5 | A Drums: n-euclid-kit, A Bass: n-bass, A Chords: n-pad, A Lead: n-melody, B Drums: n-drum-map, B Bass: v-euclid, B Chords: v-form, B Lead: n-counter, A' Drums: xd-break, A' Bass: x-push, A' Chords: x-evolve, A' Lead: x-stop |
+| scratch 9 | musical | M | M | M | 0%/0%/0% | 0 | 0 | 0.80 | 4/4 | A Drums: n-broken, A Bass: n-bass, A Chords: n-chords, A Lead: n-riff, B Drums: d-develop, B Bass: v-displace, B Chords: n-chords, B Lead: v-thin, A' Drums: xd-roll, A' Bass: x-run, A' Chords: x-cadence, A' Lead: x-stop |
+| scratch 10 | musical | M | M | M | 0%/0%/0% | 0 | 0 | 0.63 | 2/5 | A Drums: n-broken, A Bass: n-bass, A Chords: n-stabs, A Lead: n-arp, B Drums: d-grids, B Bass: n-walk, B Chords: v-follow, B Lead: v-thin, A' Drums: xd-fill, A' Bass: x-stop, A' Chords: x-style, A' Lead: x-push |
+| scratch 11 | musical | M | M | M | 0%/0%/0% | 0 | 0 | 0.70 | 4/5 | A Drums: n-euclid-kit, A Bass: n-bass, A Chords: n-pad, A Lead: n-counter, B Drums: n-broken, B Bass: v-next, B Chords: v-displace, B Lead: n-melody, A' Drums: xd-repeat, A' Bass: x-turnaround, A' Chords: x-cadence, A' Lead: x-turnaround |
+| motif 0 | experimental | M | M | E | 0%/0%/9% | 0 | 0 | 0.74 | 1/3 | A Drums: n-broken, A Bass: n-bass, A Chords: n-chords, B Drums: d-kick, B Bass: v-next, B Chords: n-stabs, B Lead: v-euclid, A' Drums: xd-roll, A' Bass: x-cadence, A' Chords: x-echo, A' Lead: x-style |
+| motif 1 | broken | M | B | M | 0%/0%/0% | 0 | 0 | 0.81 | 1/3 | A Drums: n-broken, A Bass: n-bass, A Chords: n-stabs, B Drums: d-shift, B Bass: n-bass, B Chords: v-thin, B Lead: v-style, A' Drums: xd-repeat, A' Bass: x-style, A' Chords: x-push, A' Lead: x-run |
+| motif 2 | musical | M | M | M | 0%/0%/0% | 0 | 0 | 0.92 | 3/3 | A Drums: n-euclid-kit, A Bass: n-bass, A Chords: n-pad, B Drums: n-drum-map, B Bass: v-next, B Chords: v-next, B Lead: n-counter, A' Drums: xd-repeat, A' Bass: x-style, A' Chords: x-stop, A' Lead: x-style |
+| motif 3 | musical | M | M | M | 0%/0%/0% | 0 | 0 | 0.78 | 1/1 | A Drums: n-broken, A Bass: n-bass, A Chords: n-chords, B Drums: d-develop, B Bass: v-style, B Chords: n-chords, B Lead: v-form, A' Drums: xd-roll, A' Bass: x-run, A' Chords: x-stop, A' Lead: x-stop |
+| motif 4 | broken | M | B | M | 0%/0%/3% | 0 | 0 | 0.77 | 2/3 | A Drums: n-broken, A Bass: n-bass, A Chords: n-stabs, B Drums: d-hats, B Bass: n-walk, B Chords: v-next, B Lead: v-next, A' Drums: xd-fill, A' Bass: x-stop, A' Chords: x-cadence, A' Lead: x-turnaround |
+| motif 5 | musical | M | M | M | 0%/0%/0% | 0 | 0 | 0.83 | 2/3 | A Drums: n-euclid-kit, A Bass: n-bass, A Chords: n-pad, B Drums: n-broken, B Bass: v-next, B Chords: v-thin, B Lead: n-melody, A' Drums: xd-repeat, A' Bass: x-turnaround, A' Chords: x-push, A' Lead: x-style |
+| motif 6 | musical | M | M | M | 0%/0%/0% | 0 | 0 | 0.77 | 1/3 | A Drums: n-broken, A Bass: n-bass, A Chords: n-chords, B Drums: d-kick, B Bass: v-next, B Chords: n-stabs, B Lead: v-displace, A' Drums: xd-repeat, A' Bass: x-turnaround, A' Chords: x-echo, A' Lead: x-turnaround |
+| motif 7 | musical | M | M | M | 0%/0%/0% | 0 | 0 | 0.77 | 1/3 | A Drums: n-broken, A Bass: n-bass, A Chords: n-stabs, B Drums: d-shift, B Bass: n-bass, B Chords: v-comp, B Lead: v-pulse, A' Drums: xd-style, A' Bass: x-push, A' Chords: x-echo, A' Lead: x-run |
+| motif 8 | musical | M | M | M | 0%/0%/0% | 0 | 0 | 0.84 | 3/3 | A Drums: n-euclid-kit, A Bass: n-bass, A Chords: n-pad, B Drums: n-drum-map, B Bass: v-displace, B Chords: v-style, B Lead: n-counter, A' Drums: xd-break, A' Bass: x-style, A' Chords: x-evolve, A' Lead: x-style |
+| motif 9 | musical | M | M | M | 0%/0%/0% | 0 | 0 | 0.85 | 1/1 | A Drums: n-broken, A Bass: n-bass, A Chords: n-chords, B Drums: d-develop, B Bass: v-displace, B Chords: n-chords, B Lead: v-follow, A' Drums: xd-roll, A' Bass: x-run, A' Chords: x-cadence, A' Lead: x-push |
+| motif 10 | experimental | E | M | M | 0%/0%/0% | 0 | 0 | 0.85 | 1/3 | A Drums: n-broken, A Bass: n-bass, A Chords: n-stabs, B Drums: d-grids, B Bass: n-walk, B Chords: v-follow, B Lead: v-next, A' Drums: xd-fill, A' Bass: x-stop, A' Chords: x-cadence, A' Lead: x-style |
+| motif 11 | musical | M | M | M | 0%/0%/0% | 0 | 0 | 0.71 | 1/3 | A Drums: n-euclid-kit, A Bass: n-bass, A Chords: n-pad, B Drums: n-broken, B Bass: v-next, B Chords: v-answer, B Lead: n-melody, A' Drums: xd-repeat, A' Bass: x-style, A' Chords: x-echo, A' Lead: x-style |
+
+## 6. Bass over chords (84 user, 144 public reference parts)
+
+| option | n | perBar | gate | legato | silence | steps | repeats | rhythms | root | voicingLow | third | onKick | pitch | in band |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| REF user | | 3.50 | 2.67 | 0.97 | 0.28 | 0.25 | 0.19 | 0.50 | 0.36 | 0.00 | 0.19 | - | 42.00 | |
+| REF public | | 5.63 | 1.96 | 0.89 | 0.23 | 0.15 | 0.39 | 0.38 | 0.49 | 0.00 | 0.03 | 0.52 | 35.00 | |
+| dbl:x-cadence | 24 | 3.50 | 3.92 | 0.73 | 0.21 | 0.21 | 0.17 | 0.50 | 0.35 | 0.00 | 0.13 | 0.25 | 43.00 | 92% |
+| dbl:x-echo | 9 | 4.50 | 2.54 | 0.64 | 0.26 | 0.26 | 0.19 | 0.13 | 0.35 | 0.00 | 0.12 | 0.18 | 43.00 | 83% |
+| dbl:x-push | 21 | 3.00 | 5.13 | 0.73 | 0.27 | 0.23 | 0.14 | 0.50 | 0.31 | 0.00 | 0.10 | 0.18 | 43.00 | 75% |
+| dbl:x-run | 24 | 7.25 | 1.29 | 1.00 | 0.21 | 0.27 | 0.14 | 0.38 | 0.29 | 0.00 | 0.14 | 0.12 | 44.00 | 83% |
+| dbl:x-stop | 18 | 4.00 | 5.13 | 0.73 | 0.25 | 0.29 | 0.14 | 0.50 | 0.31 | 0.00 | 0.13 | 0.19 | 42.00 | 83% |
+| dbl:x-style | 24 | 4.38 | 3.92 | 0.73 | 0.28 | 0.22 | 0.14 | 0.50 | 0.32 | 0.00 | 0.12 | 0.20 | 43.00 | 92% |
+| dbl:x-turnaround | 24 | 4.50 | 3.92 | 0.73 | 0.24 | 0.26 | 0.16 | 0.25 | 0.30 | 0.00 | 0.15 | 0.20 | 43.00 | 92% |
+| new:n-bass | 24 | 4.50 | 3.92 | 0.73 | 0.28 | 0.21 | 0.13 | 0.50 | 0.45 | 0.00 | 0.18 | 0.40 | 43.00 | 100% |
+| new:n-pulse | 24 | 6.00 | 2.21 | 0.74 | 0.38 | 0.03 | 0.82 | 0.25 | 1.00 | 0.00 | 0.00 | 0.40 | 36.00 | 83% |
+| new:n-walk | 24 | 5.00 | 2.54 | 0.91 | 0.03 | 0.36 | 0.44 | 0.75 | 0.72 | 0.00 | 0.05 | 0.36 | 41.00 | 100% |
+| qnt:q-answer | 23 | 3.00 | 2.42 | 0.61 | 0.50 | 0.25 | 0.17 | 0.75 | 0.31 | 0.00 | 0.10 | 0.48 | 43.00 | 83% |
+| qnt:q-embellish | 14 | 3.75 | 2.00 | 0.79 | 0.33 | 0.54 | 0.09 | 1.00 | 0.33 | 0.00 | 0.17 | 0.33 | 45.00 | 75% |
+| qnt:q-mode | 7 | 2.38 | 4.83 | 0.72 | 0.33 | 0.25 | 0.11 | 0.75 | 0.42 | 0.00 | 0.11 | 0.16 | 46.00 | 83% |
+| qnt:q-mutate | 9 | 4.50 | 2.17 | 0.67 | 0.34 | 0.25 | 0.08 | 0.50 | 0.25 | 0.00 | 0.15 | 0.47 | 45.00 | 100% |
+| qnt:q-octaves | 2 | 6.00 | 3.71 | 1.07 | 0.34 | 0.33 | 0.11 | 1.00 | 0.42 | 0.00 | 0.00 | 0.84 | 47.00 | 75% |
+| qnt:q-ratchet | 19 | 6.00 | 1.00 | 1.00 | 0.35 | 0.13 | 0.44 | 1.00 | 0.42 | 0.00 | 0.23 | 0.44 | 43.00 | 75% |
+| qnt:q-shaped | 23 | 3.75 | 1.92 | 0.89 | 0.13 | 0.51 | 0.15 | 0.75 | 0.38 | 0.00 | 0.15 | 0.50 | 47.00 | 92% |
+| qnt:q-shift | 23 | 3.13 | 2.42 | 0.78 | 0.31 | 0.40 | 0.09 | 0.75 | 0.33 | 0.00 | 0.17 | 0.33 | 43.00 | 92% |
+| qnt:q-tight | 24 | 4.25 | 4.04 | 0.72 | 0.34 | 0.22 | 0.13 | 0.75 | 0.44 | 0.00 | 0.14 | 0.34 | 43.00 | 100% |
+| var:n-bass | 24 | 4.50 | 3.29 | 0.91 | 0.13 | 0.24 | 0.13 | 0.50 | 0.46 | 0.00 | 0.10 | 0.40 | 45.00 | 92% |
+| var:n-walk | 24 | 5.00 | 3.63 | 0.82 | 0.25 | 0.32 | 0.37 | 0.75 | 0.80 | 0.00 | 0.08 | 0.40 | 45.00 | 83% |
+| var:v-answer | 24 | 4.50 | 3.29 | 0.73 | 0.28 | 0.31 | 0.15 | 0.50 | 0.50 | 0.00 | 0.17 | 0.40 | 45.00 | 100% |
+| var:v-bassline | 24 | 4.50 | 3.88 | 0.96 | 0.06 | 0.29 | 0.10 | 0.50 | 0.50 | 0.00 | 0.10 | 0.86 | 41.00 | 83% |
+| var:v-connect | 24 | 4.50 | 3.63 | 0.97 | 0.17 | 0.38 | 0.14 | 1.00 | 0.41 | 0.00 | 0.14 | 0.38 | 43.00 | 92% |
+| var:v-develop | 24 | 4.00 | 3.92 | 0.73 | 0.28 | 0.21 | 0.14 | 1.00 | 0.40 | 0.00 | 0.18 | 0.33 | 43.00 | 83% |
+| var:v-displace | 24 | 4.50 | 3.75 | 0.60 | 0.48 | 0.17 | 0.15 | 1.00 | 0.55 | 0.00 | 0.20 | 0.38 | 43.00 | 83% |
+| var:v-euclid | 24 | 6.00 | 2.75 | 1.00 | 0.14 | 0.19 | 0.13 | 0.25 | 0.42 | 0.00 | 0.13 | 0.33 | 44.00 | 92% |
+| var:v-follow | 24 | 4.00 | 2.54 | 0.64 | 0.48 | 0.14 | 0.38 | 0.63 | 0.56 | 0.00 | 0.13 | 0.44 | 43.00 | 100% |
+| var:v-form | 24 | 4.00 | 3.92 | 0.72 | 0.27 | 0.16 | 0.21 | 0.50 | 0.35 | 0.00 | 0.25 | 0.40 | 45.00 | 92% |
+| var:v-halftime | 24 | 2.00 | 7.88 | 0.78 | 0.19 | 0.11 | 0.04 | 0.50 | 0.64 | 0.00 | 0.00 | 0.31 | 45.00 | 83% |
+| var:v-hold | 24 | 4.50 | 3.75 | 0.72 | 0.31 | 0.11 | 0.13 | 0.50 | 0.40 | 0.00 | 0.15 | 0.40 | 41.00 | 100% |
+| var:v-looper | 24 | 2.75 | 3.83 | 0.81 | 0.25 | 0.13 | 0.11 | 0.63 | 0.44 | 0.00 | 0.22 | 0.42 | 45.00 | 92% |
+| var:v-motif | 24 | 4.00 | 3.92 | 0.73 | 0.25 | 0.16 | 0.20 | 0.25 | 0.42 | 0.20 | 0.21 | 0.50 | 48.00 | 92% |
+| var:v-newline | 24 | 4.50 | 3.92 | 0.74 | 0.27 | 0.12 | 0.18 | 0.50 | 0.45 | 0.00 | 0.10 | 0.40 | 45.00 | 92% |
+| var:v-next | 24 | 3.25 | 2.42 | 0.60 | 0.53 | 0.17 | 0.22 | 0.88 | 0.48 | 0.00 | 0.17 | 0.41 | 43.00 | 75% |
+| var:v-pulse | 24 | 4.50 | 3.29 | 0.82 | 0.14 | 0.25 | 0.60 | 0.75 | 1.00 | 0.00 | 0.00 | 0.40 | 38.00 | 92% |
+| var:v-recombine | 24 | 4.50 | 3.92 | 0.73 | 0.28 | 0.16 | 0.21 | 0.50 | 0.40 | 0.00 | 0.19 | 0.40 | 43.00 | 100% |
+| var:v-retro | 24 | 4.50 | 3.92 | 0.73 | 0.28 | 0.22 | 0.22 | 0.50 | 0.64 | 0.00 | 0.11 | 0.40 | 43.00 | 100% |
+| var:v-revoice | 24 | 4.50 | 3.92 | 0.73 | 0.28 | 0.21 | 0.13 | 0.50 | 0.33 | 0.00 | 0.15 | 0.40 | 45.00 | 100% |
+| var:v-style | 24 | 4.00 | 3.92 | 0.73 | 0.27 | 0.22 | 0.13 | 1.00 | 0.30 | 0.00 | 0.15 | 0.33 | 45.00 | 83% |
+| var:v-thin | 24 | 2.50 | 6.25 | 0.69 | 0.31 | 0.25 | 0.00 | 0.50 | 0.67 | 0.00 | 0.00 | 0.40 | 43.00 | 92% |
+| var:v-walk | 24 | 4.00 | 2.54 | 0.73 | 0.30 | 0.29 | 0.10 | 0.50 | 0.47 | 0.00 | 0.18 | 0.45 | 43.00 | 100% |

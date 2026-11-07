@@ -3,7 +3,8 @@
  * wider of the two where each has 20 or more), a flag's limit is the higher of
  * their rates. The order gap compares the share in band when a metric's first
  * role was generated after its second with the share when it came before. */
-import { METRICS, ROLES } from './relations.mjs';
+import { existsSync, readFileSync } from 'node:fs';
+import { METRICS, relations, ROLES } from './relations.mjs';
 
 const MIN_REFS = 20;
 const ok = (x) => x !== undefined && x !== null && !Number.isNaN(x);
@@ -19,10 +20,11 @@ function band(vals) {
 export function refBands(refRows) {
     const out = {};
     for (const k of Object.keys(METRICS)) {
-        const bs = ['public', 'user'].map((kind) => band(refRows.filter((r) => r.kind === kind).map((r) => r.m[k]))).filter(Boolean);
+        const kinds = METRICS[k].includes('user') ? ['user'] : ['public', 'user'];
+        const bs = kinds.map((kind) => band(refRows.filter((r) => r.kind === kind).map((r) => r.m[k]))).filter(Boolean);
         if (!bs.length) continue;
         out[k] = { lo: Math.min(...bs.map((b) => b.lo)), hi: Math.max(...bs.map((b) => b.hi)), rate: Math.max(...bs.map((b) => b.rate)),
-            med: bs.map((b) => b.med), read: METRICS[k].find((x) => !ROLES.includes(x)) ?? 'band' };
+            med: bs.map((b) => b.med), read: METRICS[k].find((x) => ['hi', 'lo', 'flag'].includes(x)) ?? 'band' };
     }
     return out;
 }
@@ -101,4 +103,34 @@ export function keyTable(rows) {
         lines.push(`| ${role} (vs ${other}) | ${med(g(false))} | ${med(g(true))} | ${low(g(false))} / ${low(g(true))} |`);
     }
     return lines.join('\n');
+}
+
+/** The experience rows (keep.mjs) grouped by `key`: how many options are
+ *  usable, where the first is, how far the kept take is from usable. */
+export function expTable(exps, key) {
+    const pct = (x) => `${Math.round(x * 100)}%`;
+    const groups = new Map();
+    for (const e of exps) { const k = key(e); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(e); }
+    const lines = ['| group | requests | usable of shown | any usable | first usable (median) | kept usable | kept: 1 / 2 / 3 clicks / out of reach | diversity | kept fails most on |',
+        '|---|---|---|---|---|---|---|---|---|'];
+    for (const [k, es] of groups) {
+        const mean = (f) => es.reduce((a, e) => a + f(e), 0) / es.length;
+        const firsts = es.map((e) => e.first).filter((x) => x !== null).sort((a, b) => a - b);
+        const c = (n) => es.filter((e) => e.clicks === n).length;
+        const fails = new Map();
+        for (const e of es) for (const b of e.keptOk ? [] : e.keptBad) fails.set(b, (fails.get(b) ?? 0) + 1);
+        const top = [...fails].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([m, n]) => `${m} ${n}`).join(', ');
+        lines.push(`| ${k} | ${es.length} | ${mean((e) => e.usable).toFixed(1)} / ${mean((e) => e.shown).toFixed(1)} | ${pct(mean((e) => (e.usable ? 1 : 0)))} | `
+            + `${firsts.length ? firsts[firsts.length >> 1] : '–'} | ${pct(mean((e) => (e.keptOk ? 1 : 0)))} | ${c(1)} / ${c(2)} / ${c(3)} / ${es.filter((e) => e.clicks === null).length} | `
+            + `${mean((e) => e.diversity ?? 0).toFixed(2)} | ${top || '–'} |`);
+    }
+    return lines.join('\n');
+}
+
+/** The reference scenes (refs.mjs) measured, and their bands. */
+export function loadBands(data) {
+    if (!existsSync(data + 'refs.json')) { console.error('no refs: run scripts/gen-bench/quality/refs.mjs'); process.exit(1); }
+    const raw = JSON.parse(readFileSync(data + 'refs.json', 'utf8'));
+    const refs = raw.map((r) => ({ kind: r.kind, m: relations(r) }));
+    return { raw, refs, bands: refBands(refs) };
 }

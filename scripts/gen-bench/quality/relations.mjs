@@ -6,6 +6,7 @@
  * bass-metrics.mjs; root and voicing low note come from there. */
 import { bassMetrics, chordTrack, isTriad, median } from './bass-metrics.mjs';
 import { rubs } from './musical.mjs';
+import { texture, TEXTURE_METRICS } from './relations-texture.mjs';
 
 const q = (x) => Math.round(x * 4);
 const KICK = [35, 36], SNARE = [38, 39, 40], HATS = [42, 44, 46];
@@ -115,6 +116,19 @@ function leadChords(m, sc, L, ct, lOn, cOn) {
     if (sc.bass.length) m['lb.rub'] = share(lead, (n) => sounding(sc.bass, q(n[0])).some((c) => rubs(c[2], n[2])));
 }
 
+/** A part's strikes on the grid: voices starting within a 32nd of the
+ * strike's first (a strum) start with it and end where they did. */
+export function unstrum(ns) {
+    const out = [];
+    let head = null;
+    for (const n of [...ns].sort((a, b) => a[0] - b[0])) {
+        if (!head || n[0] - head > 0.125 + 1e-9) head = n[0];
+        const at = q(head) / 4;
+        out.push([at, n[0] + n[1] - at, ...n.slice(2)]);
+    }
+    return out;
+}
+
 export function relations(sc) {
     const L = Math.max(16, q(sc.len));
     const bars = Math.max(1, Math.floor(L / 16));
@@ -152,10 +166,11 @@ export function relations(sc) {
         Object.assign(m, { 'bk.lock': lock, 'bk.kickOnBass': share(kOn, (s) => bOn.includes(s)), 'bk.offbeat': off,
             'bk.neither': lock < 0.3 && off < 0.4 ? 1 : 0 });
     }
-    const ct = sc.chords.some((c) => c.length) ? chordTrack(sc.chords, L) : null;
+    const ct = sc.chords.some((c) => c.length) ? chordTrack(sc.chords.map(unstrum), L) : null;
     if (ct?.[0] && bOn.length) bassChords(m, sc, L, ct, bOn);
     if (lOn.length) leadChords(m, sc, L, ct?.[0] ? ct : null, lOn, cOn);
     if (bOn.length && cOn.length) m['bc.coincide'] = coincide(bOn, cOn);
+    texture(m, sc, L, { drums: dOn, bass: bOn, chords: cOn, lead: lOn }, ct);
     return m;
 }
 
@@ -172,5 +187,6 @@ export const METRICS = {
     'bc.root': ['bass', 'chords'], 'bc.voicingLow': ['bass', 'chords', 'lo'], 'bc.inChord': ['chords', 'bass', 'hi'],
     'bc.changeAlign': ['chords', 'bass', 'hi'], 'bc.coincide': ['bass', 'chords'], 'bc.rub': ['chords', 'bass', 'lo'], 'lc.strongCT': ['lead', 'chords', 'hi'],
     'lc.rub': ['lead', 'chords', 'lo'], 'lc.coincide': ['lead', 'chords'], 'lc.mud': ['lead', 'chords', 'flag'], 'lb.rub': ['lead', 'bass', 'lo'],
+    ...TEXTURE_METRICS,
 };
 export const ROLES = ['drums', 'bass', 'chords', 'lead'];

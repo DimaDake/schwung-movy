@@ -5,7 +5,7 @@
 
 import type { GenCtx } from './analysis/context.js';
 import { chordAt } from './analysis/context.js';
-import { homePlan } from './plan.js';
+import { homePlan, planAt } from './plan.js';
 import { isStrong } from './analysis/events.js';
 import type { Preset } from './preset.js';
 import { noteFit } from './theory/category.js';
@@ -27,9 +27,16 @@ export function difference(a: Note[], b: Note[]): number {
     return 1 - both / (A.size + B.size - both);
 }
 
-function harmFit(ctx: GenCtx, notes: Note[]): number {
+/* Judged on the harmony the take was made on where it sets the harmony
+ * (free, partial): judged on the home plan, a take on another HARMONY lost on
+ * its strong beats, so takes that avoid them won (paths bench: offbeat comps
+ * over a bass). Over a band's chords (locked) on what the band plays: a
+ * HARMONY that adds approach chords the band does not play clashes there.
+ * New Clip only: a Variation's options keep the home plan's judgement (the
+ * piece bench's B scenes broke more with it). */
+function harmFit(ctx: GenCtx, notes: Note[], h: number): number {
     if (ctx.drum) return 1;
-    const chords = homePlan(ctx)?.chords ?? [];
+    const chords = (h >= 0 ? planAt(ctx, h) : homePlan(ctx))?.chords ?? [];
     let s = 0, w = 0;
     for (const n of notes) {
         const c = chordAt(chords, n.tick, ctx.k) ?? chordAt(ctx.srcChords, n.tick, ctx.k);
@@ -55,11 +62,12 @@ function shapeSim(ctx: GenCtx, notes: Note[]): number {
     return (dens + reg) / 2;
 }
 
-export function scoreCandidate(ctx: GenCtx, p: Preset, notes: Note[]): { score: number; dist: number } {
+export function scoreCandidate(ctx: GenCtx, p: Preset, notes: Note[], knobs?: number[]): { score: number; dist: number } {
+    const hk = knobs ? p.knobs.findIndex((k) => k.name === 'HARMONY') : -1;
     const fit = p.fit ? p.fit(ctx) : 0.5;
     /* Every candidate already fits the harmony and the grid fairly well, so
      * what the preset is FOR on this part (its fit) decides most. */
-    const score = 0.3 * harmFit(ctx, notes) + 0.1 * grooveFit(notes) + 0.2 * shapeSim(ctx, notes) + 0.4 * fit;
+    const score = 0.3 * harmFit(ctx, notes, hk >= 0 && ctx.task === 'create' && ctx.freedom !== 'locked' ? knobs![hk] : -1) + 0.1 * grooveFit(notes) + 0.2 * shapeSim(ctx, notes) + 0.4 * fit;
     return { score: fit <= 0 ? -1 : score, dist: difference(notes, ctx.src) };
 }
 

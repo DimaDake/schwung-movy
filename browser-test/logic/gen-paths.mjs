@@ -6,7 +6,8 @@
  */
 
 import { _log, eq, ok } from './harness.mjs';
-import { coincide, phraseEnd, relations, scaleFit, syncopation } from '../../scripts/gen-bench/quality/relations.mjs';
+import { coincide, phraseEnd, relations, scaleFit, syncopation, unstrum } from '../../scripts/gen-bench/quality/relations.mjs';
+import { judgeRole } from '../../scripts/gen-bench/quality/keep.mjs';
 import { groupOf, inBand, refBands } from '../../scripts/gen-bench/quality/paths-score.mjs';
 
 /* Notes in beats: [start, dur, pitch, vel]; steps are 16ths. */
@@ -69,6 +70,32 @@ eq('coincide_over_the_sparser_part', coincide([0, 4], [0, 2, 4, 6]), 1);
     const one = (notes) => relations({ ...empty, len: 4, chords: [notes] })['chords.onOne'];
     eq('chords_pushed_and_held_over_beat_1_sound_on_it', one([[3.5, 1, 60, 90], [3.5, 1, 64, 90]]), 1);
     eq('short_off_beat_stabs_miss_beat_1', one([0.75, 1.5, 2.75, 3.5].map((s) => [s, 0.25, 60, 90])), 0);
+}
+
+/* Texture: doubled onsets, density by register, harmonic rhythm, pedal, accents, the loop seam. */
+{
+    const hats = at(bars(1, [0, 2, 4, 6, 8, 10, 12, 14]), 42), kick = at([0, 4, 8, 12], 36);
+    eq('interlock_is_one_when_no_onset_is_doubled', relations({ ...empty, len: 4, kick, bass: at([2, 6, 10, 14], 36) }).interlock, 1);
+    eq('interlock_halves_when_two_parts_double', relations({ ...empty, len: 4, kick, bass: at([0, 4, 8, 12], 36) }).interlock, 0.5);
+    const pad = [[[0, 4, 60, 90], [0, 4, 64, 90], [0, 4, 67, 90]]];
+    eq('stratify_holds_when_density_thins_upwards', relations({ ...empty, len: 4, hats, bass: at([0, 8], 36), chords: pad }).stratify, 0);
+    eq('stratify_flags_chords_busier_than_the_bass', relations({ ...empty, len: 4, hats, bass: at([0], 36, 4), chords: [at([0, 2, 4, 6], 60)] }).stratify, 1);
+    const prog = [[0, 4, 60, 90], [0, 4, 64, 90], [0, 4, 67, 90], [4, 4, 65, 90], [4, 4, 69, 90], [4, 4, 72, 90]];
+    eq('harmonic_rhythm_counts_chords_a_bar', relations({ ...empty, len: 8, chords: [prog] })['chords.changes'], 1);
+    eq('a_revoiced_chord_is_no_change', relations({ ...empty, len: 8, chords: [[...prog.slice(0, 3), [4, 4, 64, 90], [4, 4, 67, 90], [4, 4, 72, 90]]] })['chords.changes'], 0);
+    eq('a_bass_held_through_a_chord_it_is_not_in_is_a_pedal', relations({ ...empty, len: 8, chords: [prog], bass: at([0], 43, 8) })['bc.pedal'], 1);
+    eq('strummed_voices_are_one_strike', unstrum([[0, 1, 60, 90], [0.063, 0.937, 64, 90], [0.125, 0.875, 67, 90]]).map((n) => n[0]).join(), '0,0,0');
+    eq('a_seam_is_the_leap_from_the_last_note_to_the_first', relations({ ...empty, len: 4, lead: [[0, 1, 72, 90], [2, 1, 79, 90]] })['lead.seam'], 7);
+    eq('a_public_window_has_no_seam', relations({ ...empty, kind: 'public', len: 4, lead: [[0, 1, 72, 90], [2, 1, 79, 90]] })['lead.seam'], undefined);
+    eq('loops_that_divide_the_scene_realign', relations({ ...empty, len: 8, lens: [32, 16, 32, 0], kick, bass: at([0], 36) }).realign, 1);
+    eq('a_three_bar_loop_does_not', relations({ ...empty, len: 16, lens: [64, 48, 0, 0], kick, bass: at([0], 36) }).realign, 0);
+}
+
+/* Usable: as many metrics out of band as a real part has, at most one. */
+{
+    const bands = { 'bass.sync': { lo: 0, hi: 2, read: 'band' }, 'bk.lock': { lo: 0.2, hi: 1, read: 'band' }, 'lead.sync': { lo: 0, hi: 1, read: 'band' } };
+    eq('one_metric_out_is_still_usable', judgeRole({ 'bass.sync': 3, 'bk.lock': 0.5, 'lead.sync': 9 }, bands, 'bass').ok, true);
+    eq('two_out_is_not', judgeRole({ 'bass.sync': 3, 'bk.lock': 0.1 }, bands, 'bass').ok, false);
 }
 
 /* The order gap groups by which of a metric's two roles was made last. */

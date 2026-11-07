@@ -10,7 +10,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { writeMidi } from './midi-write.mjs';
 import { runPaths } from './paths.mjs';
-import { firstStep, groupOf, keyTable, inBand, refBands, score, table } from './paths-score.mjs';
+import { expTable, firstStep, groupOf, keyTable, inBand, loadBands, score, table } from './paths-score.mjs';
 import { relations } from './relations.mjs';
 import { roll } from './roll.mjs';
 
@@ -19,12 +19,10 @@ const arg = (k, d) => { const i = process.argv.indexOf('--' + k); return i > 0 ?
 const label = arg('label', 'paths');
 const PER_METRIC = 2, RANDOM = 4, GAP = 0.15;
 
-if (!existsSync(DATA + 'refs.json')) { console.error('no refs: run scripts/gen-bench/quality/refs.mjs'); process.exit(1); }
-const refs = JSON.parse(readFileSync(DATA + 'refs.json', 'utf8')).map((r) => ({ kind: r.kind, m: relations(r) }));
-const bands = refBands(refs);
+const { refs, bands } = loadBands(DATA);
 const G = await import('../../../dist/esm/gen/index.js');
 const t0 = Date.now();
-const paths = runPaths(G, Number(arg('seeds', 6)));
+const paths = runPaths(G, Number(arg('seeds', 6)), bands);
 const rows = paths.map((p) => ({ ...p, m: relations(p.scene) }));
 const sc = score(rows, bands);
 const dir = DATA + `paths/${label}/`;
@@ -53,7 +51,8 @@ const prev = arg('compare') && existsSync(prevFile) ? JSON.parse(readFileSync(pr
 const md = `# Paths bench: ${label}\n\n${rows.length} scenes (${paths.length / 24} seeds × 24 orders), ${Date.now() - t0} ms; `
     + `refs ${refs.filter((r) => r.kind === 'public').length} public + ${refs.filter((r) => r.kind === 'user').length} user scenes.\n`
     + `"before"/"after": the metric's first role generated before/after its second (one role: first / not first). ⚠ = gap ≥ ${GAP * 100} points.\n\n`
-    + table(sc, prev) + `\n\n## In the Set's key\n\n` + keyTable(rows) + `\n\n## After the first step\n\n` + firstStep(rows, bands) + `\n\nRolls: ${pick.size} scenes in .gen-data/paths/${label}/rolls/\n`;
+    + table(sc, prev) + `\n\n## In the Set's key\n\n` + keyTable(rows) + `\n\n## After the first step\n\n` + firstStep(rows, bands) + `\n\n## Options and clicks (New Clip, per part and step)\n\n` + expTable(paths.flatMap((p) => p.exps), (e) => `${e.role} ${e.at ? 'after ' + e.at : 'first'}`)
+    + `\n\nRolls: ${pick.size} scenes in .gen-data/paths/${label}/rolls/\n`;
 writeFileSync(dir + 'report.md', md);
 writeFileSync(dir + 'result.json', JSON.stringify({ label, score: sc, rows: rows.map((r) => ({ seed: r.seed, order: r.order, picks: r.picks, m: r.m })) }));
 console.log(md);

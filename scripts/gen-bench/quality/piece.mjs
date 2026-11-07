@@ -6,9 +6,11 @@
  * Scene A': each A clip copied and Smart Doubled, track by track. The piece
  * is then judged as a listener hears it: the tracks together, scene by scene. */
 
+import { PC } from './scene.mjs';
+
 export const KIT = [36, 37, 38, 39, 42, 44, 46, 49, 51, 41, 43, 45];
-export const KEYS = [['C', 'minor'], ['F', 'major'], ['A', 'minor'], ['D', 'minor'], ['G', 'major'], ['E', 'minor'], ['Bb', 'major'], ['F#', 'minor']];
-const ROOT = { C: 0, 'C#': 1, D: 2, Eb: 3, E: 4, F: 5, 'F#': 6, G: 7, Ab: 8, A: 9, Bb: 10, B: 11 };
+/* Spelled as the Set's key setting is (sharps, theory/key.ts keyHint): 'Bb' was no key at all. */
+export const KEYS = [['C', 'minor'], ['F', 'major'], ['A', 'minor'], ['D', 'minor'], ['G', 'major'], ['E', 'minor'], ['A#', 'major'], ['F#', 'minor']];
 export const PARTS = [
     { index: 0, name: 'Drums', drum: true, want: ['n-groove', 'n-broken', 'n-euclid-kit'] },
     { index: 1, name: 'Bass', drum: false, want: ['n-bass'] },
@@ -43,7 +45,7 @@ export function buildPiece(G, seed, withMotif) {
     const set = { root, mode, bpm: 118 + (seed % 5) * 4,
         tracks: PARTS.map((p) => ({ index: p.index, name: p.name, module: p.drum ? 'drumrack' : 'obxd', drum: p.drum, padNames: null, clips: [] })) };
     const log = [];
-    if (withMotif) put(set.tracks, 3, 0, clip(3, 0, 16, motif(G, seed, ROOT[root], mode === 'minor')));
+    if (withMotif) put(set.tracks, 3, 0, clip(3, 0, 16, motif(G, seed, PC[root], mode === 'minor')));
     for (const p of PARTS) {
         if (withMotif && p.index === 3) continue;
         G.forgetOptions();

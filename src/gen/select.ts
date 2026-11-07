@@ -18,11 +18,27 @@ export interface Candidate { preset: Preset; knobs: number[]; notes: Note[]; sco
 /** The bench's gate: two options closer than this are one option. */
 export const MIN_PAIR = 0.2;
 
-const cells = (a: Note[]) => new Set(a.map((n) => `${Math.round(n.tick / TPS)}:${n.pitch}`));
+const median = (a: number[]) => { const s = [...a].sort((x, y) => x - y); return s.length ? s[s.length >> 1] : 0; };
+const avg = (a: number[]) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0);
+
+/* What the comparisons read of a part, once per part: selection compares
+ * every candidate with every pick, every round (on a dense chord part that
+ * was most of a Variation's last slice, device lag 2026-11-07). */
+interface Feat { cells: Set<number>; steps: Set<number>; pitch: number; gate: number; vel: number }
+const feats = new WeakMap<Note[], Feat>();
+function feat(a: Note[]): Feat {
+    let f = feats.get(a);
+    if (!f) {
+        f = { cells: new Set(a.map((n) => Math.round(n.tick / TPS) * 128 + n.pitch)), steps: new Set(a.map((n) => Math.round(n.tick / TPS))),
+            pitch: median(a.map((n) => n.pitch)), gate: median(a.map((n) => n.gate)), vel: avg(a.map((n) => n.vel)) };
+        feats.set(a, f);
+    }
+    return f;
+}
 
 /** 0 = the same (step, pitch) set, 1 = nothing in common. */
 export function difference(a: Note[], b: Note[]): number {
-    const A = cells(a), B = cells(b);
+    const A = feat(a).cells, B = feat(b).cells;
     if (!A.size && !B.size) return 0;
     let both = 0;
     for (const x of A) if (B.has(x)) both++;
@@ -54,7 +70,6 @@ function grooveFit(notes: Note[]): number {
     return notes.filter((n) => Math.abs(n.tick - Math.round(n.tick / (TPS / 2)) * (TPS / 2)) <= 3).length / notes.length;
 }
 
-const median = (a: number[]) => { const s = [...a].sort((x, y) => x - y); return s.length ? s[s.length >> 1] : 0; };
 
 function shapeSim(ctx: GenCtx, notes: Note[]): number {
     if (!ctx.src.length || !notes.length) return 0;
@@ -117,20 +132,19 @@ export function slotsFor(task: Exclude<Task, 'create'>, count: number): C[] {
     return Array.from({ length: count }, (_, i) => base[Math.min(base.length - 1, Math.floor((i * base.length) / count))]);
 }
 
-const jd = (A: Set<number>, B: Set<number>) => { const u = new Set([...A, ...B]); if (!u.size) return 0; let i = 0; for (const x of A) if (B.has(x)) i++; return 1 - i / u.size; };
-const avg = (a: number[]) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0);
+const jd = (A: Set<number>, B: Set<number>) => { let i = 0; for (const x of A) if (B.has(x)) i++; const u = A.size + B.size - i; return u ? 1 - i / u : 0; };
 
 /** How different two options feel, 0..1, on everything a listener hears:
  *  rhythm, notes, density, register, note lengths and loudness. */
 export function spread(a: Note[], b: Note[]): number {
-    const steps = (x: Note[]) => new Set(x.map((n) => Math.round(n.tick / TPS)));
+    const fa = feat(a), fb = feat(b);
     const parts = [
-        jd(steps(a), steps(b)),
+        jd(fa.steps, fb.steps),
         difference(a, b),
         Math.abs(a.length - b.length) / Math.max(1, a.length, b.length),
-        Math.min(1, Math.abs(median(a.map((n) => n.pitch)) - median(b.map((n) => n.pitch))) / 12),
-        Math.min(1, Math.abs(median(a.map((n) => n.gate)) - median(b.map((n) => n.gate))) / (4 * TPS)),
-        Math.min(1, Math.abs(avg(a.map((n) => n.vel)) - avg(b.map((n) => n.vel))) / 40),
+        Math.min(1, Math.abs(fa.pitch - fb.pitch) / 12),
+        Math.min(1, Math.abs(fa.gate - fb.gate) / (4 * TPS)),
+        Math.min(1, Math.abs(fa.vel - fb.vel) / 40),
     ];
     return avg(parts);
 }
@@ -144,8 +158,12 @@ export function selectOptions(cands: Candidate[], task: Task, count: number): Ca
      * rhythm, notes and feel, not three takes of one idea. */
     const value = (c: Candidate) => (chosen.length ? 0.45 * c.score + 0.55 * Math.min(...chosen.map((x) => spread(x.notes, c.notes))) : c.score);
     const take = (ok: (c: Candidate) => boolean) => {
-        let best: Candidate | null = null;
-        for (const x of pool) if (!chosen.includes(x) && ok(x) && (!best || value(x) > value(best))) best = x;
+        let best: Candidate | null = null, bv = 0;
+        for (const x of pool) {
+            if (chosen.includes(x) || !ok(x)) continue;
+            const v = value(x);
+            if (!best || v > bv) { best = x; bv = v; }
+        }
         if (best) chosen.push(best);
         return !!best;
     };

@@ -9,6 +9,7 @@ import type { Chord, HarmonyPlan, Sit } from './types.js';
 import { colourPcs } from './theory/category.js';
 import { harmonicMoves, tolerates } from './theory/moves.js';
 import { degreeOf, diatonic } from './theory/roman.js';
+import { pc } from './theory/pc.js';
 import { holds, withChanges } from './theory/changes.js';
 import { createPlans } from './create/plans.js';
 import { chordsLabel } from './theory/chord-label.js';
@@ -23,21 +24,42 @@ export const sample = (a: Prog, n: number): Prog => {
     return out;
 };
 
+/* New Clip's map fits each of its 128+ loops around the same pins (Step 14
+ * builds one under every Variation): the seven chords, what each holds and
+ * each answer, once per request (device: 0.5 s a tick, 2026-11-07). */
+interface FitMemo { holds: Set<number>[]; picks: Map<string, number> }
+const fitMemo = new WeakMap<GenCtx, FitMemo>();
+function memoOf(ctx: GenCtx): FitMemo {
+    let m = fitMemo.get(ctx);
+    if (!m) {
+        m = { holds: Array.from({ length: 7 }, (_, d) => { const c = diatonic(ctx.key, d); return new Set([...c.pcs, ...colourPcs(c, ctx.key)]); }), picks: new Map() };
+        fitMemo.set(ctx, m);
+    }
+    return m;
+}
+
 export function fits(ctx: GenCtx, base: (Chord | null)[], rank: number): (Chord | null)[] {
     const col = (c: Chord) => colourPcs(c, ctx.key);
+    const memo = memoOf(ctx);
     const pinsAt = (i: number) => (ctx.pinned.length ? ctx.pinned[i % ctx.pinned.length] : []);
     const bassAt = (i: number) => ctx.pinnedBass[i % Math.max(1, ctx.pinnedBass.length)];
     /** The diatonic chord that best holds `pins`, or null when none does. */
     const fit = (b: Chord | null, pins: number[], bass: number | undefined): Chord | null => {
-        const cands = Array.from({ length: 7 }, (_, d) => diatonic(ctx.key, d)).filter((c) => tolerates(c, pins, col));
-        if (!cands.length) return null;
-        /* A pinned bass note is most often the root: a bass alone in the
-         * scene is what tells the chords where to go. */
-        const score = (c: Chord) => (pins.every((p) => c.pcs.includes(p)) ? 0 : 2)
-            + (bass !== undefined && bass >= 0 && c.root === bass ? -4 : 0)
-            + (b && c.root === b.root ? 0 : b ? 3 - c.pcs.filter((x) => b.pcs.includes(x)).length * 0.5 : 1);
-        const sorted = cands.sort((x, y) => score(x) - score(y) || x.root - y.root);
-        return sorted[Math.min(rank, sorted.length - 1)];
+        const key = `${b ? `${b.root}:${b.pcs.join()}` : '-'}|${pins.join()}|${bass}|${rank}`;
+        let d = memo.picks.get(key);
+        if (d === undefined) {
+            const cands = Array.from({ length: 7 }, (_, i) => i).filter((i) => pins.every((p) => memo.holds[i].has(pc(p))));
+            /* A pinned bass note is most often the root: a bass alone in the
+             * scene is what tells the chords where to go. */
+            const score = (c: Chord) => (pins.every((p) => c.pcs.includes(p)) ? 0 : 2)
+                + (bass !== undefined && bass >= 0 && c.root === bass ? -4 : 0)
+                + (b && c.root === b.root ? 0 : b ? 3 - c.pcs.filter((x) => b.pcs.includes(x)).length * 0.5 : 1);
+            const at = cands.map((i) => ({ i, c: diatonic(ctx.key, i) }));
+            const sorted = at.sort((x, y) => score(x.c) - score(y.c) || x.c.root - y.c.root);
+            d = sorted.length ? sorted[Math.min(rank, sorted.length - 1)].i : -1;
+            memo.picks.set(key, d);
+        }
+        return d < 0 ? null : diatonic(ctx.key, d);
     };
     const same = (x: Chord | null, y: Chord | null) => x === y || (!!x && !!y && x.root === y.root && x.pcs.join() === y.pcs.join());
     const out: (Chord | null)[] = [];

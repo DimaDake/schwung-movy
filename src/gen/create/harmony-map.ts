@@ -31,7 +31,10 @@ export function* grow(seeds: Loop[], k: Key, cap: number): Generator<void, Loop[
     let frontier = seeds.filter((s) => s.chords.length <= DERIVE_MAX && s.chords.every((c) => c)).map((s) => ({ ...s, score: 0 }));
     for (let d = 1; d <= DEPTH && frontier.length; d++) {
         const fresh = new Map<string, Loop & { score: number }>();
-        for (const f of frontier) {
+        for (let fi = 0; fi < frontier.length; fi++) {
+            /* A depth of eight-chord loops was 0.2 s in one device tick: a few loops a tick. */
+            if (fi && fi % 8 === 0) yield;
+            const f = frontier[fi];
             const root = f.label.split('+')[0];
             for (const [p, chroma] of derive(f.chords as Prog, k)) {
                 const id = idOf(p);

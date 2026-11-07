@@ -41,7 +41,10 @@ function* section(ctx: GenCtx, n: number, count: 2 | 4 | 8, per: number, seeds: 
      * "stack underflow" on it (browser-test/source-rules.mjs bans it). */
     const grown = yield* grow(seeds, ctx.key, MAP[count]);
     const out: HarmonyPlan[] = [];
-    for (const l of [...grown, ...extra]) {
+    const loops = [...grown, ...extra];
+    for (let i = 0; i < loops.length; i++) {
+        if (i && i % 32 === 0) yield;
+        const l = loops[i];
         const base = lay(l.chords, n, per);
         const chords = ctx.freedom === 'partial' ? fits(ctx, base, 0) : base;
         const k = id(chords);

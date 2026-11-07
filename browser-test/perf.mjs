@@ -568,11 +568,41 @@ _origLog('\nTest: generator slice cost');
 
     /* Step 14 on a clip (§2.3): Variation's slices plus its two New Clip parts'. */
     const v14 = G.startRequest(F.fixtureInput('bass', { scene: 'free' }));
+    /* Counted in takes: a refused take rolls again on the next slice and the
+     * harmony map is built in small stages (gen/engine.ts, create/plans.ts),
+     * one roll or stage a tick, and neither is a take of its own. */
     let n14 = 0;
-    while (!G.stepRequest(v14)) n14++;
+    for (;;) {
+        const stage = !!v14.plans || (!v14.todo.length && !!v14.sub?.plans);
+        if (G.stepRequest(v14)) break;
+        if (!stage && !v14.roll && !v14.sub?.roll) n14++;
+    }
     const vc = G.prepare(F.fixtureInput('bass', { scene: 'free' }));
     const vOnly = G.PRESETS.filter((p) => G.serves(p, vc)).length;
     check('generator: Step 14 request slices', n14, vOnly * 3 + 2 * G.TAKES + 12, 'slices');
+
+    /* A dense comp (gen-fixtures compInput, the device lag of 2026-11-07):
+     * HEAD before the fix spent 39 ms in selection and 14 ms in one knob
+     * probe in one slice here, 10x that on the device. Every slice the UI
+     * runs: the request's, its selection, and the knob probes a roll a tick. */
+    let cslice = 0, ctotal = 0;
+    for (let rep = 0; rep < 3; rep++) {
+        let t = performance.now();
+        const req = G.startRequest(F.compInput());
+        let worst = performance.now() - t, sum = worst;
+        for (let done = false; !done;) { t = performance.now(); done = G.stepRequest(req); const d = performance.now() - t; worst = Math.max(worst, d); sum += d; }
+        t = performance.now();
+        const picks = G.finishRequest(req);
+        G.finishExtras(req, picks);
+        let d = performance.now() - t; worst = Math.max(worst, d); sum += d;
+        for (let i = 0; i < picks[0].preset.knobs.length; i++) {
+            const g = G.knobLiveSteps(picks[0].ctx ?? req.ctx, picks[0].preset, picks[0].knobs, i);
+            for (let r = { done: false }; !r.done;) { t = performance.now(); r = g.next(); d = performance.now() - t; worst = Math.max(worst, d); sum += d; }
+        }
+        if (rep > 0) { cslice = Math.max(cslice, worst); ctotal = Math.max(ctotal, sum); }
+    }
+    check('generator: one slice of a dense comp Variation', Number(cslice.toFixed(2)), 6, 'ms');
+    check('generator: a dense comp Variation, all its slices', Number(ctotal.toFixed(1)), 90, 'ms');
 
     /* SEED's order is built a take a slice (gen/seed-order.ts): no slice may
      * cost more than a take's. */

@@ -15,7 +15,10 @@ const BASS_TOP = 55;    // ai/role.ts: a part whose median sits below this is a 
 
 const median = (a: number[]) => { const s = [...a].sort((x, y) => x - y); return s[s.length >> 1]; };
 interface Part { mid: number; on: Set<number>; chords: boolean }
-interface Band { held: Note[]; bass: number; mid: number; mids: number[]; parts: Part[] }
+/* `steps`: the held notes by every step they sound in, so a note asks only
+ * its own steps what sounds with it (a take checked every held note for each
+ * of its notes, under every Variation and knob probe). */
+interface Band { held: Note[]; steps: Map<number, Note[]>; bass: number; mid: number; mids: number[]; parts: Part[] }
 const cache = new WeakMap<GenCtx, Band>();
 
 function band(ctx: GenCtx): Band {
@@ -50,7 +53,12 @@ function band(ctx: GenCtx): Band {
             }
         }
     }
-    const out = { held, bass, mid, mids, parts };
+    const steps = new Map<number, Note[]>();
+    for (const b of held) for (let i = Math.floor(b.tick / TPS); i <= Math.max(Math.floor(b.tick / TPS), Math.ceil((b.tick + b.gate) / TPS) - 1); i++) {
+        const a = steps.get(i);
+        if (a) a.push(b); else steps.set(i, [b]);
+    }
+    const out = { held, steps, bass, mid, mids, parts };
     cache.set(ctx, out);
     return out;
 }
@@ -145,11 +153,20 @@ const rubs = (a: number, b: number) => { const d = Math.abs(a - b); return d % 1
  *  what the band strikes on a strong beat while it still sounds — a pad held
  *  from the bar line rubs with the motif note that comes in on beat two. */
 export function clearRubs(ctx: GenCtx, notes: Note[], h: number): Note[] {
-    const { held } = band(ctx);
+    const { held, steps } = band(ctx);
     if (!held.length || !notes.length) return notes;
     const chordal = (t: number) => (at.get(t) ?? 0) > 1;
-    const under = (n: Note) => held.filter((b) => b.tick < n.tick + n.gate && b.tick + b.gate > n.tick
-        && (b.tick <= n.tick ? isStrong(n.tick) || chordal(n.tick) : isStrong(b.tick))).map((b) => b.pitch);
+    const under = (n: Note) => {
+        const u: number[] = [];
+        const lo = Math.floor(n.tick / TPS);
+        for (let i = lo; i <= Math.max(lo, Math.ceil((n.tick + n.gate) / TPS) - 1); i++) {
+            for (const b of steps.get(i) ?? []) {
+                if (b.tick < n.tick + n.gate && b.tick + b.gate > n.tick
+                    && (b.tick <= n.tick ? isStrong(n.tick) || chordal(n.tick) : isStrong(b.tick))) u.push(b.pitch);
+            }
+        }
+        return u;
+    };
     const free = (p: number, u: number[]) => !u.some((b) => rubs(p, b));
     const at = new Map<number, number>();
     for (const n of notes) at.set(n.tick, (at.get(n.tick) ?? 0) + 1);

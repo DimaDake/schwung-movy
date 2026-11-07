@@ -7,6 +7,7 @@ import { appState } from '../app/state.js';
 import { mlog } from '../log.js';
 import { regenerate } from '../gen/engine.js';
 import { knobLive } from '../gen/live.js';
+import { probeStep } from './knob-probe.js';
 import { slotKnob } from '../gen/layout.js';
 import { seedForget, seedLabel, seedPos, seedTick, seedTurn } from './preview-seed.js';
 import type { GenCtx } from '../gen/analysis/context.js';
@@ -147,7 +148,9 @@ export function knobsTick(write: (notes: Note[]) => void): void {
     /* A gesture with no touch release ends when the strip times out. */
     if (turned >= 0 && held < 0 && ++turned > STRIP_TTL) stepEnds();
     const u = o.live.findIndex((l) => l === undefined);
-    if (u >= 0) { o.live[u] = knobLive(cx(o), o.preset, o.knobs, u); appState.dirty = true; }
+    if (u < 0) return;
+    const r = probeStep(o, cx(o), o.preset, o.knobs, u);
+    if (r !== undefined) { o.live[u] = r; appState.dirty = true; }
 }
 
 /** The knob LEDs, like a module's params: each slot's knob of the option showing at its

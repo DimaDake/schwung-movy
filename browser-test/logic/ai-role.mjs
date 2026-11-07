@@ -52,6 +52,9 @@ eq('roleBreak: drums keep only their density', roleBreak(DRUM_B, roleOf(DRUM_A, 
 
 ok('same loop: the bass with its bars swapped (device 2026-10-27)', isSameLoop(BASS_B, [BASS_A], 32, false));
 ok('same loop: the swap scores the rotation', loopMatch(BASS_B, BASS_A, 32, 'loop') >= 0.85 && loopMatch(BASS_B, BASS_A, 32, 'still') < 0.2);
+/* A floor lets the vote skip transpositions that cannot reach it: the verdict at the floor never changes. */
+ok('same loop: a floor keeps the verdict', loopMatch(BASS_B, BASS_A, 32, 'loop', 0.85) === loopMatch(BASS_B, BASS_A, 32, 'loop')
+    && loopMatch(LEAD_B, LEAD_A, 64, 'loop', 0.85) < 0.85 && loopMatch(LEAD_B, LEAD_A, 64, 'loop') < 0.85);
 ok('same loop: transposed as a whole', isSameLoop(shift(LEAD_A, 0, 5), [LEAD_A], 64, false));
 ok('same loop: a copy', isSameLoop(LEAD_A, [LEAD_A], 64, false));
 ok('not same loop: a diatonic sequence changes the intervals', !isSameLoop(LEAD_B, [LEAD_A], 64, false));

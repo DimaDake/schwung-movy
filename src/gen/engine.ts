@@ -3,7 +3,7 @@
  * the same slices in one go, for tests and the bench. */
 
 import { buildCtx, type GenCtx } from './analysis/context.js';
-import { generateOption } from './generate.js';
+import { generateOption, RETRIES, rollOption } from './generate.js';
 import { buildPlans, planSteps } from './plan.js';
 import { defaults, type Preset, serves } from './preset.js';
 import { PRESETS } from './presets/catalog.js';
@@ -29,7 +29,9 @@ export interface Request { ctx: GenCtx; todo: Take[]; done: Candidate[]; dropped
     /** Variation picks a New Clip option replaced: they lead the rest. */
     displaced?: Pick[];
     /** Step 14's own New Clip run: no "offered lately" (create/history.ts), so a Variation stays a function of the Set. */
-    inner?: boolean }
+    inner?: boolean;
+    /** The take under way: one roll a tick (a refused take rolls eight times). */
+    roll?: { knobs: number[]; retry: number; tried: Set<string>; why: string } }
 
 /* Step 14's New Clip options (plans/2026-11-01-generator-ux-design.md §2.3):
  * the part the track plays, and a neighbouring one. */
@@ -82,13 +84,21 @@ export function stepRequest(req: Request): boolean {
         else if (t.which === 0) req.dropped.push(`${p.id}:unmeaning`);
         return req.todo.length === 0 && !req.sub;
     }
-    const base = defaults(p, req.ctx);
-    const knobs = t.which < 0 ? base : variantKnobs(p, req.ctx, base, hash(p.id) ^ req.ctx.seed, t.which);
-    if (knobs) {
-        const g = generateOption(req.ctx, p, knobs);
-        if (g.notes) req.done.push({ preset: p, knobs, notes: g.notes, ...scoreCandidate(req.ctx, p, g.notes, knobs) });
-        else if (t.which < 0) req.dropped.push(`${p.id}:${g.why}`);
+    if (!req.roll) {
+        const base = defaults(p, req.ctx);
+        const knobs = t.which < 0 ? base : variantKnobs(p, req.ctx, base, hash(p.id) ^ req.ctx.seed, t.which);
+        if (!knobs) return req.todo.length === 0 && !req.sub;
+        req.roll = { knobs, retry: 0, tried: new Set(), why: 'no output' };
     }
+    const r = req.roll;
+    const g = rollOption(req.ctx, p, r.knobs, r.retry++, r.tried);
+    if (g.notes) req.done.push({ preset: p, knobs: r.knobs, notes: g.notes, ...scoreCandidate(req.ctx, p, g.notes, r.knobs) });
+    else {
+        if (g.why) r.why = g.why;
+        if (!g.end && r.retry < RETRIES) { req.todo.unshift(t); return false; }
+        if (t.which < 0) req.dropped.push(`${p.id}:${r.why}`);
+    }
+    req.roll = undefined;
     return req.todo.length === 0 && !req.sub;
 }
 

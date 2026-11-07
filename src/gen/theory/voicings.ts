@@ -9,6 +9,7 @@
 import type { Chord, Key } from '../types.js';
 import { type Cand, candidates, mud, type Style, STYLES } from './voicing-styles.js';
 import { pc } from './pc.js';
+import { opening } from './voicing-opening.js';
 
 /** Sorted voice-by-voice distance: for two equal-sized chords the smallest
  *  total movement any assignment gives (Tymoczko's L1). */
@@ -58,42 +59,46 @@ export interface VoiceOpts {
     holdRepeats?: boolean;
 }
 
-const LADDER_FROM = 40;
-
-/** The window, the anchor and the first chord's bottom note for a rung. */
-function opening(c: Chord, k: Key, s: Style, o: VoiceOpts): { lo: number; hi: number; anchor: number; bottom: number | null } {
-    const none = { lo: o.lo, hi: o.hi, anchor: o.anchor, bottom: null };
-    if (o.rung === undefined) return none;
-    const triad = c.pcs.slice(0, 3);
-    let rung = LADDER_FROM;
-    for (let i = 0; !triad.includes(pc(rung)) || i++ < o.rung; rung++) { /* the rung-th chord tone */ }
-    const target = Math.max(rung, o.lo);
-    let cs = candidates(c, k, s, o.lo, 108);
-    if (!cs.length) cs = candidates(c, k, STYLES[1], o.lo, 108);
-    /* A rung stands on a chord tone, not on a seventh or a colour. */
-    const plain = cs.filter((x) => triad.includes(pc(x.notes[0])));
-    const pool = plain.length ? plain : cs;
-    if (!pool.length) return none;
-    const bottom = pool.map((x) => x.notes[0]).sort((a, b) => Math.abs(a - target) - Math.abs(b - target) || a - b)[0];
-    const anchor = Math.min(...pool.filter((x) => x.notes[0] === bottom).map((x) => x.notes[x.notes.length - 1]));
-    const lo = Math.max(o.lo, bottom - 7);
-    return { lo, hi: Math.max(anchor + 7, lo + 18), anchor, bottom };
-}
-
 /** One voicing per chord, all chosen together. Chords repeated back to back
  *  keep their voicing. */
 export function voiceAll(chords: Chord[], k: Key, o: VoiceOpts): number[][] {
+    /* Every take and every guard retry of a request voices the same
+     * progression the same way: once (device: most of a take on a chord part). */
+    const key = `${JSON.stringify(k)}|${JSON.stringify(o)}|${chords.map((c) => `${c.root} ${c.quality} ${c.pcs} ${c.bass}`).join(';')}`;
+    let hit = voiced.get(key);
+    if (!hit) {
+        if (voiced.size >= VOICED_MAX) voiced.clear();
+        hit = search(chords, k, o);
+        voiced.set(key, hit);
+    }
+    return hit.map((v) => [...v]);
+}
+
+const VOICED_MAX = 64;
+const voiced = new Map<string, number[][]>();
+
+function search(chords: Chord[], k: Key, o: VoiceOpts): number[][] {
     if (!chords.length) return [];
     const s = STYLES[Math.max(0, Math.min(STYLES.length - 1, o.style))];
     const w = weights(o.motion ?? 'SMOOTH');
     const n = chords.length;
     const win = opening(chords[0], k, s, o);
     const anchorAt = (i: number) => o.anchors?.[i] ?? win.anchor + w.glide(n > 1 ? i / (n - 1) : 0);
+    /* A comp strikes each chord several times: one search per chord and window. */
+    const seen = new Map<string, (Cand & { cost: number })[]>();
     const cands = chords.map((c, i) => {
+        const hi0 = win.hi + Math.max(0, Math.ceil(w.glide(n > 1 ? i / (n - 1) : 0)));
+        const key = i === 0 ? '' : `${c.root} ${c.quality} ${c.pcs} ${c.bass} ${hi0} ${anchorAt(i)}`;
+        const hit = key ? seen.get(key) : undefined;
+        if (hit) return hit;
+        const made = voicingsOf(c, i, hi0);
+        if (key) seen.set(key, made);
+        return made;
+    });
+    function voicingsOf(c: Chord, i: number, hi: number): (Cand & { cost: number })[] {
         /* Nothing fits the window (a five-voice stack over a high floor):
          * let it run up, never down under the floor. A chord the style has
          * no shape for (a quartal stack over a diminished chord) is a triad. */
-        const hi = win.hi + Math.max(0, Math.ceil(w.glide(n > 1 ? i / (n - 1) : 0)));
         const fit = (st: Style) => {
             let cs = candidates(c, k, st, win.lo, hi);
             for (let up = 6; !cs.length && up <= 36; up += 6) cs = candidates(c, k, st, win.lo, hi + up);
@@ -112,7 +117,7 @@ export function voiceAll(chords: Chord[], k: Key, o: VoiceOpts): number[][] {
             const bottom = b === c.pcs[0] ? 0 : c.pcs.slice(1, 3).includes(b) ? 1 : 8;
             return { ...x, cost: w.anchor * (Math.abs(top - a) + above * 2) + 2 * mud(x.notes) + bottom };
         });
-    });
+    }
     if (cands.some((cs) => !cs.length)) return chords.map(() => []);
     const step = (a: Cand, b: Cand) => w.move * lead(a.notes, b.notes)
         + w.top * Math.abs(a.notes[a.notes.length - 1] - b.notes[b.notes.length - 1])
@@ -122,24 +127,59 @@ export function voiceAll(chords: Chord[], k: Key, o: VoiceOpts): number[][] {
     const starts = o.loop && n > 1
         ? cands[0].map((c, i) => [c.cost, i]).sort((x, y) => x[0] - y[0]).slice(0, 6).map((x) => x[1])
         : [-1];
+    /* What a move costs does not depend on the opening: worked out once for
+     * all of them. A chord struck again keeps its voicing, so it may only
+     * follow the same notes: a comp strikes each chord several times a bar,
+     * and comparing every pair there was most of a Variation (device lag,
+     * 2026-11-07). */
+    const same = chords.map((c, t) => t > 0 && o.holdRepeats !== false && c.root === chords[t - 1].root && c.quality === chords[t - 1].quality);
+    const moves: (Float64Array | null)[] = [], twins: number[][][] = [];
+    const pairs = new Map<Cand[], Map<Cand[], Float64Array>>();
+    for (let t = 1; t < n; t++) {
+        const prev = cands[t - 1], cur = cands[t];
+        if (same[t]) {
+            const at = new Map<string, number[]>();
+            prev.forEach((p, i) => { const k = p.notes.join(); at.set(k, [...(at.get(k) ?? []), i]); });
+            twins.push(cur.map((c) => at.get(c.notes.join()) ?? []));
+            moves.push(null);
+        } else {
+            /* A progression that comes round again moves between the same voicings. */
+            const row = pairs.get(prev) ?? new Map<Cand[], Float64Array>();
+            pairs.set(prev, row);
+            let m = row.get(cur);
+            if (!m) {
+                m = new Float64Array(prev.length * cur.length);
+                for (let i = 0; i < prev.length; i++) for (let j = 0; j < cur.length; j++) m[i * cur.length + j] = step(prev[i], cur[j]);
+                row.set(cur, m);
+            }
+            moves.push(m);
+            twins.push([]);
+        }
+    }
     let best: { cost: number; path: number[] } | null = null;
     for (const s0 of starts) {
         let cost = cands[0].map((c, i) => (s0 < 0 || i === s0 ? c.cost : Infinity));
         const back: number[][] = [];
         for (let t = 1; t < n; t++) {
-            const same = o.holdRepeats !== false && chords[t].root === chords[t - 1].root && chords[t].quality === chords[t - 1].quality;
-            const prev = cands[t - 1], cur = cands[t];
+            const cur = cands[t], mv = moves[t - 1];
             const bk: number[] = [];
+            /* Any other voicing of a repeat costs 1e6: from the cheapest. */
+            let g = -1;
+            if (!mv) cost.forEach((x, i) => { if (x !== Infinity && (g < 0 || x < cost[g])) g = i; });
             const nc = cur.map((c, j) => {
                 let m = Infinity, arg = 0;
-                prev.forEach((p, i) => {
-                    if (cost[i] === Infinity) return;
-                    /* A repeated chord keeps its voicing. */
-                    const x = cost[i] + (same ? (lead(p.notes, c.notes) ? 1e6 : 0) : step(p, c));
-                    if (x < m) { m = x; arg = i; }
-                });
+                if (mv) {
+                    for (let i = 0; i < cost.length; i++) {
+                        if (cost[i] === Infinity) continue;
+                        const x = cost[i] + mv[i * cur.length + j];
+                        if (x < m) { m = x; arg = i; }
+                    }
+                } else {
+                    for (const i of twins[t - 1][j]) if (cost[i] !== Infinity && cost[i] < m) { m = cost[i]; arg = i; }
+                    if (g >= 0 && !twins[t - 1][j].includes(g) && (cost[g] + 1e6 < m || (cost[g] + 1e6 === m && g < arg))) { m = cost[g] + 1e6; arg = g; }
+                }
                 bk.push(arg);
-                return m + (same ? 0 : c.cost);
+                return m + (same[t] ? 0 : c.cost);
             });
             back.push(bk);
             cost = nc;

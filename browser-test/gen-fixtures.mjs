@@ -94,3 +94,19 @@ export function createInput(drum, scene, nonce, { len = 32, pad, melody = false 
     f.tracks[0] = { ...f.tracks[0], clips: [] };
     return { ...f, task: 'create', source: null, len, nonce, pad };
 }
+
+/** A dense comp, the shape that made Variation lag on the device (2026-11-07):
+ *  four bars of four-voice chords, each struck six times a bar, over a bass
+ *  and drums. Variation grows slot 1 from slot 0. */
+export function compInput() {
+    const prog = [...PROG_A, ...PROG_B];
+    const comp = prog.flatMap((c, i) => [0, 2, 3, 4, 6, 7].flatMap((s) => chord(i * 8 + s, c, s % 4 ? 0.8 : 1.6, 80 + (s % 3) * 7)));
+    const tracks = [
+        { index: 0, name: 'Track 1', module: 'obxd', drum: false, padNames: null, clips: [clip(0, 0, comp, 64)] },
+        { index: 1, name: 'Track 2', module: 'obxd', drum: false, padNames: null,
+            clips: [0, 1].map((slot) => clip(1, slot, prog.map((c, i) => N(i * 8, c[0] - 24, 7)), 64)) },
+        { index: 2, name: 'Track 3', module: 'drumrack', drum: true, padNames: null, clips: [clip(2, 0, SWUNG), clip(2, 1, SWUNG)] },
+    ];
+    return { task: 'variation', tracks, target: { track: 0, slot: 1 }, source: { track: 0, slot: 0 },
+        len: 64, scale: [1, 1], drum: false, kit: [], root: 'A', mode: 'minor', nonce: 7 };
+}

@@ -35,20 +35,37 @@ function offBand(ctx: GenCtx, p: Preset, v: number[], raw0: Note[]): Note[] {
     return [...keep, ...clearRubs(ctx, raw.filter((n) => !kept.has(`${n.tick}.${n.pitch}`)), h)];
 }
 
+/** One roll of a take's dice: the notes when the guard passes them; `why`
+ *  otherwise, and `end` when no later roll can help (the preset threw).
+ *  `tried` carries the rolls seen across a take's calls. */
+export type Roll = { notes: Note[] } | { notes: null; why?: string; end?: boolean };
+
+export function rollOption(ctx: GenCtx, p: Preset, v: number[], retry: number, tried: Set<string>): Roll {
+    const id = p.seedAs?.(v, ctx) ?? p.id;
+    let raw: Note[];
+    try {
+        raw = p.generate(ctx, v, mix(ctx.seed, hash(id), retry));
+    } catch (e) {
+        return { notes: null, why: 'threw ' + String((e as Error)?.message ?? e), end: true };
+    }
+    /* A roll that repeats an earlier one is refused again: shaping and
+     * the guard are skipped for it (a chord part whose role a preset
+     * breaks rolled all eight times; device: 0.2 s a take, 2026-11-07). */
+    const sig = raw.map((n) => `${n.tick}.${n.pitch}.${n.gate}.${n.vel}`).join();
+    if (tried.has(sig)) return { notes: null };
+    tried.add(sig);
+    const g = guard(ctx, offBand(ctx, p, v, raw));
+    return g.ok ? { notes: g.notes } : { notes: null, why: g.why };
+}
+
 export function generateOption(ctx: GenCtx, p: Preset, v: number[]): Generated {
     let why = 'no output';
-    const id = p.seedAs?.(v, ctx) ?? p.id;
+    const tried = new Set<string>();
     for (let retry = 0; retry < RETRIES; retry++) {
-        const seed = mix(ctx.seed, hash(id), retry);
-        let raw: Note[];
-        try {
-            raw = p.generate(ctx, v, seed);
-        } catch (e) {
-            return { notes: null, why: 'threw ' + String((e as Error)?.message ?? e), retry };
-        }
-        const g = guard(ctx, offBand(ctx, p, v, raw));
-        if (g.ok) return { notes: g.notes, why: '', retry };
-        why = g.why;
+        const r = rollOption(ctx, p, v, retry, tried);
+        if (r.notes) return { notes: r.notes, why: '', retry };
+        if (r.why) why = r.why;
+        if (r.end) return { notes: null, why, retry };
     }
     return { notes: null, why, retry: RETRIES };
 }

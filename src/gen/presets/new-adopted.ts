@@ -90,8 +90,9 @@ export const HARMONIZE_N = adopt({ id: 'n-harmonize', name: 'HARMONIZE', cls: 'c
     centre: () => 64 });
 
 export const FOLLOW_N = adopt({ id: 'n-follow', name: 'FOLLOW', cls: 'exp', base: FOLLOW, seed: 'melody', role: 'lead', g: [3, 8], sp: 'melody',
-    /* RHYTHM, not DIRECTION: with the melody's own chords there is no root motion to follow. */
-    own: [drawn(K.rhythm(0), [0, 0, 1, 2, 3]), drawn(K.density(5), [5, 3, 4, 6, 7]), drawn(custom('VOICES', ['+1', '+2', '+3']), [0, 0, 1, 2]), drawn(K.tension(3), [3, 2, 4, 5])],
+    /* RHYTHM, not DIRECTION: with the melody's own chords there is no root motion to follow.
+     * DENSITY's takes thin, never fill: filled notes sounded a 2nd against the melody (layers bench). */
+    own: [drawn(K.rhythm(0), [0, 0, 1, 2, 3]), drawn(K.density(5), [5, 3, 4, 5]), drawn(custom('VOICES', ['+1', '+2', '+3']), [0, 0, 1, 2]), drawn(K.tension(3), [3, 2, 4, 5])],
     /* Its added voices are the line: VOICES +1 is FOLLOW's +1 (AS IS would be the melody itself). */
     map: { VOICES: (v) => v + 2 },
     centre: () => 64 });

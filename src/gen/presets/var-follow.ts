@@ -56,6 +56,7 @@ export const FOLLOW: Preset = {
         let cur = 0;
         let curBar = -1;
         const src = v[4] ? rhythmStage(ctx, partEvs(ctx), v[4], r) : partEvs(ctx);
+        const sung = new Set(ctx.input.task === 'create' ? ctx.src.map((m) => `${m.tick}.${m.pitch}`) : []);
         const out: Ev[] = src.map((e) => {
             const at = line ? Math.floor(e.tick / BAR) * BAR : e.tick;
             const S = chordAt(ctx.srcChords, at, ctx.k);
@@ -70,15 +71,28 @@ export const FOLLOW: Preset = {
                 const cost = (n: number) => Math.abs(n - cur) + 1.5 * Math.max(0, Math.abs(n) - 3);
                 cur = dir !== 0 ? base : [base - 7, base, base + 7].sort((a, b) => cost(a) - cost(b))[0];
             }
-            const n = cur;
+            /* As New Clip's second line the melody is another track's and stays
+             * where it is: the voices are added to the notes it plays (layers
+             * bench: slid along the roots, they rubbed and crossed it). */
+            const n = ctx.input.task === 'create' ? 0 : cur;
             const T2 = chordAt(chords, e.tick, ctx.k) ?? T;
             const strong = isStrong(e.tick);
             const ok = allowedPcs(T2, ctx.key, tension, strong);
             return { tick: e.tick, voices: e.voices.map((x) => {
+                /* ...and its notes where the melody plays them stay as they
+                 * are: snapped to a chord tone they were kept as added notes,
+                 * a 2nd from the melody. A note RHYTHM moved is fitted still. */
+                if (sung.has(`${e.tick}.${x.pitch}`)) return x;
                 const p = stepScale(x.pitch, n, ctx.key);
                 /* A planed voice that lands on a clash snaps by the least;
                  * TENSION decides what counts as one. */
-                return { ...x, pitch: ok.includes(pc(p)) || e.voices.length > 1 && T2.pcs.includes(pc(p)) ? p : nearestPitch(p, ok) };
+                const q = ok.includes(pc(p)) || e.voices.length > 1 && T2.pcs.includes(pc(p)) ? p : nearestPitch(p, ok);
+                /* As a second line a moved note sounds against the melody's
+                 * note there: a 3rd, 4th, 5th, 6th or octave from it. */
+                const m = sung.size ? ctx.src.find((y) => y.tick <= e.tick && e.tick < y.tick + y.gate) : undefined;
+                if (!m || [0, 3, 4, 5, 7, 8, 9].includes(pc(q - m.pitch))) return { ...x, pitch: q };
+                const near = [-1, 1, -2, 2, -3, 3, -4, 4].map((d) => q + d).find((y) => ok.includes(pc(y)) && [0, 3, 4, 5, 7, 8, 9].includes(pc(y - m.pitch)));
+                return { ...x, pitch: near ?? q };
             }) };
         });
         const thick = v[5] !== 1 ? thicken(ctx, out, v[5] - 1, chords, tension) : out;

@@ -7,7 +7,7 @@ import { guard } from './guard.js';
 import { defaultHarmony } from './plan.js';
 import { knobIndex, type Preset } from './preset.js';
 import { runPlan } from './create/common.js';
-import { clearMud, clearRubs } from './shape/band-pitch.js';
+import { clearLines, clearMud, clearRubs } from './shape/band-pitch.js';
 import { hash, mix } from './rng.js';
 import type { Note } from './types.js';
 
@@ -20,9 +20,13 @@ export interface Generated { notes: Note[] | null; why: string; retry: number }
  * player's own notes and a Smart Double keeps what it doubles, so only the
  * notes a double adds are moved; a generator whose knobs place its notes on
  * purpose (CADENCE's LAND, TURNAROUND's CHROMATIC) keeps them. */
-function offBand(ctx: GenCtx, p: Preset, v: number[], raw: Note[]): Note[] {
+/* A second line sits a third from its melody on purpose (shape/band-pitch.ts clearLines). */
+const SECOND_LINES = new Set(['n-harmonize', 'n-follow', 'v-harmonize', 'v-follow']);
+
+function offBand(ctx: GenCtx, p: Preset, v: number[], raw0: Note[]): Note[] {
     const own = typeof p.ownPitches === 'function' ? p.ownPitches(v, ctx) : p.ownPitches;
-    if (ctx.drum || ctx.task === 'quantize' || own) return raw;
+    if (ctx.drum || ctx.task === 'quantize' || own) return raw0;
+    const raw = ctx.task === 'double' || SECOND_LINES.has(p.id) ? raw0 : clearLines(ctx, raw0);
     const k = knobIndex(p, 'HARMONY');
     const h = k >= 0 ? v[k] : ctx.task === 'create' ? runPlan(ctx) : defaultHarmony(ctx);
     if (ctx.task !== 'double') return clearRubs(ctx, clearMud(ctx, raw), h);

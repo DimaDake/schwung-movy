@@ -37,10 +37,12 @@ export function thicken(ctx: GenCtx, evs: Ev[], delta: number, plan: Prog, tensi
         const tones = [...T.pcs, seventhOf(T, ctx.key), ...(tension >= 0.6 ? colourPcs(T, ctx.key) : [])];
         const out = [...vs];
         if (!chordPart) {
-            /* Under the line: the nearest chord tone a third to a sixth below. */
+            /* Under the line: the nearest chord tone a third to a sixth below,
+             * from COLOUR's 60% up a colour tone too (the tones a chord part
+             * adds; FOLLOW's COLOUR had nothing else to do on a second line). */
             const top = vs[vs.length - 1];
             for (let d = 3; d <= 9; d++) {
-                if (T.pcs.includes(pc(top.pitch - d))) { out.unshift({ ...top, pitch: top.pitch - d, vel: Math.round(top.vel * 0.85) }); break; }
+                if (tones.includes(pc(top.pitch - d))) { out.unshift({ ...top, pitch: top.pitch - d, vel: Math.round(top.vel * 0.85) }); break; }
             }
             return { tick: e.tick, voices: out.sort((a, b) => a.pitch - b.pitch) };
         }

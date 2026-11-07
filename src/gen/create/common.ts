@@ -3,8 +3,8 @@
  * knobs whose takes are rolled from a musical subset. */
 
 import type { GenCtx } from '../analysis/context.js';
-import { chordAt } from '../analysis/context.js';
-import { ACCENT } from '../analysis/band.js';
+import { chordAt, strikesChords } from '../analysis/context.js';
+import { ACCENT, bandHits, type Hit } from '../analysis/band.js';
 import { strength } from '../analysis/events.js';
 import { custom, type KnobDef, SEED_TAKES } from '../knobs.js';
 import { harmonyLabel, planAt } from '../plan.js';
@@ -76,9 +76,9 @@ export function place(_ctx: GenCtx, step: number): number {
 }
 
 /** The band's accented steps within a bar (0..15), strongest first. */
-export function bandSteps(ctx: GenCtx): number[] {
+export function bandSteps(ctx: GenCtx, hits: Hit[] = ctx.band): number[] {
     const w = new Map<number, number>();
-    for (const h of ctx.band) {
+    for (const h of hits) {
         if (h.w < ACCENT) continue;
         const s = Math.round(h.tick / TPS) % 16;
         w.set(s, (w.get(s) ?? 0) + h.w);
@@ -91,8 +91,29 @@ export function bandSteps(ctx: GenCtx): number[] {
  *  (bench: paths, a lead shares 0.79 of its chords' onsets in the public
  *  scenes, all of them in the user's), without being forced onto them. */
 export function bandLean(ctx: GenCtx): (step: number) => number {
-    const top = new Set(bandSteps(ctx).slice(0, 4));
+    const top = new Set(bandSteps(ctx, rhythmSection(ctx)).slice(0, 4));
     return (s) => (top.has(((s % 16) + 16) % 16) ? 0.4 : 0);
+}
+
+const sections = new WeakMap<GenCtx, Hit[]>();
+
+/* The band's hits but another melodic line's: a line leans on the drums, the
+ * bass and the chords, not on the lead beside it, or two lines share one
+ * rhythm (layers bench: a second MELODY shared the lead's onsets). */
+function rhythmSection(ctx: GenCtx): Hit[] {
+    const hit = sections.get(ctx);
+    if (hit) return hit;
+    const { input } = ctx;
+    const line = (t: GenCtx['input']['tracks'][number]) => {
+        const c = t.clips.find((x) => x.slot === input.target.slot && x.notes.length);
+        if (t.drum || !c || strikesChords(c.notes)) return false;
+        const ps = c.notes.map((n) => n.pitch).sort((a, b) => a - b);
+        return ps[ps.length >> 1] >= 55;
+    };
+    const tracks = input.tracks.filter((t) => t.index === input.target.track || !line(t));
+    const out = tracks.length === input.tracks.length ? ctx.band : bandHits({ ...input, tracks }, ctx.end, ctx.k);
+    sections.set(ctx, out);
+    return out;
 }
 
 /** A figure in steps, or the band's own accents when it has enough of them. */

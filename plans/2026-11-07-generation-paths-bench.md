@@ -396,3 +396,61 @@ options (open item 4 of round 4).
 double each other's hits more), no pedal bass (`bc.pedal`), no passing
 dissonance against chords (`lc.rub`), never chromatic (`ens.scale`), harmony
 always on beat 1 and the anchor always there.
+
+## Round 6: layers (2026-11-07)
+
+`quality/layers.mjs` (metrics), `layers-paths.mjs` (scenes), `layers-run.mjs`
+(~13 s). The references now keep every part (`refs.mjs`: `lines`,
+`drumParts`, each user clip's own loop; old fields byte-identical): public
+scenes give 124 with two chord parts and 59 with two lines, the user's 52
+with two lines, 29 with two drum tracks, 111 with a loop shorter than the scene.
+
+| layer | metrics | rule behind it |
+|---|---|---|
+| chord + chord | `cc.agree` (their union one chord), `cc.rub`, `cc.overlap` (register), `cc.coincide`, `cc.sustain` | one harmony, no semitone between voicings, divided work |
+| two lines | `ll.indep`, `ll.contrary`, `ll.parallel`, `ll.dissonant`, `ll.cross`, `ll.answer` (call and response), `ll.smear` / `ll.double` | Huron 2016 (onset asynchrony, motion, no parallel perfects, no crossing); same rhythm and consonant = a double meant (octave riff, harmony in 3rds), same rhythm and rubbing = a smear |
+| riff/line + bass | `bl.*` (the same, with the bass) | |
+| arp | `ac.inChord`, `ac.late`, `ac.reg`, `ab.root`, `ab.gap`, `al.overlap` (thin: 20 real arps) | an arp spells the chord sounding |
+| drone + chords | `dc.clash` (rule: no flat 9th at a chord arrival) | |
+| chords + snare | `cs.backbeat` | the clap stab, as real music does it |
+| lead + drums | `ld.fill` (lead density in the drummer's fill bars), `ld.snare` | |
+| short loops | `loop.rub` (rule: a strong beat a flat 9th over the chord of its repeat ≤ 10%), `loop.fit` (info) | |
+| second kit | `dd.same` (info: the user layers one sound on two tracks, public parts do not), `dd.interlock` | |
+| arrangement | `ens.moving` (P90 lines moving at once: real 3-5), `reg.crowd`, `reg.gap` (rule: never), `reg.span` | Bregman/Huron: 3-4 streams |
+
+Scenarios: scene A plus a fifth part (PAD/STABS/CHORDS over the chords;
+MELODY, RIFF, COUNTER, HARMONIZE, FOLLOW, LOOPER beside the lead; ARP; HOLD;
+1- and 3-bar ARP/RIFF/MELODY loops; PERC/EUCLID KIT/BROKEN as a second kit),
+and leave-one-out on real scenes with two chord parts or two lines.
+
+### Found and fixed
+
+| finding | cause | fix | before → after |
+|---|---|---|---|
+| HARMONIZE over a real melody smeared (2nds on shared notes) | as a second line it re-fitted its copy of the melody to the chords and harmonised that; a 3rd off the chord snapped to the nearest chord tone, at times a 2nd from the melody | `var-pulse.ts`: under New Clip it harmonises the melody as played; a snap only onto a chord tone consonant with the melody | as good as the real part 43% → 81%; over scene A 80% → 100% |
+| FOLLOW rubbed and crossed its melody | the melody's own notes snapped to chord tones were kept as added notes; notes its RHYTHM moved sounded a 2nd against the melody; DENSITY above 5 filled unchecked notes in | `var-follow.ts`: the melody's notes stay, moved notes are consonant with the melody note sounding; FOLLOW's DENSITY takes only thin; `thicken.ts`: COLOUR adds colour tones to a line's added voice (its only job left) | 77% → 92%; over scene A 40% → 100% |
+| a second MELODY sat in the lead's register and crossed it | over chords a line keeps clear (lineFloor), never of another line | `band-pitch.ts clearLines`: a New Clip line within a fourth of another line's middle moves an octave away (not the second lines, not a track with its own register) | over scene A 33% → 83% |
+| a second line leaned on the first line's rhythm | `bandLean` counted another melodic line's hits as the band's | `common.ts`: lines lean on the drums, bass and chords only | |
+
+### Read, and not faults
+
+- **Short loops** over changing chords: their strong beats miss the chord
+  (0.25-0.87) but almost never clash (a flat 9th: 0-8%). An off-chord note over
+  a later chord is a 9th or a 7th, the ostinato's colour; clearRubs already
+  judges each repeat. The first reading counted a major 7th under a chord tone
+  as a clash.
+- **ARP register** (`ac.reg`): the 20 real arps disagree (public below the
+  chords, the user's up to two octaves over): thin, not acted on.
+- HARMONIZE adds a voice to some of the melody's notes (AMOUNT): not one line
+  doubled, so it misses on independence by design.
+
+Quality bench (`plans/gen-quality-round6.md` vs round 5): nothing moved but
+useful clicks 60,477 → 60,449 (FOLLOW's narrower DENSITY takes).
+
+### Open after round 6
+
+1. Chord layers overlap in register (`cc.overlap` past the real P90 in 5 of
+   18): a chord part made over another has no rule to take a register apart.
+2. Two MELODYs share onsets (`ll.indep`): COUNTER is the tool for that.
+3. Combinations not built yet (the user's list): clips across scenes, a
+   played part with a generated one, Double's endings across tracks.

@@ -157,9 +157,14 @@ preview whose scene holds a clip you made or kept stays in the key of that clip.
 | **PULSE** | One note of each chord on a bass rhythm. |
 | **WALK** | A bass that walks into each chord change. |
 | **LOOPER** | A short line that locks into a loop and slowly changes. |
-| **HARMONIZE**, **FOLLOW** | A second line under a melody another track plays (only when one does). |
+| **HARMONIZE**, **FOLLOW** | A second line with a melody another track plays (only when one does): in 3rds, 6ths or on chord tones, always sounding well against the melody's own notes. |
 
 Turn the jog past the first eight to reach the last options.
+
+A line you add where another line already plays (a second melody, a riff
+beside a lead) takes a register of its own, an octave away from the other
+line, and its rhythm leans on the drums, bass and chords rather than on the
+other line.
 
 On **CHORDS**, **DENSITY** thins the rhythm to its strongest hits or fills it
 in, keeping the figure. On **PAD**, **PATTERN**: `HELD` changes chord with the harmony, while

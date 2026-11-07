@@ -43,7 +43,7 @@ export { heardOf } from './analysis/heard.js';
 export { kickSteps, lockFigure } from './create/kick.js';
 export { evolutions } from './presets/dbl-evolve.js';
 export { uniqueChords } from './create/plans.js';
-export { chordFloor, clearMud, clearRubs, lineFloor } from './shape/band-pitch.js';
+export { chordFloor, clearLines, clearMud, clearRubs, lineFloor } from './shape/band-pitch.js';
 export { tensionStage } from './shape/tension.js';
 export { fixable, fixWorst, fixChords } from './shape/pitch.js';
 export * from './theory/voicing-styles.js';

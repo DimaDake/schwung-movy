@@ -111,6 +111,30 @@ export function clearMud(ctx: GenCtx, notes: Note[]): Note[] {
     return notes.map((n) => ({ ...n, pitch: n.pitch + d }));
 }
 
+/** A new line within a fourth of another line's middle (not chords, not the
+ *  bass): two lines in one register cross and blur (layers bench: a second
+ *  MELODY beside a lead crossed it in 4 scenes of 6; real lines cross on at
+ *  most 15-30% of their shared onsets). Moved an octave away: up while it
+ *  stays under C7, else down, never into the bass's register or onto a
+ *  chord part's octave (clearMud's rule). The second lines (HARMONIZE,
+ *  FOLLOW) sit a third from their melody on purpose: the caller leaves them.
+ *  New Clip only, on a track with no register of its own yet (lineFloor's
+ *  rule): a Variation keeps its source's. */
+export function clearLines(ctx: GenCtx, notes: Note[]): Note[] {
+    const kind = ctx.role?.kind;
+    if (ctx.task !== 'create' || ownMiddle(ctx) !== null) return notes;
+    if (ctx.drum || !notes.length || kind === 'bass' || kind === 'drone' || kind === 'pad' || kind === 'stabs' || strikesChords(notes)) return notes;
+    const lines = band(ctx).parts.filter((p) => !p.chords);
+    const m = median(notes.map((n) => n.pitch));
+    const hit = lines.find((p) => Math.abs(p.mid - m) < 5);
+    if (!hit) return notes;
+    const chords = band(ctx).parts.filter((p) => p.chords);
+    const fits = (d: number) => Math.max(...notes.map((n) => n.pitch)) + d <= 96 && m + d >= BASS_TOP
+        && !lines.some((p) => Math.abs(p.mid - (m + d)) < 5) && !chords.some((p) => Math.abs(p.mid - (m + d)) < 7);
+    const d = [12, -12].find(fits);
+    return d === undefined ? notes : notes.map((n) => ({ ...n, pitch: n.pitch + d }));
+}
+
 /** A minor second or ninth: the rub the corpus's real parts avoid. */
 const rubs = (a: number, b: number) => { const d = Math.abs(a - b); return d % 12 === 1 && d <= 25; };
 

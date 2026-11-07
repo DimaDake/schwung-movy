@@ -52,12 +52,22 @@ export const HARMONIZE: Preset = {
             const T = chordAt(chords, e.tick, ctx.k) ?? chordAt(ctx.srcChords, e.tick, ctx.k);
             const top = e.voices[e.voices.length - 1];
             const S = chordAt(ctx.srcChords, e.tick, ctx.k);
-            /* The line itself follows the new chord by its member first. */
-            const lead = T && S && S.pcs.includes(pc(top.pitch)) ? nearestPitch(top.pitch, [T.pcs[Math.min(S.pcs.indexOf(pc(top.pitch)), T.pcs.length - 1)]])
+            /* The line itself follows the new chord by its member first; as
+             * New Clip's second line it is another track's melody, which does
+             * not move: the harmony is of the notes it plays (layers bench). */
+            const lead = ctx.input.task === 'create' ? top.pitch : T && S && S.pcs.includes(pc(top.pitch)) ? nearestPitch(top.pitch, [T.pcs[Math.min(S.pcs.indexOf(pc(top.pitch)), T.pcs.length - 1)]])
                 : T ? nearestPitch(top.pitch, [...T.pcs]) : top.pitch;
             if (r() * 10 >= v[1] || !T) return { tick: e.tick, voices: [{ ...top, pitch: lead }] };
             let second = stepScale(lead, INTERVALS[v[0]], ctx.key);
-            if (v[3] < 5 && !T.pcs.includes(pc(second))) second = nearestPitch(second, T.pcs, second - 2, second + 2);
+            /* Onto a chord tone only where it stays consonant with the line
+             * (a 3rd, 4th, 5th, 6th or octave from it): the nearest chord tone
+             * was at times a 2nd off the melody, two voices rubbing (layers
+             * bench: a HARMONIZE over a real melody smeared in 27 of 77). */
+            const sweet = (p: number) => [0, 3, 4, 5, 7, 8, 9].includes(pc(p - lead));
+            if (v[3] < 5 && !T.pcs.includes(pc(second))) {
+                const near = [second - 2, second - 1, second + 1, second + 2].filter((p) => T.pcs.includes(pc(p)) && sweet(p));
+                if (near.length) second = near.sort((a, b) => Math.abs(a - second) - Math.abs(b - second))[0];
+            }
             const ps = [lead, second].sort((a, b) => a - b);
             return { tick: e.tick, voices: ps.map((p) => ({ ...top, pitch: p })) };
         });

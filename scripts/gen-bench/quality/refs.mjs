@@ -29,8 +29,11 @@ function publicScene({ src, genre, mid }) {
     if (w < 0) return null;
     const rest = parts.filter((t) => t !== bass).map((t) => ({ program: t.program, notes: cut(t.notes, w) })).filter((t) => t.notes.length >= 6);
     const chords = rest.filter((t) => CHORDAL(t.program) || poly(t.notes)).map((t) => t.notes);
-    const lead = busiest(rest.filter((t) => !CHORDAL(t.program) && !poly(t.notes) && median(t.notes.map((n) => n[2])) >= LEAD_MIN));
-    return { src, kind: 'public', genre, len: 32, bass: cut(bass.notes, w), chords, lead: lead?.notes ?? [], ...drumRoles(cut(dn, w)) };
+    const mono = rest.filter((t) => !CHORDAL(t.program) && !poly(t.notes));
+    const lead = busiest(mono.filter((t) => median(t.notes.map((n) => n[2])) >= LEAD_MIN));
+    /* Every part kept as well, for the layers bench (layers.mjs): each line, each drum track. */
+    return { src, kind: 'public', genre, len: 32, bass: cut(bass.notes, w), chords, lead: lead?.notes ?? [], ...drumRoles(cut(dn, w)),
+        lines: mono.map((t) => t.notes), drumParts: drums.map((t) => cut(t.notes, w)).filter((ns) => ns.length) };
 }
 
 /** A clip looped to fill len beats. */
@@ -49,8 +52,13 @@ function userScenes(src, rows, out, seen) {
         const id = JSON.stringify([drum, bass, lead, ...chords].map((c) => c?.notes));
         if (seen.has(id)) continue;
         seen.add(id);
+        const lines = mel.filter((c) => c !== bass && !poly(c.notes));
+        const drums = cs.filter((c) => c.drum);
         out.push({ src, kind: 'user', len, bass: bass ? tile(bass, len) : [], chords: chords.map((c) => tile(c, len)),
-            lead: lead ? tile(lead, len) : [], ...drumRoles(drum ? tile(drum, len) : []) });
+            lead: lead ? tile(lead, len) : [], ...drumRoles(drum ? tile(drum, len) : []),
+            /* Every part kept as well, for the layers bench, and each clip's own loop (beats). */
+            lines: lines.map((c) => tile(c, len)), drumParts: drums.map((c) => tile(c, len)),
+            loops: { bass: bass?.len ?? 0, chords: chords.map((c) => c.len), lines: lines.map((c) => c.len), drums: drums.map((c) => c.len) } });
     }
 }
 

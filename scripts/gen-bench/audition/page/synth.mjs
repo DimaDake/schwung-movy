@@ -67,13 +67,20 @@ export function makeSynth() {
         }
     }
 
-    const target = gain(master), rest = gain(master);
-    target.gain.value = 1.4;
+    /* One fader per track (the page's mixer); the part under test enters
+     * its track's fader a little louder. */
+    const fader = {}, lift = {};
+    for (const t of ['drums', 'bass', 'chords', 'lead']) {
+        fader[t] = gain(master);
+        lift[t] = gain(fader[t]);
+        lift[t].gain.value = 1.4;
+    }
     return {
         ctx,
+        setLevel(track, v) { fader[track].gain.setTargetAtTime(v, ctx.currentTime, 0.02); },
         /** One scheduled event (core.schedule) at audio time `at`. */
         play(ev, at, isTarget) {
-            const bus = isTarget ? target : rest, v = Math.max(0.05, ev.vel / 127);
+            const bus = isTarget ? lift[ev.track] : fader[ev.track], v = Math.max(0.05, ev.vel / 127);
             if (ev.track === 'drums') drum(ev.pitch, at, v, bus);
             else tone(ev.track, ev.pitch, at, ev.dur, v, bus);
         },

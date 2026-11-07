@@ -120,7 +120,27 @@ async function next() {
     await showCase(); restart();
 }
 
+/* The mixer: one level per track for every case, remembered on this phone. */
+const MIX = 'audition.mix';
+function mixer() {
+    let mix = {};
+    try { mix = JSON.parse(localStorage.getItem(MIX)) ?? {}; } catch { /* private window */ }
+    $('faders').replaceChildren(...TRACKS.flatMap((t) => {
+        const v = mix[t] ?? 100;
+        const label = Object.assign(document.createElement('label'), { htmlFor: `mix-${t}`, textContent: t });
+        const input = Object.assign(document.createElement('input'), { id: `mix-${t}`, type: 'range', min: 0, max: 200, step: 5, value: v });
+        const shown = Object.assign(document.createElement('span'), { className: 'data', textContent: `${v}%` });
+        player.level(t, v / 100);
+        input.oninput = () => {
+            mix[t] = Number(input.value); shown.textContent = `${input.value}%`; player.level(t, mix[t] / 100);
+            try { localStorage.setItem(MIX, JSON.stringify(mix)); } catch { /* in memory only */ }
+        };
+        return [label, input, shown];
+    }));
+}
+
 function wire() {
+    mixer();
     $('play').onclick = () => { if (player.playing) { player.stop(); $('play').textContent = 'Play'; } else { player.start(playState()); $('play').textContent = 'Stop'; } };
     const solo = (on) => { st.solo = on ? cur().target : null; $('solo').classList.toggle('on', on); player.set({ solo: st.solo }); };
     $('solo').onpointerdown = (e) => { e.preventDefault(); solo(true); };

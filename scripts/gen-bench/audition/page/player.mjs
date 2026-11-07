@@ -6,6 +6,7 @@ import { schedule } from './core.mjs';
 const AHEAD = 0.12, TICK = 25;
 
 export function makePlayer(makeSynth, onFrame) {
+    const levels = {};
     let synth = null, timer = null, raf = 0, t0 = 0, ahead = 0, st = null;
     const beatAt = (time) => ((time - t0) * st.bpm) / 60;
 
@@ -22,7 +23,12 @@ export function makePlayer(makeSynth, onFrame) {
     const player = {
         playing: false,
         /** Must first run inside a tap: iOS only unlocks audio there (Review Focus 2). */
-        unlock() { synth ??= makeSynth(); return synth.ctx.resume(); },
+        unlock() {
+            if (!synth) { synth = makeSynth(); for (const [t, v] of Object.entries(levels)) synth.setLevel(t, v); }
+            return synth.ctx.resume();
+        },
+        /** The mixer: a track's level (1 = as voiced), kept for a synth made later. */
+        level(track, v) { levels[track] = v; synth?.setLevel(track, v); },
         start(state) {
             player.unlock();
             player.stop();

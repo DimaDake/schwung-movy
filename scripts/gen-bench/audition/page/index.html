@@ -72,6 +72,11 @@ textarea { width: 100%; box-sizing: border-box; font: inherit; color: var(--ink)
 .start h1 { font-size: 34px; }
 .start button { background: var(--accent); color: #fff; border: 0; font: 700 18px/1 var(--font-display); text-transform: uppercase; letter-spacing: .06em; padding: 18px; }
 #status[data-s="offline"], #status[data-s="refused"] { color: var(--bad); font-weight: 700; }
+.mixer { background: var(--panel); border: 1px solid var(--rule); border-radius: 10px; padding: 10px 12px; }
+.mixer summary { font: 700 13px/1 var(--font-data); text-transform: uppercase; letter-spacing: .08em; cursor: pointer; }
+#faders { display: grid; grid-template-columns: auto 1fr auto; gap: 10px 12px; align-items: center; margin-top: 12px; }
+#faders label { font: 700 12px/1 var(--font-data); text-transform: uppercase; letter-spacing: .06em; }
+#faders input { width: 100%; min-width: 0; accent-color: var(--accent); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 
@@ -96,6 +101,7 @@ textarea { width: 100%; box-sizing: border-box; font: inherit; color: var(--ink)
     <input id="tempo" type="range" min="60" max="180" step="1" aria-label="Tempo">
     <span class="data" id="bpm"></span>
   </div>
+  <details class="mixer" id="mixer"><summary>Mixer</summary><div id="faders"></div></details>
   <div class="sheet" id="reasons" hidden>
     <strong>What is wrong?</strong>
     <div class="row" id="reasonChips"></div>

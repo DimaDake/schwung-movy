@@ -25,24 +25,31 @@ export function refSet(G, ref) {
     return { set, steps, kit: [...new Set(parts[0].map((n) => n[2]))] };
 }
 
+/** Track `i` of the real scene `rs` (refSet) taken away and New Clip asked
+ *  for it; the options a user would take for that role. */
+export function looRequest(G, ref, rs, i) {
+    const { set, steps, kit } = rs;
+    const without = copySet(set);
+    without.tracks[i].clips = [];
+    G.forgetOptions();
+    const drum = i === 0;
+    const r = G.generateAll({ ...base(without, drum), kit: drum ? (kit.length ? kit : KIT) : [], task: 'create', target: { track: i, slot: 0 },
+        source: null, len: steps, nonce: G.hash(ref.src + ref.len + i) });
+    const ids = ROLE_PRESETS[ROLE[i]];
+    return { without, r, options: ids ? r.picks.filter((p) => ids.includes(p.preset.id)) : r.picks };
+}
+
 /** Each part of `ref` taken away and New Clip asked for it. */
 export function leaveOneOut(G, ref, bands) {
     const rs = refSet(G, ref);
     if (!rs) return [];
-    const { set, steps, kit } = rs;
+    const { set, steps } = rs;
     const scene = (s, swap) => ({ ...sceneAt(s, 0, scaleOf(s), swap), kind: ref.kind });
     const real = relations(scene(set));
     const out = [];
     for (const i of [0, 1, 2, 3]) {
         if (!set.tracks[i].clips.length) continue;
-        const without = copySet(set);
-        without.tracks[i].clips = [];
-        G.forgetOptions();
-        const drum = i === 0;
-        const r = G.generateAll({ ...base(without, drum), kit: drum ? (kit.length ? kit : KIT) : [], task: 'create', target: { track: i, slot: 0 },
-            source: null, len: steps, nonce: G.hash(ref.src + ref.len + i) });
-        const ids = ROLE_PRESETS[ROLE[i]];
-        const options = ids ? r.picks.filter((p) => ids.includes(p.preset.id)) : r.picks;
+        const { without, r, options } = looRequest(G, ref, rs, i);
         /* As good as the real part: only what the real scene passes counts
          * (a public window's merged comping already breaks some of the
          * bands drawn from the user's scenes). */

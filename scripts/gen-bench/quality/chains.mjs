@@ -29,7 +29,7 @@ export function rhythmLike(a, b) {
 export const sceneA = (G, seed) => buildPath(G, seed, [0, 1, 2, 3]).set;
 
 /** Copies every track's clip at `from` into each of `slots`, but track `skip`'s. */
-function spread(set, from, slots, skip = -1) {
+export function spread(set, from, slots, skip = -1) {
     for (const t of set.tracks) {
         const c = clipAt(set, t.index, from);
         if (c && t.index !== skip) for (const s of slots) put(set.tracks, t.index, s, { ...c, slot: s, notes: c.notes.map((n) => ({ ...n })) });
@@ -38,16 +38,16 @@ function spread(set, from, slots, skip = -1) {
 
 /** One request on track `i` into slot `to`; the user keeps option `k`, in
  *  turn over the options (piece.mjs's rotation), or the one preset `k` names. */
-function request(G, set, i, to, len, input, bands, k) {
+export function request(G, set, i, to, len, input, bands, k) {
     const r = G.generateAll({ ...base(set, PARTS[i].drum), target: { track: i, slot: to }, len, ...input }, 6);
     const pick = !r.picks.length ? null : typeof k === 'string' ? r.picks.find((p) => p.preset.id === k) ?? null : r.picks[k % r.picks.length];
     const test = judge(bands, ROLE[i], (ns) => sceneAt(set, to, scaleOf(set), { track: i, clip: clip(i, to, len, ns) }));
     const exp = experience(G, r, pick, test);
     if (pick) put(set.tracks, i, to, clip(i, to, len, pick.notes));
-    return { pick, exp };
+    return { pick, exp, r };
 }
 
-const vary = (G, set, i, from, to, bands, k) => request(G, set, i, to, clipAt(set, i, from).len,
+export const vary = (G, set, i, from, to, bands, k) => request(G, set, i, to, clipAt(set, i, from).len,
     { task: 'variation', source: { track: i, slot: from } }, bands, k);
 
 /** Scene B from A by Variation in `order` (track indices). */

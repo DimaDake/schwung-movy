@@ -9,7 +9,7 @@ import { experience, judge } from './keep.mjs';
 import { relations } from './relations.mjs';
 import { ROLE, sceneAt, scaleOf } from './scene.mjs';
 
-const LENS = [64, 128];
+export const LENS = [64, 128];
 
 /* The New Clip options a user would take for each part: a bass track is not
  * judged on the pad New Clip also offers it, nor a kit on one pad's part. */
@@ -27,7 +27,7 @@ export const emptySet = (seed) => {
         tracks: PARTS.map((p) => ({ index: p.index, name: p.name, module: p.drum ? 'drumrack' : 'obxd', drum: p.drum, padNames: null, clips: [] })) };
 };
 
-/** New Clip on track `i` at `slot`; the take the user keeps, and its experience row with `bands`. */
+/** New Clip on track `i` at `slot`; the take the user keeps, its experience row with `bands`, and the request's result. */
 export function newClip(G, set, i, slot, len, seed, bands) {
     const p = PARTS[i];
     G.forgetOptions();
@@ -39,7 +39,7 @@ export function newClip(G, set, i, slot, len, seed, bands) {
     const ids = ROLE_PRESETS[ROLE[i]];
     const exp = bands ? experience(G, r, pick, judge(bands, ROLE[i], (ns) => sceneAt(set, slot, scaleOf(set), { track: i, clip: clip(i, slot, len, ns) })),
         ids ? r.picks.filter((x) => ids.includes(x.preset.id)) : r.picks) : null;
-    return { pick, exp };
+    return { pick, exp, r };
 }
 
 /** One scene built in `order` (track indices). */

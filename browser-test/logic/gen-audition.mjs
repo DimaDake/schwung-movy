@@ -8,6 +8,7 @@ import { _log, eq, ok } from './harness.mjs';
 import * as G from '../../dist/esm/gen/index.js';
 import { makeCase, recipeKey, sceneOf } from '../../scripts/gen-bench/audition/case.mjs';
 import { blindRecipes, rebuild, setRecipes } from '../../scripts/gen-bench/audition/sources.mjs';
+import { chunks, interleave, packCase } from '../../scripts/gen-bench/audition/queue.mjs';
 
 const set2 = () => ({ root: 'C', mode: 'minor', bpm: 124, tracks: [
     { index: 0, name: 'Drums', drum: true, clips: [{ track: 0, slot: 0, len: 16, notes: [{ tick: 0, gate: 12, pitch: 36, vel: 100 }, { tick: 96, gate: 12, pitch: 38, vel: 90 }] }] },
@@ -65,6 +66,24 @@ eq('blind_real_plays_the_ref_part', JSON.stringify(real.scene.tracks.bass), JSON
 ok('blind_gen_plays_another_part', JSON.stringify(gen.scene.tracks.bass) !== JSON.stringify(real.scene.tracks.bass));
 eq('blind_real_and_gen_share_recipe_but_truth', real.truth + gen.truth, 'realgen');
 eq('blind_recipes_alternate_user_public', blindRecipes(refs).slice(0, 4).map((r) => refs.find((x) => x.src === r.ref).kind).join(), 'user,public,user,public');
+
+_log('\nTest: audition queue');
+
+const fake = (kind, n, gens) => Array.from({ length: n }, (_, k) => ({ id: `${kind}${k}`, kind, generator: gens[k % gens.length] }));
+const pools = { set: fake('set', 100, ['create:bass', 'create:lead', 'variation:chords', 'double:drums']), flagged: fake('flagged', 60, ['n-bass', 'n-arp']), blind: fake('blind', 40, ['real', 'n-pad']) };
+const q = interleave(pools, undefined, 7);
+const share = (k) => q.slice(0, 50).filter((c) => c.kind === k).length / 50;
+ok('queue_set_share_near_half', Math.abs(share('set') - 0.5) <= 0.05);
+ok('queue_flagged_share_near_30', Math.abs(share('flagged') - 0.3) <= 0.05);
+ok('queue_blind_share_near_20', Math.abs(share('blind') - 0.2) <= 0.05);
+eq('queue_keeps_every_case', q.length, 200);
+eq('queue_every_generator_early', new Set(q.filter((c) => c.kind === 'set').slice(0, 4).map((c) => c.generator)).size, 4);
+eq('queue_deterministic_per_seed', interleave(pools, undefined, 7).map((c) => c.id).join(), q.map((c) => c.id).join());
+ok('queue_seed_changes_order', interleave(pools, undefined, 8).map((c) => c.id).join() !== q.map((c) => c.id).join());
+const packed = packCase(c1);
+ok('pack_notes_are_integer_96ths', packed.options[0].notes.every((n) => n.every(Number.isInteger)));
+eq('pack_keeps_onsets', packed.options[0].notes[0][0], Math.round(c1.options[0].notes[0][0] * 96));
+eq('chunks_first_small_then_200', chunks(Array(450).fill(0)).map((c) => c.length).join(), '40,200,200,10');
 }
 
 function sceneOfRef(r) { return [...r.bass].map((n) => [Math.round(n[0] * 96) / 96, Math.round(n[1] * 96) / 96, n[2], n[3]]); }

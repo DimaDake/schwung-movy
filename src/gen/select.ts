@@ -6,6 +6,8 @@
 import type { GenCtx } from './analysis/context.js';
 import { chordAt } from './analysis/context.js';
 import { homePlan, planAt } from './plan.js';
+import { bandSteps } from './create/common.js';
+import { middles } from './shape/band-pitch.js';
 import { isStrong } from './analysis/events.js';
 import type { Preset } from './preset.js';
 import { noteFit } from './theory/category.js';
@@ -62,13 +64,35 @@ function shapeSim(ctx: GenCtx, notes: Note[]): number {
     return (dens + reg) / 2;
 }
 
+/* A Variation in a scene built track by track hears the parts varied before
+ * it: onsets on the band's strongest accents, and, over the bass, a register
+ * a fifth clear of the other parts (paths bench scene B: chords and lead
+ * usable 100/83% in A, 54/37% in B, missing the chords' hits and landing in
+ * their octave). Null where there is no band to hear. */
+function bandFit(ctx: GenCtx, notes: Note[]): number | null {
+    if (ctx.task !== 'variation' || ctx.drum || !notes.length) return null;
+    const parts: number[] = [];
+    const acc = new Set(bandSteps(ctx).slice(0, 6));
+    if (acc.size) {
+        const on = [...new Set(notes.map((n) => Math.round(n.tick / TPS)))];
+        parts.push(on.filter((s) => acc.has(s % 16)).length / on.length);
+    }
+    const mids = middles(ctx);
+    if (mids.length && ctx.role?.kind !== 'bass') {
+        const m = median(notes.map((n) => n.pitch));
+        parts.push(Math.min(1, Math.min(...mids.map((x) => Math.abs(x - m))) / 7));
+    }
+    return parts.length ? parts.reduce((a, x) => a + x, 0) / parts.length : null;
+}
+
 export function scoreCandidate(ctx: GenCtx, p: Preset, notes: Note[], knobs?: number[]): { score: number; dist: number } {
     const hk = knobs ? p.knobs.findIndex((k) => k.name === 'HARMONY') : -1;
     const fit = p.fit ? p.fit(ctx) : 0.5;
     /* Every candidate already fits the harmony and the grid fairly well, so
      * what the preset is FOR on this part (its fit) decides most. */
     const score = 0.3 * harmFit(ctx, notes, hk >= 0 && ctx.task === 'create' && ctx.freedom !== 'locked' ? knobs![hk] : -1) + 0.1 * grooveFit(notes) + 0.2 * shapeSim(ctx, notes) + 0.4 * fit;
-    return { score: fit <= 0 ? -1 : score, dist: difference(notes, ctx.src) };
+    const band = bandFit(ctx, notes);
+    return { score: fit <= 0 ? -1 : score + (band === null ? 0 : 0.15 * band), dist: difference(notes, ctx.src) };
 }
 
 type C = PresetClass;

@@ -320,3 +320,29 @@ Quality bench (`plans/gen-quality-round3.md` vs round2): nothing regressed.
    bass after drums takes OFFBEAT).
 6. Double: options alike; 17% of doubled scenes usable throughout.
 7. `stratify` rests on 25 user scenes; treat as a hint.
+
+## Round 4: the five open items (2026-11-07)
+
+| # | item | what the evidence said | change | result |
+|---|---|---|---|---|
+| 1 | Variation does not hear the band | `ctx.band` was New Clip's and Double's only; in scene B a line varied after the chords landed in their octave, hitting with them | `context.ts`: Variation gets the band's hits; `select.ts bandFit`: options that hit the band's accents and keep a fifth from the other parts rank higher; `band-pitch.ts clearMud`: a varied line in a chord part's octave, hitting with it (or chords on a line so), moves an octave away, never into the bass register (two chord parts, a drone and a bass are left) | lead usable in the finished B 47% → 76%, lc.mud flags 48 → 38 (re-judged like for like); chords 65% → 63% |
+| 2 | Variation moves far per step | every Variation re-harmonises or re-writes: 0.8-0.95 from the last step | **NUDGE** (`presets/var-nudge.ts`), always option 1: the part with a few notes moved by DRIFT's walk, on its own harmony; AMOUNT, BARS (every / even / last), DIRECTION (any / up / down), SEED. `drift.ts` takes where and which way | kept every time: identity 0.66 → 0.48 → 0.37 → 0.25 → 0.19 over 5 presses, rhythm kept, usable 83-100% at every depth (the rotation chain's chords: 43-67%) |
+| 3 | Smart Quantize drums brought nothing back | CLEAN kept grazes (floor a share of the whole part's median) and nothing repaired a slip onto the next pad | `shape/drums.ts clean`: grazes against their own pad's level; slips repaired where most other bars play the neighbour pad, the slip is isolated, the bar plays the loop, and the neighbour pad is used far more | grazes gone, isolated slips repaired, fills kept (gen-evolve.mjs). The bench's messy fixture slips one hit in five at repeating places, which the guards leave (by design) |
+| 4 | weak generators over real music | PULSE/WALK met neither the kick nor its gaps; CHORDS/STABS missed the band and beat 1; ARP 16 notes a bar | take pools: PULSE and WALK draw the kick lock a third of the time, CHORDS and STABS the band's accents a third, ARP eighths (defaults unchanged) | as good as the real part (user scenes): ARP 64 → 84%, WALK 57 → 72%, STABS 47 → 78%, CHORDS 56 → 65%, PAD 75 → 82%, PULSE 54 → 58% |
+| 5 | harmFit's weak-beat bias | wrong premise: the bass takes score within 0.03 of each other; the "offbeat" bass sits on a broken kick (the lock idiom) | measurement: `bk.offbeat` counts offbeat 8ths off the kick only (R1's complement) | the order gap is gone |
+
+Also: `stratify` is reported but no longer judged (25 user scenes; `'info'`).
+
+Quality bench (`plans/gen-quality-round4.md` vs round 3): pieces broken 8% →
+0%, New Clip with band 0.76 → 0.80. Lower: Variation best-of-six gate 83% →
+72% (one option thinner than 0.4x its source: WALK's kick lock under a busy
+bass, NEXT CHORDS displaced by NUDGE, one each), coherence 0.91 → 0.88
+(NUDGE's moved notes are passing tones by design), alignment 0.63 → 0.61.
+
+### Open after round 4
+
+1. **Chords varied in B change too often** (`chords.changes` the top miss: 48
+   of 144 B scenes); chords in B usable 63%.
+2. Lead vs chords onsets in B (`lc.coincide`), 35 scenes.
+3. PULSE over real scenes stays at 58%.
+4. The best-of-six gate's density rule against Step 14's New Clip options.

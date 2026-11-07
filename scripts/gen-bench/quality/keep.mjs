@@ -16,6 +16,7 @@ export const SLACK = 1;
  *  whether that is few enough for a real part. */
 export function judgeRole(m, bands, role) {
     const ks = Object.keys(m).filter((k) => bands[k] && m[k] !== null && m[k] !== undefined && !Number.isNaN(m[k]))
+        .filter((k) => !METRICS[k].includes('info'))
         .filter((k) => { const rs = METRICS[k].filter((r) => ROLES.includes(r)); return !rs.length || rs.includes(role); });
     const bad = ks.filter((k) => !inBand(bands[k], m[k]));
     return { ok: bad.length <= SLACK, bad, n: ks.length };

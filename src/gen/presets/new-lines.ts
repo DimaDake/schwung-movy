@@ -130,7 +130,9 @@ function order(style: number, n: number, i: number, shuffle: number[]): number {
 
 export const ARP: Preset = withFeel({
     id: 'n-arp', name: 'ARP', task: 'create', drum: false, cls: 'rhythm',
-    knobs: [choice('STYLE', STYLES, [0, 1, 2, 3, 4, 5]), choice('RATE', ['1/4', '1/8', '1/8T', '1/16', '1/16T'], [1, 3, 3, 3, 2]),
+    /* RATE: eighths are the take, 16ths one in four: a 16th arp is 16 notes
+     * a bar against real leads' 1-10.5 (leave-one-out: lead.perBar its top miss). */
+    knobs: [choice('STYLE', STYLES, [0, 1, 2, 3, 4, 5]), choice('RATE', ['1/4', '1/8', '1/8T', '1/16', '1/16T'], [1, 1, 2, 3]),
         choice('OCTAVES', OCTS.map(String), [0, 1, 2, 2]), HARMONY],
     generate: (ctx, v, seed) => {
         const r = rng(seed);

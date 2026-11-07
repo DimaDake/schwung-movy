@@ -80,8 +80,9 @@ export function texture(m, sc, L, on, ct) {
 }
 
 /* 'user': the band from the user's scenes only, where the public windows
- * measure something else (several comping parts merged into "chords"). */
+ * measure something else (several comping parts merged into "chords").
+ * 'info': reported, never judged (stratify rests on 25 user scenes). */
 export const TEXTURE_METRICS = {
-    interlock: [], stratify: ['flag', 'user'], 'chords.changes': ['chords', 'user'], 'bc.pedal': ['bass', 'chords'], accent: [],
+    interlock: [], stratify: ['flag', 'user', 'info'], 'chords.changes': ['chords', 'user'], 'bc.pedal': ['bass', 'chords'], accent: [],
     'bass.seam': ['bass', 'lo'], 'lead.seam': ['lead', 'lo'],
 };

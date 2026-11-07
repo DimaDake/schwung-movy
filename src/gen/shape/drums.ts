@@ -12,8 +12,11 @@ import { BAR, type Note, TPS } from '../types.js';
 const median = (a: number[]) => { const s = [...a].sort((x, y) => x - y); return s.length ? s[s.length >> 1] : 90; };
 
 /** 0..10: doubles and flams on one pad within a window that grows to a 16th,
- *  and accidental grazes quieter than a share of the part's median velocity
- *  that grows to 45 %. */
+ *  accidental grazes, and slips onto a neighbouring pad. A graze is quieter
+ *  than a share of its own pad's median (growing to 45 %) or, where that
+ *  pad plays louder than twice it, than an absolute floor growing to 67: a
+ *  share of the whole part's median left a graze on a loud kick in, and a
+ *  hat's ghosts are quieter than a kick's accents. */
 export function clean(notes: Note[], v: number): Note[] {
     if (v <= 0) return notes;
     const win = Math.round(v * 2.2);
@@ -24,8 +27,44 @@ export function clean(notes: Note[], v: number): Note[] {
         if (twin) { if (n.vel > twin.vel) twin.vel = n.vel; continue; }
         kept.push({ ...n });
     }
-    const floor = median(kept.map((n) => n.vel)) * 0.045 * v;
-    return kept.filter((n) => n.vel >= floor);
+    const med = new Map<number, number>();
+    for (const p of new Set(kept.map((n) => n.pitch))) med.set(p, median(kept.filter((n) => n.pitch === p).map((n) => n.vel)));
+    const floor = (p: number) => Math.max(med.get(p)! * 0.045 * v, Math.min(6.7 * v, med.get(p)! * 0.5));
+    return slips(kept.filter((n) => n.vel >= floor(n.pitch)), v);
+}
+
+/* A slip: a hit on a pad next to the one the loop plays there in most of its
+ * other bars, alone (an odd hit within two 16ths makes a fill's run), in a bar that
+ * otherwise plays the loop (a fill bar does not). Repaired from CLEAN 2 up. */
+function slips(notes: Note[], v: number): Note[] {
+    if (v < 2 || !notes.length) return notes;
+    const at = (n: Note) => Math.round(n.tick / TPS);
+    const barOf = (n: Note) => Math.floor(at(n) / 16);
+    const bars = Math.max(...notes.map(barOf)) + 1;
+    if (bars < 3) return notes;
+    const has = new Set(notes.map((n) => `${barOf(n)}:${at(n) % 16}:${n.pitch}`));
+    const usual = (b: number, s: number, p: number) => {
+        let k = 0;
+        for (let x = 0; x < bars; x++) if (x !== b && has.has(`${x}:${s}:${p}`)) k++;
+        return k * 2 >= bars - 1;
+    };
+    const uses = new Map<number, number>();
+    for (const n of notes) uses.set(n.pitch, (uses.get(n.pitch) ?? 0) + 1);
+    const fix = new Map<Note, number>();
+    for (const n of notes) {
+        const b = barOf(n), s = at(n) % 16;
+        if (usual(b, s, n.pitch)) continue;
+        /* Onto a pad the part plays far more: a slip lands on a pad the loop
+         * hardly uses, and slips repeating at one spot must not outvote it. */
+        const q = [n.pitch - 1, n.pitch + 1, n.pitch - 2, n.pitch + 2]
+            .find((p) => !has.has(`${b}:${s}:${p}`) && usual(b, s, p) && (uses.get(p) ?? 0) >= 2 * (uses.get(n.pitch) ?? 0));
+        if (q !== undefined) fix.set(n, q);
+    }
+    /* Isolated: no other hit the loop does not play within two 16ths. */
+    const run = (n: Note) => notes.some((m) => m !== n && barOf(m) === barOf(n) && Math.abs(at(m) - at(n)) <= 2 && !usual(barOf(m), at(m) % 16, m.pitch));
+    const odd = (b: number) => notes.filter((n) => barOf(n) === b && !fix.has(n) && !usual(b, at(n) % 16, n.pitch)).length;
+    const size = (b: number) => notes.filter((n) => barOf(n) === b).length;
+    return notes.map((n) => (fix.has(n) && !run(n) && odd(barOf(n)) <= 0.25 * size(barOf(n)) ? { ...n, pitch: fix.get(n)! } : n));
 }
 
 const free = (notes: Note[], pad: number, tick: number) => !notes.some((n) => n.pitch === pad && Math.abs(n.tick - tick) < TPS / 2);

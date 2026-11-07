@@ -13,6 +13,7 @@ const _ = null;
 export const LAYOUTS: Record<string, Row> = {
     // Variation, melodic
     'v-next': ['RHYTHM', 'DENSITY', 'HARMONY', 'RANGE', 'LENGTH', 'VOICES', 'COLOUR', 'CHORD RATE'],
+    'v-nudge': ['DIRECTION', 'AMOUNT', _, 'BARS', _, _, _, 'SEED'],
     'v-follow': ['DIRECTION', 'DENSITY', 'HARMONY', 'VOICES', 'LENGTH', 'RHYTHM', 'COLOUR', 'CHORD RATE'],
     'v-pulse': ['NOTE', 'DENSITY', 'HARMONY', 'OCTAVE', 'LENGTH', 'DYNAMICS', 'RHYTHM', 'CHORD RATE'],
     'v-harmonize': ['INTERVAL', 'AMOUNT', 'HARMONY', _, _, _, 'COLOUR', 'DRIFT'],

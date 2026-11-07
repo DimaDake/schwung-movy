@@ -61,7 +61,11 @@ function heldFirst(k: KnobDef): KnobDef {
 
 export const CHORDS: Preset = withFeel({
     id: 'n-chords', name: 'CHORDS', task: 'create', drum: false, cls: 'close',
-    knobs: [heldFirst(patternKnob(COMP_MAP, [1, 0, 3, 4, 5, 7, 8])), VOICING([1, 1, 2, 4, 5, 6]),
+    /* Takes lean on the band's accents (index 8) a third of the time (the
+     * first entry stays the default position): over
+     * real scenes the named figures missed the band and beat 1 (leave-one-out
+     * 56% as good as the real comp). */
+    knobs: [heldFirst(patternKnob(COMP_MAP, [1, 8, 8, 0, 3, 4, 5, 7, 8])), VOICING([1, 1, 2, 4, 5, 6]),
         register([R.LOW, R.LOW + 1, R.MID, R.MID, R.MID + 1, R.HIGH]), HARMONY, DENSITY],
     generate: (ctx, v, seed) => {
         const r = rng(seed);
@@ -144,7 +148,8 @@ export const STAB_MAP: PatternSpec = { figs: STAB_FIGS.map((x) => x[1]), lo: 1, 
 
 export const STABS: Preset = withFeel({
     id: 'n-stabs', name: 'STABS', task: 'create', drum: false, cls: 'rhythm',
-    knobs: [patternKnob(STAB_MAP, [0, 1, 2, 3, 4, 5, 7]), VOICING([1, 0, 1, 2, 3, 4]),
+    /* The band's accents (index 7) a third of the takes, as CHORDS (47% as good as the real part over real scenes). */
+    knobs: [patternKnob(STAB_MAP, [0, 7, 7, 1, 2, 3, 4, 5, 7]), VOICING([1, 0, 1, 2, 3, 4]),
         register([R.MID, R.MID, R.MID + 1, R.HIGH]), HARMONY, DENSITY],
     generate: (ctx, v, seed) => {
         const r = rng(seed);

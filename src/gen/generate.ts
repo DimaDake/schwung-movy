@@ -7,7 +7,7 @@ import { guard } from './guard.js';
 import { defaultHarmony } from './plan.js';
 import { knobIndex, type Preset } from './preset.js';
 import { runPlan } from './create/common.js';
-import { clearRubs } from './shape/band-pitch.js';
+import { clearMud, clearRubs } from './shape/band-pitch.js';
 import { hash, mix } from './rng.js';
 import type { Note } from './types.js';
 
@@ -25,7 +25,7 @@ function offBand(ctx: GenCtx, p: Preset, v: number[], raw: Note[]): Note[] {
     if (ctx.drum || ctx.task === 'quantize' || own) return raw;
     const k = knobIndex(p, 'HARMONY');
     const h = k >= 0 ? v[k] : ctx.task === 'create' ? runPlan(ctx) : defaultHarmony(ctx);
-    if (ctx.task !== 'double') return clearRubs(ctx, raw, h);
+    if (ctx.task !== 'double') return clearRubs(ctx, clearMud(ctx, raw), h);
     const kept = new Set(ctx.src.map((n) => `${n.tick}.${n.pitch}`));
     const keep = raw.filter((n) => kept.has(`${n.tick}.${n.pitch}`));
     return [...keep, ...clearRubs(ctx, raw.filter((n) => !kept.has(`${n.tick}.${n.pitch}`)), h)];

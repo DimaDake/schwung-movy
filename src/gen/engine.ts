@@ -101,6 +101,16 @@ export function finishRequest(req: Request, count = optionCountFor(req.ctx.task)
         return picks.map((c) => ({ preset: c.preset, knobs: c.knobs, notes: c.notes }));
     }
     const picks: Pick[] = selectOptions(req.done, req.ctx.task, count).map((c) => ({ preset: c.preset, knobs: c.knobs, notes: c.notes }));
+    /* NUDGE, the small step a Set evolves by, is always option 1 when it
+     * made one (presets/var-nudge.ts); the close option it displaces stays
+     * past the picks. */
+    const nudge = req.ctx.task === 'variation' && !picks.some((p) => p.preset.id === 'v-nudge')
+        ? req.done.filter((c) => c.preset.id === 'v-nudge' && c.score >= 0).sort((a, b) => b.score - a.score)[0] : undefined;
+    if (nudge && picks.length) {
+        const out = picks.map((p) => p.preset.cls).lastIndexOf('close');
+        picks.splice(out >= 0 ? out : picks.length - 1, 1);
+        picks.unshift({ preset: nudge.preset, knobs: nudge.knobs, notes: nudge.notes });
+    }
     if (!req.sub) return picks;
     /* Step 14: the track's own part as the 3rd option, the neighbour last.
      * Made as New Clip, they have no source to keep the role of, so a take

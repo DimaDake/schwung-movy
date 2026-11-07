@@ -85,7 +85,7 @@ The others develop the clip, each changing one thing:
 
 | Generator | What it does |
 | --- | --- |
-| **TIGHT** | Onto the grid. Its knobs also remove accidental doubles (**CLEAN**), even out or accent the velocities (**VELOCITY**), lengthen or shorten notes (**LENGTH**) and pick a timing feel: the scene's, laid back, pushed, shuffle (**FEEL**). |
+| **TIGHT** | Onto the grid. Its knobs also remove accidental doubles and grazes (**CLEAN**; on drums it also puts a hit that slipped onto the next pad back where the loop plays it, and leaves fills alone), even out or accent the velocities (**VELOCITY**), lengthen or shorten notes (**LENGTH**) and pick a timing feel: the scene's, laid back, pushed, shuffle (**FEEL**). |
 | **SHAPED**, **DECORATE** | Chords filled out and moved smoothly; grace and passing notes added. |
 | **ANSWER** | The second half answers the first. |
 | **GHOSTS**, **FILL** (drums) | Ghost notes where there is room; a small fill into the loop. |
@@ -103,7 +103,11 @@ and **Shift** + hold **Step 14**. The variation grows from the nearest clip
 above the slot and takes its length.
 
 Variation offers **six options**, picked from some thirty generators to suit the
-part, closest first. Option 3 is a brand-new part of the track's kind (a New
+part, closest first. Option 1 is **NUDGE**: the same part with a few notes
+moved, in the same harmony. Keep it and press again to change a part a little at
+a time; **AMOUNT** moves more notes, **BARS** puts the change in every bar, the
+even bars or the last one, and **DIRECTION** lets the part climb or sink.
+Option 3 is a brand-new part of the track's kind (a New
 Clip **BASS** on a bass track, say), and option 6 a new part of a neighbouring
 kind, for when the B section wants something other than a variation. Every option **keeps the track's role**: chords stay
 chords, a bassline stays a bassline, drums never change pads. No option is
@@ -116,7 +120,9 @@ forms, motifs, grids). Touch the jog to see which generator made an option.
 
 **Which track to vary first.** The first track you vary in an empty scene sets
 that scene's chords for the tracks after it. The bass or the chords are the best
-place to start.
+place to start. Each track you vary after that hears the ones already there: a
+line that would land in the chords' octave, playing with them, moves an octave
+away.
 
 ## New Clip
 

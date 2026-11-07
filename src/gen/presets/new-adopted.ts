@@ -57,7 +57,11 @@ function adopt(s: Spec): Preset {
     }, s.g, false, s.sp);
 }
 
-const BASS_PATTERN = patternKnob(BASS_MAP, [0, 1, 3, 4, 6, 8]);
+/* Takes lean on the kick as BASS's do (index LIB.length, the lock figure):
+ * over real scenes PULSE and WALK took figures that met neither the kick
+ * nor its gaps (paths bench leave-one-out: 54-57% as good as the real bass,
+ * BASS 85%). */
+const BASS_PATTERN = patternKnob(BASS_MAP, [0, 9, 9, 9, 1, 3, 4, 6, 8]);
 
 export const HOLD_N = adopt({ id: 'n-hold', name: 'HOLD NOTE', cls: 'close', base: HOLD, seed: 'drone', role: 'drone', g: [8, 10], sp: 'pad',
     own: [choice('NOTE', ['PIVOT', 'ROOT', 'FIFTH', 'THIRD'], [1, 1, 2, 3, 0]), HARMONY, register([L.LOW, L.MID, L.MID], L.labels), choice('SHARED', ['TIE', 'RESTRIKE'], [0, 0, 1])],

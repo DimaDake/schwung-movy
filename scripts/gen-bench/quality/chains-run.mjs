@@ -49,10 +49,12 @@ const varLines = [...byVar].sort().map(([k, ks]) => `| ${k} | ${ks.length} | ${f
 
 /* 2. Variation depth. */
 const depth = As.flatMap((A, s) => ROLE.map((_, i) => depthChain(G, A, s, i, bands)));
-const depthLines = ROLE.flatMap((r) => [0, 1, 2, 3, 4, 5].map((d) => {
-    const rows = depth.filter((c) => c.role === r).map((c) => c.rows[d]).filter(Boolean);
+const nudge = As.flatMap((A, s) => [1, 2, 3].map((i) => depthChain(G, A, s, i, bands, 5, 'v-nudge')));
+const depthTable = (chains, roles) => roles.flatMap((r) => [0, 1, 2, 3, 4, 5].map((d) => {
+    const rows = chains.filter((c) => c.role === r).map((c) => c.rows[d]).filter(Boolean);
     return `| ${r} | ${d} | ${rows.length} | ${pct(usable(rows.map((x) => x.m), r))} | ${f2(med(rows.map((x) => x.identity)))} | ${f2(med(rows.map((x) => x.rhythmId ?? 1)))} | ${f2(med(rows.map((x) => x.step ?? null)))} | ${f2(spread(rows.map((x) => x.rhythm)))} | ${d ? fails(rows.map((x) => x.m), r) : ''} |`;
 }));
+const depthLines = depthTable(depth, ROLE), nudgeLines = depthTable(nudge, ROLE.slice(1));
 
 /* 3. Smart Double, 4. Smart Quantize. */
 const dbl = As.map((A, s) => doubled(G, A, s, bands));
@@ -88,6 +90,7 @@ const md = `# Chains bench: ${label}\n\n${SEEDS} seeds, ${Bs.length} B scenes, $
     + `| part and the Variation kept | n | notes kept | rhythm kept |\n|---|---|---|---|\n${varLines.join('\n')}\n\n`
     + `## 2. Variation, again and again\n\nIdentity: 1 - distance to A's part; step: distance to the depth before; spread: how different the rhythms are across seeds (falling = collapse).\n\n`
     + `| part | depth | n | usable | identity (notes) | identity (rhythm) | step | spread | fails most on |\n|---|---|---|---|---|---|---|---|---|\n${depthLines.join('\n')}\n\n`
+    + `### Keeping NUDGE every time (the small steps)\n\n| part | depth | n | usable | identity (notes) | identity (rhythm) | step | spread | fails most on |\n|---|---|---|---|---|---|---|---|---|\n${nudgeLines.join('\n')}\n\n`
     + `## 3. Smart Double (every track, slot 2)\n\nScenes usable for every part: ${pct(dbl.filter((d) => ROLE.every((r) => judgeRole(d.m, bands, r).ok)).length / dbl.length)}; parts realign: ${pct(dbl.filter((d) => d.m.realign !== 0).length / dbl.length)}.\n\n`
     + `## 4. Smart Quantize (option 1) of a loosely played part\n\nloose / back: likeness to the clean part before and after.\n\n| part | n | usable | loose | back | fails most on |\n|---|---|---|---|---|---|\n${qLines.join('\n')}\n\n`
     + `## 5. Leave one out: New Clip over real scenes\n\n"As good as real": at most one metric out of band that the real part had in band. Per generator and "worse on" use that test.\n\n`

@@ -37,10 +37,10 @@ function spread(set, from, slots, skip = -1) {
 }
 
 /** One request on track `i` into slot `to`; the user keeps option `k`, in
- *  turn over the options (piece.mjs's rotation). */
+ *  turn over the options (piece.mjs's rotation), or the one preset `k` names. */
 function request(G, set, i, to, len, input, bands, k) {
     const r = G.generateAll({ ...base(set, PARTS[i].drum), target: { track: i, slot: to }, len, ...input }, 6);
-    const pick = r.picks.length ? r.picks[k % r.picks.length] : null;
+    const pick = !r.picks.length ? null : typeof k === 'string' ? r.picks.find((p) => p.preset.id === k) ?? null : r.picks[k % r.picks.length];
     const test = judge(bands, ROLE[i], (ns) => sceneAt(set, to, scaleOf(set), { track: i, clip: clip(i, to, len, ns) }));
     const exp = experience(G, r, pick, test);
     if (pick) put(set.tracks, i, to, clip(i, to, len, pick.notes));
@@ -64,15 +64,16 @@ export function sceneB(G, A, seed, order, bands) {
     return { seed, order: order.map((i) => ROLE[i]), picks, scene: sceneAt(set, 1, scale), steps, exps, kept, set };
 }
 
-/** Track `i` varied `D` times in a row, the others as in A. */
-export function depthChain(G, A, seed, i, bands, D = 5) {
+/** Track `i` varied `D` times in a row, the others as in A; `prefer` keeps
+ *  that preset each time (NUDGE: the small steps), else the rotation. */
+export function depthChain(G, A, seed, i, bands, D = 5, prefer) {
     const set = copySet(A), scale = scaleOf(set);
     spread(set, 0, Array.from({ length: D }, (_, d) => d + 1), i);
     const a0 = clipAt(set, i, 0).notes;
     const rows = [{ depth: 0, m: relations(sceneAt(set, 0, scale)), identity: 1, rhythm: rhythmOf(a0) }];
     for (let d = 0; d < D; d++) {
         const prev = clipAt(set, i, d).notes;
-        const { pick, exp } = vary(G, set, i, d, d + 1, bands, seed + i + d);
+        const { pick, exp } = vary(G, set, i, d, d + 1, bands, prefer ?? seed + i + d);
         if (!pick) break;
         rows.push({ depth: d + 1, m: relations(sceneAt(set, d + 1, scale)), exp, preset: pick.preset.id,
             identity: 1 - G.difference(pick.notes, a0), rhythmId: rhythmLike(pick.notes, a0), step: G.difference(pick.notes, prev), rhythm: rhythmOf(pick.notes) });

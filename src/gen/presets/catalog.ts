@@ -12,6 +12,7 @@ import { LOOPER } from './var-turing.js';
 import { FORM, FORM_D } from './var-form.js';
 import { HARMONIZE, PULSE } from './var-pulse.js';
 import { ANSWER, NEWLINE, NEXT, REVOICE } from './var-close.js';
+import { NUDGE } from './var-nudge.js';
 import { HALFTIME, MOTIF, ORNAMENT, RETRO } from './var-exp.js';
 import { HOLD, THIN, WALK } from './var-held.js';
 import { COMP, EUCLID, RECOMBINE } from './var-pattern.js';
@@ -35,7 +36,7 @@ import { FOLLOW_N, HARMONIZE_N, HOLD_N, LOOPER_N, PULSE_N, WALK_N } from './new-
 import { BREAK_D, FILL_X, REPEAT, ROLL, STYLE_XD } from './dbl-drums.js';
 
 const LISTED: Preset[] = [
-    NEXT, FOLLOW, PULSE, HARMONIZE, REVOICE, NEWLINE, ANSWER, ARP, HOLD,
+    NEXT, NUDGE, FOLLOW, PULSE, HARMONIZE, REVOICE, NEWLINE, ANSWER, ARP, HOLD,
     BASSLINE, DISPLACE, CONNECT, RECOMBINE, EUCLID, COMP, WALK, THIN,
     MOTIF, RETRO, HALFTIME, ORNAMENT, DEVELOP, STYLE, LOOPER, FORM,
     KICK, HATS, GHOSTS, FILL, SHIFT, FEEL, GRIDS, DEVELOP_D, STYLE_D, FORM_D,
@@ -53,8 +54,8 @@ const SEEDED = new Set(['v-connect', 'v-recombine', 'v-thin', 'v-ornament', 'v-h
     'q-embellish', 'xd-fill']);
 
 /* DRIFT wherever a knob is free, except on Smart Quantize, which fixes a
- * take rather than looks for one (drift.ts). */
-const drifts = (p: Preset) => p.task !== 'quantize' && p.task !== 'create' && p.knobs.length < 8;
+ * take rather than looks for one (drift.ts), and on NUDGE, which is a drift. */
+const drifts = (p: Preset) => p.task !== 'quantize' && p.task !== 'create' && p.knobs.length < 8 && p.id !== 'v-nudge';
 
 export const PRESETS: Preset[] = LISTED.map((p) => (SEEDED.has(p.id) ? withSeed(p) : p)).map((p) => (drifts(p) ? withDrift(p) : p));
 

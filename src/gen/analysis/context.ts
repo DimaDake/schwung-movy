@@ -110,7 +110,9 @@ export function buildCtx(input: GenInput): GenCtx {
         pinnedBass: otherSegs.map((s) => (s.bass >= 0 ? s.bass % 12 : -1)),
         fixedChords: input.task !== 'variation' ? quantChords : freedom === 'locked' ? withFine(chordsOf(otherSegs, key)) : [],
         groove: grooveOf(src, allOthers.filter((n) => n.tick < end)),
-        band: input.task === 'double' || input.task === 'create' ? bandHits(input, end, k) : [],
+        /* A Variation hears the band too: in a scene built track by track,
+         * the parts varied before it (paths bench, scene B). */
+        band: input.task === 'double' || input.task === 'create' || input.task === 'variation' ? bandHits(input, end, k) : [],
         kit: input.drum ? kitOf(input.kit.length ? input.kit : [...new Set(src.map((n) => n.pitch))], me?.padNames ?? null,
             (me?.clips ?? []).flatMap((c) => c.notes)) : null,
         loops: input.task === 'variation'
@@ -128,7 +130,7 @@ export function buildCtx(input: GenInput): GenCtx {
  *  half its onsets (a dyad stab counts; an arpeggio or a riff does not).
  *  Together is within a 32nd of the first: a played chord, or a strum,
  *  spreads its voices (the bass bench's real chord parts). */
-function strikesChords(notes: Note[]): boolean {
+export function strikesChords(notes: Note[]): boolean {
     const groups: Set<number>[] = [];
     let head = -Infinity;
     for (const n of [...notes].sort((a, b) => a.tick - b.tick)) {

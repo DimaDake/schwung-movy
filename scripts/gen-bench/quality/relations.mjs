@@ -162,7 +162,9 @@ export function relations(sc) {
     if (sc.lead.length) { m['lead.pcEntropy'] = pcEntropy(sc.lead); m['lead.scale'] = scaleFit(sc.lead); }
     if (kOn.length && bOn.length) {
         const lock = share(bOn, (s) => kOn.includes(s));
-        const off = share(bOn, (s) => s % 4 === 2);
+        /* Offbeat 8ths off the kick: the complement idiom. A bass on a broken
+         * kick's offbeats is the lock idiom, already bk.lock (R1). */
+        const off = share(bOn, (s) => s % 4 === 2 && !kOn.includes(s));
         Object.assign(m, { 'bk.lock': lock, 'bk.kickOnBass': share(kOn, (s) => bOn.includes(s)), 'bk.offbeat': off,
             'bk.neither': lock < 0.3 && off < 0.4 ? 1 : 0 });
     }

@@ -9,7 +9,7 @@ import * as G from '../../dist/esm/gen/index.js';
 import { makeCase, recipeKey, sceneOf } from '../../scripts/gen-bench/audition/case.mjs';
 import { blindRecipes, rebuild, setRecipes } from '../../scripts/gen-bench/audition/sources.mjs';
 import { chunks, interleave, packCase } from '../../scripts/gen-bench/audition/queue.mjs';
-import { firstList, summarise } from '../../scripts/gen-bench/audition/summary.mjs';
+import { compareCase, firstList, regression, summarise } from '../../scripts/gen-bench/audition/summary.mjs';
 import { caseMidi, drop, earVsBench, enqueue, markAt, nextIndex, ratingDoc, schedule, tracksFor } from '../../scripts/gen-bench/audition/page/core.mjs';
 
 const set2 = () => ({ root: 'C', mode: 'minor', bpm: 124, tracks: [
@@ -133,6 +133,19 @@ eq('report_ear_vs_bench_ok_but_bad', sum.byGenerator.find((g) => g.generator ===
 eq('report_ear_vs_bench_bad_but_keep', sum.byGenerator.find((g) => g.generator === 'real').earVsBench.benchBadUserKeep, 1);
 eq('report_marks_kept', walk.marks.length, 1);
 eq('first_list_bad_generated_only', firstList(rs, [pc, bl, rl]).map((f) => f.recipeKey).sort().join(), 'abc,bk');
+
+_log('\nTest: audition regression on rated cases');
+
+const old = packCase(c1);
+eq('regress_same_recipe_same_build_is_same', compareCase(G, old, packCase(rebuild(G, pr, {}, [], 'b2')), 0), 'same');
+const moved = { ...old, options: old.options.map((o, k) => (k ? o : { ...o, notes: o.notes.map(([s, d, p, v]) => [s, d, p + 5, v]) })) };
+eq('regress_altered_notes_changed', compareCase(G, old, moved, 0), 'changed');
+eq('regress_missing_rebuild_changed', compareCase(G, old, null, 0), 'changed');
+const reg = regression(G, [ratingDoc(old, 0, 'bad', [], [], '', 1), ratingDoc(old, 1, 'keep', [], [], '', 1), ratingDoc(rl, null, 'bad', [], [], '', 1)], [old, rl],
+    (recipe) => (recipe.src === 'path' ? moved : null));
+eq('regress_bad_changed_counted', reg.bads.changed, 1);
+eq('regress_keep_unchanged_not_listed', reg.keeps.changed.length, 0);
+eq('regress_real_blind_skipped', reg.skipped, 1);
 }
 
 function sceneOfRef(r) { return [...r.bass].map((n) => [Math.round(n[0] * 96) / 96, Math.round(n[1] * 96) / 96, n[2], n[3]]); }

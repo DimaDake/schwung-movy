@@ -454,3 +454,20 @@ useful clicks 60,477 → 60,449 (FOLLOW's narrower DENSITY takes).
 2. Two MELODYs share onsets (`ll.indep`): COUNTER is the tool for that.
 3. Combinations not built yet (the user's list): clips across scenes, a
    played part with a generated one, Double's endings across tracks.
+
+## Round 7: the ear (2026-11-07)
+
+The benches now have a listener. `scripts/gen-bench/audition/` exports every
+case they can build (sets of six from New Clip, Variation and Smart Double;
+kept takes the bench calls not usable; real-or-generated parts of real scenes,
+blind) to a private phone page, https://claude.ai/artifact/VaCtD8dCg9qZhGfYeVQLSE,
+where the user rates Keep / Meh / Bad, picks reasons and marks beats.
+Design: `2026-11-07-gen-audition-design.md`; plan: `2026-11-07-gen-audition-plan.md`.
+
+    npm run build:browser
+    node scripts/gen-bench/audition/export.mjs            # ~3.5 min, .gen-data/audition/<sha>/
+    node scripts/gen-bench/audition/publish.mjs           # .gen-data/audition/site/, then publish to the same URL
+    # act on ratings: ArtifactData list "ratings" -> .gen-data/audition/ratings.json
+    node scripts/gen-bench/audition/report.mjs            # report.md (per generator, marks, ear vs bench), first.json
+    node scripts/gen-bench/audition/regress.mjs           # your Bads changed / Keeps changed, after a fix
+    node scripts/gen-bench/audition/export.mjs --first .gen-data/audition/first.json   # before/after at the head

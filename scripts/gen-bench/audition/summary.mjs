@@ -45,3 +45,36 @@ export function firstList(ratings, cases) {
     }
     return [...out.values()];
 }
+
+const SAME = 0.02;
+const asNotes = (ns) => ns.map(([tick, gate, pitch, vel]) => ({ tick, gate, pitch, vel }));
+function partOf(c, option) {
+    if (option === null || option === undefined) return c.scene.tracks[c.target];
+    return c.options?.[option]?.notes ?? null;
+}
+
+/** Whether `now` (the same recipe rebuilt) still plays what `old` played for
+ *  the rated part: a set's option is found again by its preset. */
+export function compareCase(G, old, now, option) {
+    if (!now) return 'changed';
+    const o = option === null || option === undefined ? option : now.options?.findIndex((x) => x.preset === old.options[option].preset);
+    const a = partOf(old, option), b = o === -1 ? null : partOf(now, o);
+    if (!a || !b) return 'changed';
+    return G.difference(asNotes(a), asNotes(b)) < SAME ? 'same' : 'changed';
+}
+
+/** The user's ear as a gate: every rated generated case rebuilt by `rebuild(recipe)`. */
+export function regression(G, ratings, cases, rebuild) {
+    const byId = new Map(cases.map((c) => [c.id, c])), built = new Map();
+    const out = { bads: { changed: 0, same: 0 }, keeps: { changed: [], same: 0 }, skipped: 0 };
+    for (const d of latest(ratings)) {
+        const c = byId.get(d.caseId);
+        if (!c || c.truth === 'real' || d.rating === 'meh') { out.skipped++; continue; }
+        if (!built.has(c.recipeKey)) built.set(c.recipeKey, rebuild(c.recipe));
+        const v = compareCase(G, c, built.get(c.recipeKey), d.option);
+        if (d.rating === 'bad') out.bads[v]++;
+        else if (v === 'changed') out.keeps.changed.push({ caseId: c.id, option: d.option, preset: d.preset });
+        else out.keeps.same++;
+    }
+    return out;
+}

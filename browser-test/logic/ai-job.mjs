@@ -9,9 +9,9 @@ import { _log, eq, ok, installMockFs, uninstallMockFs, installMockEngine, uninst
     seqEngineTick, resetSeqEngine } from './harness.mjs';
 import {
     pickSource, variationTarget, parseTrackDump, startAiJob, aiPhase, aiTick, aiRunningInput, aiCancel,
-    aiSetWillChange, aiPreviewInput, resetAiJob, commitPreview, readTrack,
+    aiSetWillChange, aiPreviewInput, resetAiJob, commitPreview, readTrack, aiPrewarm, aiPrewarmDrop, aiPrewarming,
 } from '../../dist/esm/ai/index.js';
-import { seqToastText, seqHeaderShown } from '../../dist/esm/seq/render.js';
+import { seqToast, seqToastText, seqHeaderShown } from '../../dist/esm/seq/render.js';
 import { openPowerModal, closeLeaveModal } from '../../dist/esm/app/leave-modal.js';
 
 const DUMP = '0 16 0 1/1 0 0|0.24.60.100,96.24.64.100';
@@ -126,6 +126,67 @@ done(st);
     runTicks(16);
     aiRunningInput([0xB0, MoveBack, 127]);
     eq('algo_back_cancels_mid_slices', aiPhase(), 'idle');
+    done(st);
+}
+
+/* ── The early start: a hold's request runs from the press, unseen, and the
+ * full hold takes it up where it stands. ── */
+{
+    const NOTES = '0 16 0 1/1 0 0|5.20.60.100,99.22.64.96,190.24.61.90,262.20.67.100,290.10.67.30';
+    const ticksToPreview = () => { let n = 0; while (aiPhase() === 'running' && n < 500) { aiTick(); n++; } return n; };
+    let st = boot();
+    st.eng.params['ait:0'] = NOTES;
+    startAiJob('quantize', 0, 0);
+    const fresh = ticksToPreview();
+    commitPreview();
+    done(st);
+
+    st = boot();
+    st.eng.params['ait:0'] = NOTES;
+    aiPrewarm('quantize', 0, 0);
+    runTicks(10);
+    eq('prewarm_runs_unseen: still idle', aiPhase(), 'idle');
+    eq('prewarm_runs_unseen: input passes', aiRunningInput([0x90, 68, 100]), false);
+    ok('prewarm_runs_unseen: no header', !seqHeaderShown().startsWith('QUANTIZING'));
+    startAiJob('quantize', 0, 0);
+    eq('prewarm_taken_up_by_the_full_hold', aiPhase(), 'running');
+    eq('prewarm_saves_the_ticks_it_ran', ticksToPreview(), fresh - 10);
+    commitPreview();
+    done(st);
+
+    st = boot();
+    st.eng.params['ait:0'] = NOTES;
+    aiPrewarm('quantize', 0, 0);
+    runTicks(500);
+    eq('prewarm_finished_stays_closed', aiPhase(), 'idle');
+    startAiJob('quantize', 0, 0);
+    eq('prewarm_finished_opens_at_once', aiPhase(), 'preview');
+    commitPreview();
+    done(st);
+
+    st = boot();
+    st.eng.params['ait:0'] = NOTES;
+    aiPrewarm('quantize', 1, 0);
+    runTicks(10);
+    startAiJob('quantize', 0, 0);
+    eq('prewarm_for_another_clip_is_not_used', ticksToPreview(), fresh);
+    commitPreview();
+    done(st);
+
+    st = boot();
+    st.eng.params['ait:0'] = '0 16 0 1/1 0 0|';
+    seqToast('-');
+    aiPrewarm('quantize', 0, 0);
+    runTicks(30);
+    ok('prewarm_failure_says_nothing_yet', seqToastText() !== 'NOTHING TO QUANTIZE');
+    startAiJob('quantize', 0, 0);
+    eq('prewarm_failure_toasts_at_the_full_hold', seqToastText(), 'NOTHING TO QUANTIZE');
+    aiPrewarm('quantize', 0, 0);
+    aiPrewarmDrop();
+    eq('prewarm_drop_forgets_it', aiPrewarming(), false);
+    aiPrewarm('quantize', 0, 0);
+    aiSetWillChange();
+    eq('prewarm_dropped_on_a_set_change', aiPrewarming(), false);
     done(st);
 }
 }

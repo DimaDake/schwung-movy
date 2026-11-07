@@ -8,7 +8,7 @@ import { loopStartBar, seqState } from '../seq/state.js';
 import { watchedTrack } from '../seq/watch.js';
 import { MAX_STEPS, STEP_AI_VARIATION, STEP_DOUBLE_LOOP, STEP_QUANTIZE } from '../seq/constants.js';
 import { type HoldKind, holdKind, holdPending, holdPress, holdTick } from './hold.js';
-import { MSG_NOTHING, MSG_NOTHING_DOUBLE, startAiJob } from './job.js';
+import { aiPrewarm, aiPrewarmDrop, aiPrewarming, type AiTask, MSG_NOTHING, MSG_NOTHING_DOUBLE, startAiJob } from './job.js';
 
 /* A Set still loading or settling would be read half-restored. */
 function busy(): boolean {
@@ -78,10 +78,26 @@ export function aiDoubleStart(): void {
 const ALLOWED: Record<HoldKind, () => boolean> = { quantize: aiHoldAllowed, variation: aiVariationAllowed, double: aiDoubleAllowed };
 const START: Record<HoldKind, () => void> = { quantize: aiQuantizeStart, variation: aiVariationStart, double: aiDoubleStart };
 
-/** Shift + press on Step 16, 14 or 15: arm a hold only when it could start. */
-export function aiHoldPress(k: HoldKind): void {
-    holdPress(Date.now(), k, ALLOWED[k](), k === 'variation' && !variationPossible() ? 'NEW CLIP' : undefined);
+/** The job a full hold would start, or null when it would only say why not. */
+function jobOf(k: HoldKind): [AiTask, number, number] | null {
+    if (busy()) return null;
+    const t = watchedTrack();
+    if (k === 'variation') return [variationPossible() ? 'variation' : 'create', t, selectedSlot(t)];
+    if (k === 'quantize' ? seqState.lenSteps <= 0 || !seqState.occ.some((b) => b !== 0) : !clipHasNotes()) return null;
+    return [k, t, selectedSlot(t)];
 }
 
-/** Per tick: completes a Shift + Step 16, 14 or 15 hold. */
-export function aiGestureTick(now: number): void { holdTick(now, appState.shiftHeld, (k) => START[k]()); }
+/** Shift + press on Step 16, 14 or 15: arm a hold only when it could start,
+ *  and start its request now, unseen, so it is ready when the bar fills. */
+export function aiHoldPress(k: HoldKind): void {
+    const can = ALLOWED[k]();
+    holdPress(Date.now(), k, can, k === 'variation' && !variationPossible() ? 'NEW CLIP' : undefined);
+    const job = can ? jobOf(k) : null;
+    if (job) aiPrewarm(...job); else aiPrewarmDrop();
+}
+
+/** Per tick: completes a Shift + Step 16, 14 or 15 hold; a hold let go drops its early start. */
+export function aiGestureTick(now: number): void {
+    holdTick(now, appState.shiftHeld, (k) => START[k]());
+    if (aiPrewarming() && !holdPending()) aiPrewarmDrop();
+}

@@ -8,7 +8,7 @@
 import { _log, eq, ok, installMockFs, uninstallMockFs, installMockEngine, uninstallMockEngine,
     resetSeqEngine, appState, selectTrack } from './harness.mjs';
 import { holdPress, holdRelease, holdTick, holdProgress, holdLabel, aiVariationStart, aiQuantizeStart,
-    variationPossible, aiPhase, resetAiJob, holdPending, aiGestureTick, aiCancel } from '../../dist/esm/ai/index.js';
+    variationPossible, aiPhase, resetAiJob, holdPending, aiGestureTick, aiCancel, aiPrewarming } from '../../dist/esm/ai/index.js';
 import { handleStepButton } from '../../dist/esm/seq/router-steps.js';
 import { stepIconColor } from '../../dist/esm/seq/leds.js';
 import { setPhase, sessionPhase } from '../../dist/esm/seq/set-session.js';
@@ -132,6 +132,7 @@ ok('Shift+Step16 release cycles quantize', seqState.clipQuant !== before);
 seqState.recording = true;
 const qRec = seqState.clipQuant;
 handleStepButton(15, true, true);
+eq('no_early_start_while_recording', aiPrewarming(), false);
 eq('hold_bar_stays_hidden_while_recording', holdProgress(Date.now() + 800), -1);
 handleStepButton(15, false, true);
 ok('Shift+Step16 while recording still cycles quantize', seqState.clipQuant !== qRec);
@@ -154,9 +155,12 @@ handleStepButton(13, false, true);
 eq('step14_tap_starts_nothing', aiPhase(), 'idle');
 eq('step14_tap_says_hold', seqToastText(), 'HOLD TO GENERATE');
 handleStepButton(13, true, true);
+eq('step14_press_starts_early_unseen', aiPrewarming() && aiPhase() === 'idle', true);
 aiGestureTick(Date.now() + 700);
 handleStepButton(13, false, true);
 eq('step14_early_release_starts_nothing', aiPhase(), 'idle');
+aiGestureTick(Date.now() + 800);
+eq('step14_early_release_drops_the_early_start', aiPrewarming(), false);
 handleStepButton(13, true, true);
 aiGestureTick(Date.now() + 1400);
 eq('step14_hold_starts_variation', aiPhase(), 'running');

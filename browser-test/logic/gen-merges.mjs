@@ -86,6 +86,8 @@ report('merge_v_octave_into_bassline', misses('v-octave', 'v-bassline', { PATTER
 report('merge_v_pedal_into_hold', misses('v-pedal', 'v-hold', { NOTE: 'TONIC', AMOUNT: 5 },
     ['drone/locked/variation', 'drone/partial/variation', 'drone/free/variation']));
 report('merge_v_drone_into_hold', misses('v-drone', 'v-hold', { NOTE: 'PIVOT', SHARED: 'TIE', LENGTH: 7 }));
+/* DISPLACE's entry was re-recorded 2026-11-07: its SHIFT now leaves the notes
+ * struck with the band's accents where they are (chains bench round 7). */
 for (const id of ['v-displace', 'v-revoice']) report(`${id}_default_kept`, misses(id, id, {}));
 /* BASSLINE's default is RIFF now (plans/2026-11-06-bass-over-chords-evaluation.md);
  * the old default is AS WRITTEN, still a click away. */

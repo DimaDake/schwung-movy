@@ -10,7 +10,7 @@ import { type AiClip, type Chord, type Freedom, type GenInput, HALF, type Harmon
 import { chordsOf } from '../theory/chords.js';
 import { keyFor, keyHint } from '../theory/key.js';
 import { bandHits, type Hit } from './band.js';
-import { heardOf } from './heard.js';
+import { heardOf, heldByPart } from './heard.js';
 import { type Groove, grooveOf } from './groove.js';
 import { type Kit, kitHints, kitOf } from './kit.js';
 import { heardPcs, profile, sceneTicks, soundingSegments } from './sounding.js';
@@ -103,7 +103,8 @@ export function buildCtx(input: GenInput): GenCtx {
          * whether another track sets them (TURN may change them only if not). */
         /* A Variation maps its notes from the source's chords to the target's:
          * both read a 16th at a time, or a pushed change reads as a new chord. */
-        srcChords: input.task !== 'variation' ? quantChords : withHeard(chordsOf(srcSegs, key), srcSlot >= 0 ? heardOf(input, key, srcSlot) : null),
+        srcChords: input.task !== 'variation' ? quantChords : withHeard(srcClip && strikesChords(srcClip.notes)
+            ? heldByPart(chordsOf(srcSegs, key), soundingSegments([srcClip], sceneTicks(srcScene))) : chordsOf(srcSegs, key), srcSlot >= 0 ? heardOf(input, key, srcSlot) : null),
         freedom: input.task === 'quantize' ? 'locked' : freedom,
         alone: freedom === 'free',
         pinned,

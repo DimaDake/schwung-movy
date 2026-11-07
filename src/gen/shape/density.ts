@@ -16,9 +16,15 @@ const weight = (e: Ev) => strength(e.tick) * 2 + Math.min(1, e.voices[0].gate / 
 
 function thin(ctx: GenCtx, evs: Ev[], share: number, r: Rng): Ev[] {
     const min = onsetBounds(ctx)[0];
-    const drop = Math.min(evs.length - Math.max(1, min), Math.round(evs.length * share));
+    /* A chord's arrival stays: thinned by metre alone, a pad struck on the
+     * bar's "and" lost its one change and held a chord through the loop
+     * (chains bench, scene B: THIN at 0 changes a bar in 10 of 35). */
+    const set = (e: Ev) => e.voices.map((v) => v.pitch).sort((a, b) => a - b).join();
+    const arrives = (i: number) => evs[i].voices.length > 1 && (i === 0 || set(evs[i]) !== set(evs[i - 1]));
+    const kept = evs.filter((_, i) => arrives(i)).length;
+    const drop = Math.min(evs.length - Math.max(1, min, kept), Math.round(evs.length * share));
     if (drop <= 0) return evs;
-    const order = evs.map((e, i) => ({ i, w: weight(e) + r() * 0.05 })).sort((a, b) => a.w - b.w).slice(0, drop).map((x) => x.i);
+    const order = evs.map((e, i) => ({ i, w: weight(e) + (arrives(i) ? 10 : 0) + r() * 0.05 })).sort((a, b) => a.w - b.w).slice(0, drop).map((x) => x.i);
     const gone = new Set(order);
     return evs.filter((_, i) => !gone.has(i));
 }

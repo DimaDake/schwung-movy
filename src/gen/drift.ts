@@ -26,16 +26,33 @@ function nextTone(p: number, dir: number, pcs: number[], taken: number[]): numbe
     return p;
 }
 
+/** A chord voice's next place that way, losing no pitch class: a chord tone
+ *  the others lack when its own is doubled, else its own an octave over.
+ *  Free moves thinned A-F# to D-A and B-G to G-G, and a lead varied over
+ *  that read A major or nothing (chains bench, scene B: C# in G major). */
+function revoice(p: number, dir: number, pcs: number[], others: number[], lo: number, hi: number): number {
+    const held = new Set(others.map(pc));
+    for (const d of [dir, -dir]) {
+        for (let q = p + d; Math.abs(q - p) <= 12 && q >= lo && q <= hi; q += d) {
+            if (pc(q) === pc(p) || (pcs.includes(pc(q)) && !held.has(pc(q)) && held.has(pc(p)))) return q;
+        }
+    }
+    return p;
+}
+
 /** One move of one voice; `way` holds each voice's direction, so a voice
  *  moved again keeps going and never walks back to where it was. */
 function moveVoice(ctx: GenCtx, e: Ev, chord: Chord | null, r: Rng, lo: number, hi: number, way: Map<object, number>, force = 0): void {
-    const i = Math.floor(r() * e.voices.length);
+    const pick = Math.floor(r() * e.voices.length);
+    /* Told which way, a chord inverts by its outer voice: the top one down, the bottom one up. */
+    const ps = e.voices.map((v) => v.pitch);
+    const i = e.voices.length > 1 && force ? ps.indexOf(force < 0 ? Math.max(...ps) : Math.min(...ps)) : pick;
     const x = e.voices[i];
     let dir = way.get(x) ?? (force || (r() < 0.5 ? -1 : 1));
     if (x.pitch + dir * 2 > hi || x.pitch + dir * 2 < lo) dir = -dir;
     way.set(x, dir);
     if (e.voices.length > 1 && chord) {
-        x.pitch = nextTone(x.pitch, dir, chord.pcs, e.voices.map((y) => y.pitch));
+        x.pitch = revoice(x.pitch, dir, chord.pcs, e.voices.filter((y) => y !== x).map((y) => y.pitch), lo, hi);
         return;
     }
     const step = stepScale(x.pitch, dir * (r() < 0.25 ? 2 : 1), ctx.key);
@@ -56,6 +73,24 @@ function moveHit(ctx: GenCtx, evs: Ev[], i: number, r: Rng): void {
     else evs.push({ tick: to * TPS, voices: e.voices.map((v) => ({ ...v, vel: Math.max(1, Math.round(v.vel * 0.45)) })) });
 }
 
+/** Each event's run: it and the strikes after it of the same chord voicing
+ *  (one strike of a line or a drum hit is its own). A chord voice moved on
+ *  one strike of a held chord and not the next is a new chord every strike:
+ *  NUDGE on comping chords measured 3.5-5.5 changes a bar against real
+ *  parts' 0.4-1 (chains bench, scene B). `byBar` ends a run at the bar line,
+ *  so BARS can move one bar of a chord held over two. */
+function strikeRuns(evs: Ev[], byBar: boolean): number[][] {
+    const key = (e: Ev) => (e.voices.length > 1 ? e.voices.map((v) => v.pitch).sort((a, b) => a - b).join() : null);
+    const runs: number[][] = [];
+    for (let i = 0; i < evs.length; i++) {
+        const head = i > 0 ? runs[i - 1][0] : -1;
+        const same = head >= 0 && key(evs[i]) !== null && key(evs[i]) === key(evs[i - 1])
+            && (!byBar || Math.floor(evs[i].tick / BAR) === Math.floor(evs[head].tick / BAR));
+        if (same) { runs[head].push(i); runs.push(runs[head]); } else runs.push([i]);
+    }
+    return runs;
+}
+
 /** Where and which way NUDGE walks (presets/var-nudge.ts): only the events
  *  of bars `bars` keeps, every voice going `dir` (1 up, -1 down, 0 either). */
 export interface Walk { bars?: (bar: number) => boolean; dir?: number }
@@ -65,7 +100,8 @@ export function driftNotes(ctx: GenCtx, notes: Note[], d: number, seed: number, 
     /* Smart Double drifts its answer only: the first half stays as played. */
     const from = ctx.task === 'double' ? ctx.end / 2 : 0;
     const evs = toEvents(notes);
-    const idx = evs.map((e, i) => i).filter((i) => evs[i].tick >= from && (!walk.bars || walk.bars(Math.floor(evs[i].tick / BAR))));
+    const runs = strikeRuns(evs, !!walk.bars);
+    const idx = evs.map((e, i) => i).filter((i) => runs[i][0] === i && evs[i].tick >= from && (!walk.bars || walk.bars(Math.floor(evs[i].tick / BAR))));
     if (!idx.length || d <= 0) return notes;
     const r = rng(mix(seed, 0xD21F7));
     const order = shuffled(r, idx);
@@ -77,8 +113,11 @@ export function driftNotes(ctx: GenCtx, notes: Note[], d: number, seed: number, 
     const way = new Map<object, number>();
     for (let j = 0; j < moves; j++) {
         const i = order[j % order.length];
-        if (ctx.drum) moveHit(ctx, evs, i, r);
-        else moveVoice(ctx, evs[i], chordAt(chords, evs[i].tick, ctx.k) ?? chordAt(ctx.srcChords, evs[i].tick, ctx.k), r, lo, hi, way, walk.dir);
+        if (ctx.drum) { moveHit(ctx, evs, i, r); continue; }
+        const was = evs[i].voices.map((v) => v.pitch);
+        moveVoice(ctx, evs[i], chordAt(chords, evs[i].tick, ctx.k) ?? chordAt(ctx.srcChords, evs[i].tick, ctx.k), r, lo, hi, way, walk.dir);
+        const v = was.findIndex((p, k) => p !== evs[i].voices[k].pitch);
+        if (v >= 0) for (const j of runs[i].slice(1)) for (const x of evs[j].voices) if (x.pitch === was[v]) x.pitch = evs[i].voices[v].pitch;
     }
     return fromEvents(evs.sort((a, b) => a.tick - b.tick), ctx.end);
 }

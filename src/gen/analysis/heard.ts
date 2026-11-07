@@ -13,7 +13,7 @@ import { detectChord } from '../theory/chords.js';
 import { sameChord } from '../theory/pc.js';
 import { type Chord, type GenInput, type Key, TPS } from '../types.js';
 import type { Prog } from './context.js';
-import { sceneTicks, soundingSegments } from './sounding.js';
+import { heardPcs, type Segment, sceneTicks, soundingSegments } from './sounding.js';
 
 const CHORDAL = new Set(['pad', 'stabs', 'drone']);
 
@@ -42,4 +42,16 @@ export function heardOf(input: GenInput, key: Key, slot = input.target.slot): Pr
     /* A single 16th between two of the same chord is a strum or a slip. */
     const fine = held.map((c, i) => (i > 0 && i + 1 < held.length && sameChord(held[i - 1], held[i + 1]) && !sameChord(c, held[i - 1]) ? held[i - 1] : c));
     return fine.some((c) => c) ? Object.assign(fine, { unit: TPS }) : null;
+}
+
+/** The source scene's chords as a part that strikes chords plays them: a
+ *  half-bar where its own notes are the last one's keeps the last chord.
+ *  Read with the bass, a walk under a held Fm (F-Eb-D) made the bar's second
+ *  half Dm7b5, and every HARMONY plan built from that changed chord each
+ *  half-bar (chains bench, scene B: 1.25-2 changes a bar over a source's 1). */
+export function heldByPart(prog: Prog, own: Segment[]): Prog {
+    const pcs = own.map((s) => heardPcs(s).join());
+    const out: Prog = [];
+    prog.forEach((c, i) => out.push(i > 0 && pcs[i] && pcs[i] === pcs[i - 1] ? out[i - 1] : c));
+    return out;
 }

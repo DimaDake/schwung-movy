@@ -25,6 +25,7 @@ import { run as run_gen_style } from './logic/gen-style.mjs';
 import { run as run_gen_double } from './logic/gen-double.mjs';
 import { run as run_gen_create } from './logic/gen-create.mjs';
 import { run as run_gen_drift } from './logic/gen-drift.mjs';
+import { run as run_gen_scene_b } from './logic/gen-scene-b.mjs';
 import { run as run_gen_quality } from './logic/gen-quality.mjs';
 import { run as run_gen_paths } from './logic/gen-paths.mjs';
 import { run as run_gen_band } from './logic/gen-band.mjs';
@@ -148,6 +149,7 @@ const SUITES = [
     run_gen_double,
     run_gen_create,
     run_gen_drift,
+    run_gen_scene_b,
     run_gen_quality,
     run_gen_paths,
     run_gen_band,

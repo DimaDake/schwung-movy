@@ -191,3 +191,11 @@ export function clearRubs(ctx: GenCtx, notes: Note[], h: number): Note[] {
     }
     return out;
 }
+
+/** Which way is clear of the band's nearest line (-1 down, 1 up, 0 none):
+ *  NUDGE turns a chord part's voices so; one moved toward a lead sat in its
+ *  octave (chains bench, scene B: lc.mud after a NUDGE). */
+export function awayFromLines(ctx: GenCtx): number {
+    const ls = band(ctx).parts.filter((p) => !p.chords).sort((a, b) => Math.abs(a.mid - ctx.mid) - Math.abs(b.mid - ctx.mid));
+    return ls.length ? (ls[0].mid >= ctx.mid ? -1 : 1) : 0;
+}

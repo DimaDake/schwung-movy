@@ -1,7 +1,9 @@
 /* Variation, new patterns from the part's own material: Live-style
  * Recombine, Euclidean re-spacing, and chord rhythms from a comping library. */
 
+import type { GenCtx } from '../analysis/context.js';
 import { strength } from '../analysis/events.js';
+import { bandSteps } from '../create/common.js';
 import { count, custom, K } from '../knobs.js';
 import type { Preset } from '../preset.js';
 import { rng, shuffled } from '../rng.js';
@@ -52,7 +54,23 @@ export const RECOMBINE: Preset = {
     },
 };
 
-/** The part's notes in order on an Euclidean rhythm of PULSES per bar. */
+/** The rotation that lands the most hits on the band's accents (the
+ *  strongest counts most), 0 with no band. Rotation 0 of an even spread
+ *  missed the chords' strikes: a lead shared 0.2 of them in scene B (chains
+ *  bench) where real scenes share 0.36 and more. */
+function bandRotation(ctx: GenCtx, pulses: number): number {
+    const top = bandSteps(ctx).slice(0, 4);
+    let best = 0, most = 0;
+    for (let r = 0; r < 16; r++) {
+        const p = euclid(pulses, 16, r);
+        const got = top.reduce((a, s, i) => a + (p[s] ? 4 - i : 0), 0);
+        if (got > most) { best = r; most = got; }
+    }
+    return best;
+}
+
+/** The part's notes in order on an Euclidean rhythm of PULSES per bar;
+ *  ROTATE turns it from where it sits best with the band. */
 export const EUCLID: Preset = {
     id: 'v-euclid', name: 'EUCLID', task: 'variation', drum: false, cls: 'rhythm', fit: () => 0.45, roles: ['lead', 'arpeggio', 'bass', 'stabs'],
     knobs: [{ ...count('PULSES', 15, 5), steps: () => 16, def: (c) => Math.max(1, Math.min(15, Math.round((c.role?.perBar ?? 5))) + 1) - 1,
@@ -60,7 +78,7 @@ export const EUCLID: Preset = {
     generate: (ctx, v, seed) => {
         const evs = partEvs(ctx);
         if (!evs.length) return [];
-        const pattern = euclid(v[0] + 1, 16, v[1]);
+        const pattern = euclid(v[0] + 1, 16, bandRotation(ctx, v[0] + 1) + v[1]);
         const out: Ev[] = [];
         let j = 0;
         for (let bar = 0; bar * BAR < ctx.end; bar++) {

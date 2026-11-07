@@ -106,7 +106,9 @@ Variation offers **six options**, picked from some thirty generators to suit the
 part, closest first. Option 1 is **NUDGE**: the same part with a few notes
 moved, in the same harmony. Keep it and press again to change a part a little at
 a time; **AMOUNT** moves more notes, **BARS** puts the change in every bar, the
-even bars or the last one, and **DIRECTION** lets the part climb or sink.
+even bars or the last one, and **DIRECTION** lets the part climb or sink. On a
+chord part NUDGE re-voices a held chord the same way on every strike, so the
+chords change when they did before; left on **ANY**, it moves away from the lead.
 Option 3 is a brand-new part of the track's kind (a New
 Clip **BASS** on a bass track, say), and option 6 a new part of a neighbouring
 kind, for when the B section wants something other than a variation. Every option **keeps the track's role**: chords stay

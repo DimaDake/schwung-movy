@@ -7,11 +7,12 @@ import { custom, K } from '../knobs.js';
 import { planAt } from '../plan.js';
 import type { Preset } from '../preset.js';
 import { rng } from '../rng.js';
+import { bandAccent } from '../shape/seams.js';
 import { displace } from '../shape/time.js';
 import { colourPcs } from '../theory/category.js';
 import { nearestPitch, pc, sameChord } from '../theory/pc.js';
 import { onsetBounds } from '../guard.js';
-import { type Ev, TPS } from '../types.js';
+import { BAR, type Ev, TPS } from '../types.js';
 import { finish, over, partEvs, someOf, targetAt } from './helpers.js';
 
 const SHIFTS = [-8, -6, -4, -3, -2, -1, 1, 2, 3, 4, 6, 8];
@@ -41,7 +42,13 @@ export const DISPLACE: Preset = {
         const r = rng(seed + v[3] * 7919);
         if (v[4] > 0) return finish(ctx, anticipate(ctx, over(ctx, partEvs(ctx), { h: v[2], tension: v[6] }), v[2], PUSHES[v[4] - 1]), { length: v[5] }, r);
         const evs = partEvs(ctx);
-        const sel = someOf(evs.length, Math.max(0.1, v[0] / 10), r);
+        /* The notes struck with the band's accents stay: moving them took a
+         * lead off its chords (lc.coincide 0.25 against real scenes' 0.36+,
+         * chains bench scene B), and an offset is heard against what holds.
+         * All on accents: the downbeats stay; all downbeats: one moves. */
+        const all = evs.map((e, i) => i);
+        const pool = [all.filter((i) => !bandAccent(ctx, evs[i].tick)), all.filter((i) => evs[i].tick % BAR !== 0), all].find((p) => p.length)!;
+        const sel = new Set([...someOf(pool.length, Math.max(0.1, v[0] / 10), r)].map((j) => pool[j]));
         const moved = displace(evs, (i) => sel.has(i), SHIFTS[v[1]], ctx.end);
         /* Two onsets landing together merge: the earlier one keeps it. */
         const out = moved.filter((e, i) => i === 0 || e.tick !== moved[i - 1].tick);

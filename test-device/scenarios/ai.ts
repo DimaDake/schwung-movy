@@ -7,7 +7,8 @@
  *      the played notes on the grid, written into the clip at quantize 0
  *   A2 the preview lights the knobs at their positions like a module's params,
  *      and a knob turn rewrites the option over the clip
- *   A3 the jog switches to option 3 and a jog click keeps it
+ *   A3 the jog switches to option 3; Undo takes back the switch, then the
+ *      knob turn, the preview still open; a jog click keeps option 3
  *   A4 Shift + HOLD Step 14 on an EMPTY slot writes a variation there, at the
  *      source clip's length; Back keeps it
  * The witness is the engine's own clip dump (`ait:0`), the only read-back of
@@ -21,7 +22,7 @@ import * as fixture from '../fixture.js';
 import { until } from '../wait.js';
 import { cc as ccPacket } from '../midi.js';
 
-const SHIFT = 49, BACK = 51, JOG = 14, JOG_CLICK = 3;
+const SHIFT = 49, BACK = 51, UNDO = 56, JOG = 14, JOG_CLICK = 3;
 const STEP14 = 16 + 13, STEP16 = 16 + 15;
 
 /* `slot len loop num/den transpose quant|tick.gate.pitch.vel,...` per clip.
@@ -68,12 +69,24 @@ scenario('ai', async (t) => {
         /* movy-host delivers a tick's jog turns at its flush, AFTER that tick's
          * buttons (host/deltas.c): click only once the switch has landed. */
         await cc(JOG, 2);
-        const shown = await waitLine('option 3 shown', 0, (l) => l !== '' && l !== g2);
+        const switched = await waitLine('option 3 shown', 0, (l) => l !== '' && l !== g2);
+        /* Undo walks back through the session one step at a time (design §2.4):
+         * the switch, then the knob turn; the preview stays open. */
+        await cc(UNDO, 127); await cc(UNDO, 0);
+        const u1 = await waitLine('undo the switch', 0, (l) => l === g2);
+        t.check('a3-undo-steps-back-the-switch', 'Undo in the preview takes back the jog switch, not the session',
+            u1 === g2, { expected: g2, actual: u1 });
+        await cc(UNDO, 127); await cc(UNDO, 0);
+        const u2 = await waitLine('undo the turn', 0, (l) => l === g);
+        t.check('a3-undo-steps-back-the-turn', 'a second Undo takes back the knob turn, still in the preview',
+            u2 === g, { expected: g, actual: u2 });
+        await cc(JOG, 2);
+        const shown = await waitLine('option 3 again', 0, (l) => l !== '' && l !== g);
         await cc(JOG_CLICK, 127); await cc(JOG_CLICK, 0);
         await t.tx.frames(30);
         const kept = await line(0);
         t.check('a3-jog-keeps-option-3', 'the jog picks option 3 and its click keeps it',
-            shown !== g2 && kept === shown, { expected: shown, actual: kept });
+            switched !== g2 && kept === shown, { expected: shown, actual: kept });
 
         await t.tx.engineSet('cmd', 'clipsel 0 1');
         await t.tx.frames(60);

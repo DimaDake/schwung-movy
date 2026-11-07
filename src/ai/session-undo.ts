@@ -4,8 +4,9 @@
  * regeneration. Below the first step is ORIG, below that the session closes. */
 
 import type { AiNote } from './clip-dump.js';
+import type { KnobsStep } from './preview-knobs.js';
 
-export interface Snap { index: number; options: AiNote[][]; knobs: number[][] }
+export interface Snap { index: number; options: AiNote[][]; knobs: KnobsStep }
 /** Where a session stood (preview-undo.ts): kept again there, it changed nothing. */
 export interface StepMark { n: number; top: Snap | null }
 

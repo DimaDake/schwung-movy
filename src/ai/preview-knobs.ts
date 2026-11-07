@@ -15,7 +15,7 @@ import type { Preset } from '../gen/preset.js';
 import type { Note } from '../gen/types.js';
 import { seqHeaderAnnounce } from '../seq/render.js';
 import { countDetents } from '../seq/detent.js';
-import { type PadState, padsOpen, padsReset, padsRestore, padsSave, padsTick, padsTurn, padsUnion, padsRemake } from './preview-pads.js';
+import { type PadState, type PadsStep, padsApply, padsOpen, padsReset, padsRestore, padsSave, padsSnapshot, padsTick, padsTurn, padsUnion, padsRemake } from './preview-pads.js';
 
 interface Opt { preset: Preset; knobs: number[]; live: (boolean | undefined)[]; per?: PadState; own?: GenCtx /* made in its own context (Step 14's New Clip) */ }
 
@@ -137,10 +137,10 @@ export function knobsTick(write: (notes: Note[]) => void): void {
     /* A waiting SEED turn lands once its order is built: the strip says where. */
     if (seedTick(o)) { pending = true; strip(o, o.preset.knobs.findIndex((k) => k.seed)); }
     if (held >= 0) seqHeaderAnnounce(o.preset.knobs[held].name, STRIP_TTL, valueOf(o, held));
-    if (o.per) { const wrote = padsTick(ctx, o, resync, write); resync = false; if (wrote) return; }
+    if (o.per) { const wrote = padsTick(ctx, o, resync, write); resync = false; if (wrote === 'pad') stepEnds(); if (wrote) return; }
     if (pending) {
         pending = false;
-        if (o.per) { padsTurn(ctx, o); write(padsUnion(o)); appState.dirty = true; return; }
+        if (o.per) { padsTurn(ctx, o); write(padsUnion(o)); turned = 0; appState.dirty = true; return; }
         const notes = regenerate(cx(o), o.preset, o.knobs);
         if (notes) { write(notes); turned = 0; appState.dirty = true; } else mlog(`gen: ${o.preset.id} refused ${o.knobs.join(',')}`);
         return;
@@ -170,10 +170,12 @@ export function knobLevels(): (number | null)[] | null {
 /** Test hook: the knob positions of an option (1-based). */
 export function knobsOf(index: number): number[] { return opts[index - 1]?.knobs ?? []; }
 
-/** Every option's knob positions, and putting them back (an undo step, preview-undo.ts). */
-export function knobsSnapshot(): number[][] { return opts.map((o) => [...o.knobs]); }
-export function knobsApply(k: number[][]): void {
-    opts.forEach((o, i) => { seedForget(o); if (k[i]) { o.knobs = [...k[i]]; o.live = o.live.map(() => undefined); } }); pending = false; turned = -1;
+/** Every option's knob positions and pads, and putting them back (an undo step, preview-undo.ts). */
+export interface KnobsStep { knobs: number[][]; pads: PadsStep }
+export function knobsSnapshot(): KnobsStep { return { knobs: opts.map((o) => [...o.knobs]), pads: padsSnapshot(opts) }; }
+export function knobsApply(k: KnobsStep): void {
+    opts.forEach((o, i) => { seedForget(o); if (k.knobs[i]) { o.knobs = [...k.knobs[i]]; o.live = o.live.map(() => undefined); } });
+    padsApply(opts, k.pads); pending = false; turned = -1;
 }
 
 /** Before an undo: a turn still to be regenerated lands now, and a gesture

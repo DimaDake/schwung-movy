@@ -392,6 +392,34 @@ for (let i = 0; i < KEPT_CAP; i++) {
 ok('kept_cap_parked_not_freed', !ops().some((o) => o.startsWith('aiclr 0 1')));
 done();
 
+/* A per-pad drum option (New Clip, plans/2026-10-28-new-clip-design.md): a knob
+ * turn and a pad pressed that adds its part are each a step, and the undo
+ * sticks — the next show must not remake the pads from the newer state. */
+{
+    const rd = G.generateAll(createInput(true, 'free', 5));
+    const at = rd.picks.findIndex((p) => p.preset.perPad);
+    ok('per_pad_fixture_has_a_per_pad_option', at >= 0);
+    const dinp = () => ({ task: 'create', track: 0, slot: 1, orig: null, options: rd.picks.map((p) => p.notes.map((n) => ({ ...n }))), len: 32, scaleNum: 1, scaleDen: 1,
+        gen: { ctx: rd.ctx, picks: rd.picks.map((p) => ({ preset: p.preset, knobs: [...p.knobs] })) } });
+    const pp = rd.picks[at].preset, ds = G.knobSlot(pp, 0);
+    const lane0 = seqState.watchLane;
+    boot(dinp());
+    previewSwitch(at); ticks();
+    /* Option 1 was written by the open, before boot dropped the ops. */
+    const k0 = knobsOf(at + 1).join(), n0 = at === 0 ? (shown = fmt(rd.picks[0].notes)) : track();
+    previewInput(TOUCH(ds, true)); previewInput(KNOB(ds, 2)); ticks(); previewInput(TOUCH(ds, false)); ticks();
+    ok('per_pad_turn_changes', knobsOf(at + 1).join() !== k0 && track() !== n0);
+    undoOnce(); ticks(6);
+    ok('per_pad_turn_is_a_step', previewIndex() === at + 1 && knobsOf(at + 1).join() === k0 && track() === n0, knobsOf(at + 1).join() + ' ' + shown);
+    const other = rd.ctx.kit.pads.find((p) => p !== rd.picks[at].notes[0].pitch);
+    seqState.watchLane = other; ticks();
+    ok('per_pad_press_adds_its_part', track() !== n0);
+    undoOnce(); ticks(6);
+    ok('per_pad_add_undone_sticks', previewIndex() === at + 1 && track() === n0, shown);
+    seqState.watchLane = lane0;
+    done();
+}
+
 /* The cap: the oldest steps merge into the first, which still returns to option 1. */
 {
     const u = new SessionUndo();

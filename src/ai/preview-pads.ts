@@ -12,7 +12,9 @@ import type { Preset } from '../gen/preset.js';
 import type { Note } from '../gen/types.js';
 import { padOf } from '../gen/presets/new-drums-pad.js';
 
-export interface PadState { pads: Map<number, { knobs: number[]; notes: Note[] }>; pad: number }
+/* `undone`: a pad an undo took out while it is the one selected, not added
+ * back until another pad is pressed (else the undo would never stick). */
+export interface PadState { pads: Map<number, { knobs: number[]; notes: Note[] }>; pad: number; undone?: number }
 export interface PadOpt { preset: Preset; knobs: number[]; per?: PadState }
 
 let density = new Map<number, number>();
@@ -21,6 +23,25 @@ let density = new Map<number, number>();
 export function padsReset(): void { density = new Map(); }
 export function padsSave(): Map<number, number> { return density; }
 export function padsRestore(d: Map<number, number>): void { density = d; }
+
+/** Every per-pad option's pads and the shared DENSITY, for an undo step
+ *  (preview-undo.ts): without them the next show would remake what it undid. */
+export interface PadsStep { per: (PadState | undefined)[]; density: Map<number, number> }
+const copyPer = (p: PadState): PadState => ({ pad: p.pad, pads: new Map([...p.pads].map(([k, e]) => [k, { knobs: [...e.knobs], notes: e.notes }])) });
+export function padsSnapshot(opts: PadOpt[]): PadsStep {
+    return { per: opts.map((o) => o.per && copyPer(o.per)), density: new Map(density) };
+}
+export function padsApply(opts: PadOpt[], s: PadsStep): void {
+    density = new Map(s.density);
+    opts.forEach((o, i) => {
+        const p = s.per[i];
+        if (!o.per || !p) return;
+        o.per = copyPer(p);
+        const lane = seqState.watchLane;
+        if (lane !== p.pad && !p.pads.has(lane)) o.per.undone = lane;
+        o.knobs = [...o.per.pads.get(o.per.pad)!.knobs];
+    });
+}
 
 const make = (ctx: GenCtx, o: PadOpt, pad: number, knobs: number[]): Note[] =>
     regenerate({ ...ctx, pad }, o.preset, knobs) ?? [];
@@ -56,7 +77,10 @@ export function padsShow(ctx: GenCtx, o: PadOpt): boolean {
 /** Another pad pressed: its knobs come up, and it is written if it was not. */
 export function padsSelect(ctx: GenCtx, o: PadOpt, pad: number): boolean {
     const per = o.per;
-    if (!per || pad === per.pad || !ctx.kit?.pads.includes(pad)) return false;
+    if (!per) return false;
+    if (pad === per.undone) return false;
+    per.undone = undefined;
+    if (pad === per.pad || !ctx.kit?.pads.includes(pad)) return false;
     per.pad = pad;
     const e = per.pads.get(pad);
     if (e) { o.knobs = [...e.knobs]; return false; }
@@ -81,10 +105,11 @@ export function padsRemake(ctx: GenCtx, o: PadOpt): Note[] {
 }
 
 /** Per tick: a per-pad option follows the selected pad, `resync` after it came
- *  on screen; true when this tick wrote. */
-export function padsTick(ctx: GenCtx, o: PadOpt & { live: (boolean | undefined)[] }, resync: boolean, write: (notes: Note[]) => void): boolean {
+ *  on screen. What this tick wrote: 'pad' a pad pressed added its part (an
+ *  undo step), 'show' the option caught up on coming on screen (none). */
+export function padsTick(ctx: GenCtx, o: PadOpt & { live: (boolean | undefined)[] }, resync: boolean, write: (notes: Note[]) => void): 'show' | 'pad' | null {
     const was = o.per!.pad;
-    const changed = (resync && padsShow(ctx, o)) || padsSelect(ctx, o, seqState.watchLane);
+    const changed = resync && padsShow(ctx, o) ? 'show' : padsSelect(ctx, o, seqState.watchLane) ? 'pad' : null;
     if (o.per!.pad !== was) { o.live = o.live.map(() => undefined); appState.dirty = true; }
     if (changed) { write(padsUnion(o)); appState.dirty = true; }
     return changed;

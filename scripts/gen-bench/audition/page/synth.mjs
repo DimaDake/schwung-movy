@@ -51,15 +51,15 @@ export function makeSynth() {
         } else if (track === 'chords') {
             const g = gain(bus);
             /* Kept low and dark: a 3-4 note voicing of two saws each would bury the lead. */
-            g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(v * 0.028, t + 0.05);
-            g.gain.setValueAtTime(v * 0.028, end); g.gain.exponentialRampToValueAtTime(0.0001, end + 0.25);
-            const lp = filter('lowpass', 1300, g);
+            g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(v * 0.045, t + 0.05);
+            g.gain.setValueAtTime(v * 0.045, end); g.gain.exponentialRampToValueAtTime(0.0001, end + 0.25);
+            const lp = filter('lowpass', 1600, g);
             osc('sawtooth', f * 1.003, t, end + 0.3, lp); osc('sawtooth', f * 0.997, t, end + 0.3, lp);
         } else {
             /* The lead holds its level for the note's length, so long notes stay heard over the pad. */
             const g = gain(bus), rel = end + 0.12;
-            g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v * 0.42, t + 0.004);
-            g.gain.exponentialRampToValueAtTime(v * 0.3, t + 0.08); g.gain.setValueAtTime(v * 0.3, end);
+            g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v * 0.26, t + 0.004);
+            g.gain.exponentialRampToValueAtTime(v * 0.18, t + 0.08); g.gain.setValueAtTime(v * 0.18, end);
             g.gain.exponentialRampToValueAtTime(0.0001, rel);
             const lp = filter('lowpass', 2600, g);
             lp.frequency.setValueAtTime(5200, t); lp.frequency.exponentialRampToValueAtTime(2600, t + 0.15);

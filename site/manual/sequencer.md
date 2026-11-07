@@ -29,6 +29,9 @@ editing notes; [Loop view](loop.md) covers bars and clip length, and
 !!! note "Different from Move while a step is held"
     - The **jog** turns parameter pages (so you can lock any knob on the step). Set
       the length with **LEN** on the Step page, or hold the step and press a later step.
+    - A note stops where the same note plays again, and at the loop end. Movy
+      keeps the length you set: delete that later note or move the loop, and the
+      note plays its full length again.
     - **+** / **−** transpose the held step's notes; **◀** / **▶** nudge them in time.
     - Hold **several steps** at once and every edit applies to all of them.
 

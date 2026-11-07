@@ -27,11 +27,32 @@ export const COND_PAIRS: [number, number][] = (() => {
 })();
 export const COND_LABELS: string[] = COND_PAIRS.map(([a, b]) => a + ':' + b);
 
-/** Nearest length-list index for a gate in ticks. */
-export function lengthIndexForTicks(ticks: number): number {
+/* The length knob's stops for a note with `cap` ticks of room (`hlmax`; 0 =
+ * not known yet): every table length shorter than the room, then the room
+ * itself — FIT when it falls between two table lengths. Nothing past it: the
+ * engine cuts a note at its own next occurrence and at the loop end, so a
+ * longer stop would sound exactly like the last one. Memoised on `cap`, since
+ * the contract asks for the option list on every re-plan check. */
+export interface LengthStops { readonly ticks: readonly number[]; readonly labels: readonly string[] }
+const FULL_STOPS: LengthStops = { ticks: LENGTH_TICKS, labels: LENGTH_LABELS };
+let memo: { cap: number; stops: LengthStops } | null = null;
+export function lengthStops(cap: number): LengthStops {
+    if (cap <= 0 || cap >= LENGTH_TICKS[LENGTH_TICKS.length - 1]) return FULL_STOPS;
+    if (memo?.cap === cap) return memo.stops;
+    const n = LENGTH_TICKS.findIndex((t) => t >= cap);
+    const fit = LENGTH_TICKS[n] === cap ? LENGTH_LABELS[n] : 'FIT';
+    const stops = { ticks: [...LENGTH_TICKS.slice(0, n), cap], labels: [...LENGTH_LABELS.slice(0, n), fit] };
+    memo = { cap, stops };
+    return stops;
+}
+
+/** Nearest stop index for a gate in ticks. A gate longer than the room lands
+ *  on the last stop, which is what it sounds like. */
+export function lengthIndexForTicks(ticks: number, cap = 0): number {
+    const stops = lengthStops(cap).ticks;
     let best = 0, bestD = Infinity;
-    for (let i = 0; i < LENGTH_TICKS.length; i++) {
-        const d = Math.abs(LENGTH_TICKS[i] - ticks);
+    for (let i = 0; i < stops.length; i++) {
+        const d = Math.abs(stops[i] - ticks);
         if (d < bestD) { bestD = d; best = i; }
     }
     return best;

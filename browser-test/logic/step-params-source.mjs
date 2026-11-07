@@ -110,6 +110,36 @@ _log('\nTest: the synthesised contract');
     eq('one detent moves velocity by a whole VEL_STEP', perDetentStep, 4);
 }
 
+/* ── LEN ends at the held note's room ─────────────────────────────────── */
+_log('\nTest: the length knob offers only lengths that can play');
+{
+    reset();
+    const source = stepParamsSource();
+    const lenOptions = () => JSON.parse(source.getParam(key('chain_params')))
+        .find((p) => p.key === 'len').options;
+
+    /* 72 ticks of room (a blocker 3 steps on): between 1/8 and 1/4, so the
+     * room itself is the last stop. */
+    seqState.holdMaxGate = 72;
+    eq('stops end at FIT', lenOptions().join(','), '1/32,1/16,1/8,FIT');
+    source.setParam(key('len'), '3');
+    eq('FIT writes the room', seqState.holdGate, 72);
+    source.setParam(key('len'), '20');   // an index from a list planned before hlmax
+    eq('a stale index never passes the room', seqState.holdGate, 72);
+
+    /* A room that IS a table length keeps its own label. */
+    seqState.holdMaxGate = 96;
+    eq('an exact room keeps its label', lenOptions().join(','), '1/32,1/16,1/8,1/4');
+
+    /* A stored length longer than the room (left by a transpose, or kept for
+     * when the blocker goes) reads as the last stop, which is what it plays. */
+    seqState.holdMaxGate = 72; seqState.holdGate = 768;
+    eq('an over-long gate reads as FIT', source.getParam(key('len')), '3');
+
+    seqState.holdMaxGate = 0;
+    eq('no room known: the whole table', lenOptions().length, LENGTH_LABELS.length);
+}
+
 /* ── the virtual source's set() reaches the held-trig fields ───────────── */
 _log('\nTest: the virtual source writes the held trig');
 {

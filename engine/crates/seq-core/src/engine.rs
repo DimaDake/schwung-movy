@@ -2150,11 +2150,24 @@ impl Engine {
                         if self.tracks[ti].auto_step != n.step as i32 {
                             self.emit_automation(ti, slot, n.step, out);
                         }
+                        /* LENGTHS ARE STORED AS ASKED; THIS IS WHERE THEY ARE
+                         * CUT (`Clip::max_gate_at` is the same rule, for the
+                         * UI). A note still sounding at its own pitch ends here,
+                         * or its later note-off would end the new one early; and
+                         * no gate rings past the loop end into the next pass.
+                         * Compared on the EMITTED pitch: that is the note the
+                         * synth holds. */
+                        if let Some(gi) = self.gates.iter()
+                            .position(|g| g.track == ti as u8 && g.pitch == emit_pitch)
+                        {
+                            self.gates.swap_remove(gi);
+                            out.push(OutEvent::NoteOff { track: ti as u8, pitch: emit_pitch });
+                        }
                         out.push(OutEvent::NoteOn { track: ti as u8, pitch: emit_pitch, vel: n.vel });
                         self.gates.push(Gate {
                             track: ti as u8,
                             pitch: emit_pitch,
-                            ticks_left: n.gate.max(1),
+                            ticks_left: n.gate.min(clip_end.saturating_sub(pos)).max(1),
                         });
                     }
                 }
@@ -3053,6 +3066,40 @@ mod tests {
         run_ext_ticks(&mut e, 24, &mut out);
         e.on_external_realtime(0xFC, &mut out);
         assert!(e.playing, "external Stop leaves movy playing");
+    }
+
+    /// Note on/off events of `pitch` on track 0, in order: true = on.
+    fn on_offs(ev: &[OutEvent], pitch: u8) -> Vec<bool> {
+        ev.iter().filter_map(|x| match *x {
+            OutEvent::NoteOn { track: 0, pitch: p, .. } if p == pitch => Some(true),
+            OutEvent::NoteOff { track: 0, pitch: p } if p == pitch => Some(false),
+            _ => None,
+        }).collect()
+    }
+
+    #[test]
+    fn a_long_note_is_cut_by_its_own_next_note() {
+        // Stored 8 steps, but the same pitch returns at step 2: the first must
+        // be closed there, or its note-off would end the second one early.
+        let mut e = engine();
+        let c = e.tracks[0].active_mut();
+        c.toggle_step(0, &[(60, 100)]);
+        c.toggle_step(2, &[(60, 100)]);
+        c.set_length(0, 0, None, 8 * TICKS_PER_STEP);
+        e.play();
+        let ev = run_ticks(&mut e, 2 * TICKS_PER_STEP as u64 + 4);
+        assert_eq!(on_offs(&ev, 60), [true, false, true]);
+    }
+
+    #[test]
+    fn a_long_note_is_cut_at_the_loop_end() {
+        let mut e = engine();
+        let c = e.tracks[0].active_mut();
+        c.toggle_step(15, &[(60, 100)]);
+        c.set_length(15, 15, None, 1000);
+        e.play();
+        let ev = run_ticks(&mut e, 16 * TICKS_PER_STEP as u64 + 4);
+        assert_eq!(on_offs(&ev, 60), [true, false], "rang into the next pass");
     }
 
     #[test]

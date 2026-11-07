@@ -15,7 +15,7 @@ import { seqCmd } from './engine.js';
 import { seqToast } from './render.js';
 import { seqState } from './state.js';
 import { onSessionStart, onSessionEnd } from './step-page.js';
-import { LENGTH_TICKS, PROB_VALUES, COND_PAIRS } from './step-page-vm.js';
+import { lengthStops, PROB_VALUES, COND_PAIRS } from './step-page-vm.js';
 import { watchedTrack } from './watch.js';
 
 const TICKS_PER_STEP = 24;             // 96 PPQN / 4 (mirror of seq-core)
@@ -257,7 +257,11 @@ export function setLengthTo(absB: number): boolean {
     const steps = atEnd ? (absB - a + 1) : (absB - a);
     undoableEdit('NOTE LENGTH', trackLabel(watchedTrack()),
         () => seqCmd(`slen ${watchedTrack()} ${a} ${a} ${lane()} ${steps * TICKS_PER_STEP}`));
-    seqToast('Length ' + steps);
+    // Stored as pressed (the engine keeps it for when the blocker goes), but
+    // the toast says what will be heard.
+    const room = seqState.holdMaxGate;
+    seqToast(room > 0 && steps * TICKS_PER_STEP > room
+        ? `Len ${steps}, plays ${Math.ceil(room / TICKS_PER_STEP)}` : 'Length ' + steps);
     return true;
 }
 
@@ -287,19 +291,10 @@ export function applyStepVelocityAbs(target: number): void {
 
 export function applyStepLenIdx(idx: number): void {
     const t = watchedTrack(), ln = lane();
-    let clamped = clampIdx(idx, LENGTH_TICKS.length);
-    let ticks = LENGTH_TICKS[clamped];
-    // The engine caps a note's length at the next same-pitch note / clip end.
-    // When the request exceeds that cap, clamp to the longest length that
-    // fits and tell the user why it can't grow further.
-    const cap = seqState.holdMaxGate;
-    if (cap > 0 && ticks > cap) {
-        for (let i = LENGTH_TICKS.length - 1; i >= 0; i--) {
-            if (LENGTH_TICKS[i] <= cap) { clamped = i; break; }
-        }
-        ticks = LENGTH_TICKS[clamped];
-        seqToast('Max — blocked by next note');
-    }
+    // Resolved against the stops the knob is offering now, so an index from a
+    // list planned before `hlmax` arrived still never passes the room.
+    const stops = lengthStops(seqState.holdMaxGate).ticks;
+    const ticks = stops[clampIdx(idx, stops.length)];
     beginGesture(heldKey('tlen'), 'NOTE LENGTH', trackLabel(t));
     forEach((r) => seqCmd(`slen ${t} ${r.s0} ${r.s1} ${ln} ${ticks}`));
     seqState.holdGate = ticks; seqState.holdGateMixed = false;

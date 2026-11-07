@@ -26,7 +26,7 @@
 
 import { seqState } from './state.js';
 import {
-    LENGTH_LABELS, PROB_LABELS, PROB_VALUES, COND_LABELS,
+    lengthStops, PROB_LABELS, PROB_VALUES, COND_LABELS,
     lengthIndexForTicks, probIndexForPct, condIndexFor,
 } from './step-page-vm.js';
 import {
@@ -57,12 +57,17 @@ const cells: VirtualCellSpec[] = [
         set: (v) => applyStepVelocityAbs(asIndex(v)),
     },
     {
-        key: 'len', name: 'Length', shortName: 'LEN', type: 'enum', options: LENGTH_LABELS,
+        key: 'len', name: 'Length', shortName: 'LEN', type: 'enum',
+        /* Ends at the held note's room (`lengthStops`), so the knob offers no
+         * length it could not play. The list moves with `hlmax`, which lands a
+         * status after the hold opens; Schwung's re-plan check picks it up,
+         * like Set Params' LAYOUT. */
+        options: () => lengthStops(seqState.holdMaxGate).labels,
         /* "1/4" and "16" fit the square whole, so the option panel would cover
          * a legible answer with the same answer. The old page raised no
          * overlay here at all (`step-page-vm.ts` built `overlay: null`). */
         peek: false,
-        get: () => String(lengthIndexForTicks(seqState.holdGate)),
+        get: () => String(lengthIndexForTicks(seqState.holdGate, seqState.holdMaxGate)),
         set: (v) => applyStepLenIdx(asIndex(v)),
         /* No "indeterminate" shape in `chain_params` (the ledger's own
          * finding) — the arc rests on whichever length the first held step

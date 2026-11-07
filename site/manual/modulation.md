@@ -15,7 +15,7 @@ any page of the chain, locks on steps without notes, and per-voice locks on drum
 | Knob | Parameter | What it does |
 | --- | --- | --- |
 | 1 | **VEL** | Velocity of this step. |
-| 2 | **LEN** | Note length. |
+| 2 | **LEN** | Note length. It goes up to where the note meets its own next occurrence or the loop end; **FIT** is that exact length. |
 | 3 | **PROB** | Chance that the step plays, 0–100 %. |
 | 4 | **COND** | Trig condition: `2:4` plays on the 2nd of every 4 passes through the loop. |
 | 5 | **INV** | Inverts the condition: `2:4` inverted plays on every pass *except* the 2nd. |

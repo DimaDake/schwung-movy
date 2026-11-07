@@ -9,6 +9,7 @@ import * as G from '../../dist/esm/gen/index.js';
 import { makeCase, recipeKey, sceneOf } from '../../scripts/gen-bench/audition/case.mjs';
 import { blindRecipes, rebuild, setRecipes } from '../../scripts/gen-bench/audition/sources.mjs';
 import { chunks, interleave, packCase } from '../../scripts/gen-bench/audition/queue.mjs';
+import { caseMidi, drop, earVsBench, enqueue, markAt, nextIndex, ratingDoc, schedule, tracksFor } from '../../scripts/gen-bench/audition/page/core.mjs';
 
 const set2 = () => ({ root: 'C', mode: 'minor', bpm: 124, tracks: [
     { index: 0, name: 'Drums', drum: true, clips: [{ track: 0, slot: 0, len: 16, notes: [{ tick: 0, gate: 12, pitch: 36, vel: 100 }, { tick: 96, gate: 12, pitch: 38, vel: 90 }] }] },
@@ -84,6 +85,36 @@ const packed = packCase(c1);
 ok('pack_notes_are_integer_96ths', packed.options[0].notes.every((n) => n.every(Number.isInteger)));
 eq('pack_keeps_onsets', packed.options[0].notes[0][0], Math.round(c1.options[0].notes[0][0] * 96));
 eq('chunks_first_small_then_200', chunks(Array(450).fill(0)).map((c) => c.length).join(), '40,200,200,10');
+
+_log('\nTest: audition page core');
+
+const pc = { id: 'abc-b1', recipeKey: 'abc', build: 'b1', kind: 'set', generator: 'create:bass', target: 'bass',
+    scene: { len: 4, bpm: 120, tracks: { drums: [[0, 24, 36, 100]], bass: [], chords: [], lead: [[360, 48, 72, 90]] } },
+    options: [{ preset: 'n-bass', notes: [[0, 96, 36, 100]], bench: { ok: true, bad: [] } }, { preset: 'n-walk', notes: [[96, 48, 38, 100]], bench: { ok: false, bad: ['bc.rub'] } }] };
+const d1 = ratingDoc(pc, 1, 'bad', ['clash'], [{ bar: 1, beat: 2 }], '', 5), d2 = ratingDoc(pc, 1, 'keep', [], [], '', 6);
+eq('rating_same_case_option_same_doc', d1.id, d2.id);
+ok('rating_other_option_other_doc', ratingDoc(pc, 0, 'bad', [], [], '', 5).id !== d1.id);
+eq('rating_names_the_option_preset', d1.data.preset, 'n-walk');
+eq('rating_plain_case_doc_id', ratingDoc({ ...pc, options: undefined }, null, 'meh', [], [], '', 1).id, 'abc-b1~p');
+eq('tracks_for_option_swap_target', tracksFor(pc, 1).bass[0][2], 38);
+/* Window beats 3..5 of a 4-beat loop at 120 bpm: lead at beat 3.75 (0.375 s), then the drum hit wrapped to beat 4 (0.5 s). */
+const ev = schedule(tracksFor(pc, 0), 4, 3, 5, 120, new Set(), null);
+eq('schedule_wraps_into_next_loop', ev.map((e) => `${e.track}@${e.t}`).join(), 'lead@0.375,drums@0.5,bass@0.5');
+eq('schedule_muted_track_absent', schedule(tracksFor(pc, 0), 4, 0, 4, 120, new Set(['drums']), null).some((e) => e.track === 'drums'), false);
+eq('schedule_solo_one_track', [...new Set(schedule(tracksFor(pc, 0), 4, 0, 8, 120, new Set(), 'bass').map((e) => e.track))].join(), 'bass');
+eq('mark_at_fraction', JSON.stringify(markAt(0.51, { len: 8 })), '{"bar":2,"beat":1}');
+eq('mark_at_end_stays_inside', JSON.stringify(markAt(1, { len: 8 })), '{"bar":2,"beat":4}');
+eq('outbox_same_id_kept_once', enqueue(enqueue([], d1), d2).length, 1);
+eq('outbox_keeps_latest', enqueue(enqueue([], d1), d2)[0].data.rating, 'keep');
+eq('outbox_drop', drop(enqueue([], d1), d1.id).length, 0);
+eq('next_index_skips_rated', nextIndex([{ id: 'a' }, { id: 'b' }, { id: 'c' }], new Set(['a', 'b']), 0), 2);
+eq('next_index_past_end', nextIndex([{ id: 'a' }], new Set(['a']), 0), 1);
+eq('ear_vs_bench_ok_but_bad', earVsBench({ ok: true }, 'bad'), 'benchOkUserBad');
+eq('ear_vs_bench_bad_but_keep', earVsBench({ ok: false }, 'keep'), 'benchBadUserKeep');
+eq('ear_vs_bench_agree', earVsBench({ ok: true }, 'keep'), null);
+const mid = caseMidi(pc, 0);
+eq('midi_header', String.fromCharCode(...mid.slice(0, 4)), 'MThd');
+eq('midi_four_tracks', mid[11], 4);
 }
 
 function sceneOfRef(r) { return [...r.bass].map((n) => [Math.round(n[0] * 96) / 96, Math.round(n[1] * 96) / 96, n[2], n[3]]); }

@@ -119,6 +119,57 @@ _log('\nTest: a preset door\'s body stays above movy\'s bottom bar');
     pg.ctl.closePicker();
 }
 
+/* A module that renames itself when its index is written, the way amino and
+ * most preset browsers do. Restored by the caller. */
+function renameOnLoad() {
+    const prev = globalThis.shadow_set_param;
+    globalThis.shadow_set_param = (s, k, v) => {
+        const r = prev(s, k, v);
+        if (k === 'synth:preset') env.params['synth:preset_name'] = 'NAME' + v;
+        return r;
+    };
+    return () => { globalThis.shadow_set_param = prev; };
+}
+
+_log('\nTest: a preset step shows the NEW preset\'s name, not the one just left');
+{
+    const { pg } = await onPresetDoor();
+    const restore = renameOnLoad();
+    try {
+        /* Several steps, so at least one lands mid-epoch, where the name was
+         * already in the read cache — the case that showed the old name. */
+        let stale = 0;
+        for (let step = 0; step < 4; step++) {
+            pg.knobTurn(0, 6);
+            const want = 'NAME' + presetOf(pg).index;
+            for (let t = 0; t < 12; t++) {
+                pg.tick();
+                if (presetOf(pg).name !== want || pg.ctl.presetName !== want) stale++;
+            }
+        }
+        eq('no tick shows the previous preset\'s name', stale, 0);
+    } finally { restore(); }
+}
+
+_log('\nTest: a preset name that lands LATE still asks for a frame');
+{
+    /* A module that loads off-thread publishes the name after the step's read.
+     * No value, mark or knob level moves with it, so before the fix nothing
+     * repainted and the stale name stayed up: "it never recovers". */
+    const { pollDrawnPage } = await import('../../dist/esm/app/page-poll.js');
+    const { pg } = await onPresetDoor();
+    const owner = { poll: () => pg.tick(), page: pg, ref: { track: 0, componentKey: 'synth' } };
+    for (let i = 0; i < 40; i++) pollDrawnPage(owner);
+    let quiet = true;
+    for (let i = 0; i < 20; i++) if (pollDrawnPage(owner)) quiet = false;
+    ok('the door settles quiet', quiet);
+    env.params['synth:preset_name'] = 'LATE ARRIVAL';
+    let moved = false;
+    for (let i = 0; i < 24 && !moved; i++) moved = pollDrawnPage(owner);
+    ok('the late name asks for a frame', moved);
+    eq('...and the door holds it', presetOf(pg).name, 'LATE ARRIVAL');
+}
+
 function portRead(key) {
     return env.params[`synth:${key}`] ?? null;
 }

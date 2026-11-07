@@ -100,6 +100,8 @@ let lastKey = '';
  * whole module is about. */
 let lastPeek = false;
 let lastMarks = 0;
+/* A preset name lands on a later fill with no value moving (schwung-page-preset.ts). */
+let lastPreset = '';
 
 /* SP-48. One instance for the one drawn page's lifetime, same reasoning as
  * `levels`/`lastKey` above. It keeps only the last frame it let a stream
@@ -137,6 +139,7 @@ export function pollDrawnPage(owner: PageOwner, nowFn: () => number = Date.now):
         levels.fill(null);
         lastPeek = false;
         lastMarks = 0;
+        lastPreset = '';
         return true;
     }
 
@@ -184,6 +187,8 @@ export function pollDrawnPage(owner: PageOwner, nowFn: () => number = Date.now):
     if (peek !== lastPeek) { lastPeek = peek; moved = true; }
     const marks = page.marks();
     if (marks !== lastMarks) { lastMarks = marks; moved = true; }
+    const preset = typeof page.presetSig === 'function' ? page.presetSig() : '';
+    if (preset !== lastPreset) { lastPreset = preset; moved = true; }
 
     if (!moved) { const now = nowFn(); moved = animCap(page.animating(now), now); }
     return moved;

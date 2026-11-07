@@ -37,6 +37,7 @@ import type { AutomationView } from '../types/viewmodel.js';
 import { schwungLib } from './schwung-lib.js';
 import { createPageIo, pageWriter } from './schwung-page-io.js';
 import { createPageReadCache } from './schwung-page-cache.js';
+import { presetNameCoupled, presetSignature } from './schwung-page-preset.js';
 import { createPageHierarchy } from './schwung-page-hierarchy.js';
 import { createPageContract, RELOAD_POLL_TICKS } from './schwung-page-contract.js';
 // Re-exported so a test can assert against the REAL divider width (SP-49)
@@ -87,6 +88,9 @@ export interface SchwungPage {
     /** Which drawn cells wear a modulation / lane mark, as a bitmask — so a
      *  mark flipping with no value change still asks for the frame back. */
     marks(): number;
+    /** The preset names and position on screen, which change with no value
+     *  moving (`schwung-page-preset.ts`). */
+    presetSig(): string;
     /** SP-38: is the drawn page still MOVING — a widget transition in flight,
      *  or a trigger bang still flashing — with no value and no page identity
      *  change to show for it? Asked by the repaint decision when both of those
@@ -163,7 +167,10 @@ export function createSchwungPage(
      * key a tick, movy answers from a page-sized batch it refills on a divider.
      * It is created here, beside the controller it serves, because its lifetime
      * is the controller's — `schwungGridReload()` drops both together. */
-    const cache = createPageReadCache(port);
+    /* Late-bound: the controller is built from an io that already reads
+     * through this cache, so the first drain can run before `ctl` exists. */
+    let ctlRef: any = null;
+    const cache = createPageReadCache(port, (k) => presetNameCoupled(ctlRef, lib, qualify, k));
     const diveWrite = pageWriter(port, (full) => cache.get(full));
     /* The one reader of the module's contract, for the two things that need it:
      * the planner (through the io below) and `focusVoice`. Built here for the
@@ -179,6 +186,7 @@ export function createSchwungPage(
     const focus = createPageFocus(hier, lib, qualify, automation);
     const ctl = lib.createController(createPageIo(port, qualify, cache, hier, componentKey,
         modulatedOf ? () => modulatedOf(trackIndex, componentKey) : null, automation, focus));
+    ctlRef = ctl;
     ctl.setLayout(lib.LAYOUT_MOVY);
 
     /* The controller's own view of the page it is showing. Both the binding's
@@ -247,6 +255,7 @@ export function createSchwungPage(
             return lv;
         },
         marks: page.marks,
+        presetSig: () => presetSignature(ctl, lib),
         animating,
         /* `enumPeek()` is also the reader that RETIRES an expired peek
          * (`page_controller.mjs` clears it past ENUM_PEEK_MS on the way out),

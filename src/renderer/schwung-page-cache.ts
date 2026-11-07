@@ -64,7 +64,10 @@ function passthrough(port: PageParamSource): PageReadCache {
     return { get: (k) => port.getParam(k), tick() {}, warm() {}, invalidateAll() {}, prefetch() {} };
 }
 
-export function createPageReadCache(port: PageParamSource): PageReadCache {
+/** `coupled(k)`: a key a write to `k` also changes inside the module — a preset
+ *  door's name behind its index (`schwung-page-preset.ts`). */
+export function createPageReadCache(port: PageParamSource,
+                                     coupled: ((k: string) => string | null) | null = null): PageReadCache {
     /* A virtual source (SP-53) declares `bulkReads: false` unconditionally and
      * takes this passthrough branch — no epoch, no fill, because there is
      * nothing here a field access does not already answer as fast. */
@@ -101,7 +104,11 @@ export function createPageReadCache(port: PageParamSource): PageReadCache {
         const keys = port.writesSince(seenWrites);
         seenWrites = seq;
         if (keys === null) { entries.clear(); bg.clear(); return; }
-        for (const k of keys) invalidate(k);
+        for (const k of keys) {
+            invalidate(k);
+            const also = coupled ? coupled(k) : null;
+            if (also) invalidate(also);
+        }
     }
 
     function invalidate(key: string): void {

@@ -31,7 +31,9 @@ function playState() {
 function restart() { if (player.playing) player.start(playState()); }
 function drawRoll() { const c = cur(); roll.draw({ tracks: tracksFor(c, st.opt), len: c.scene.len, target: c.target, marks: st.marks, muted: st.muted }); }
 
-function showCase() {
+async function showCase() {
+    /* Skipping fast can pass the cases loaded so far: fetch on until one is there. */
+    while (!cur() && await loadMore());
     const c = cur();
     if (!c) { player.stop(); $('ask').textContent = 'All cases rated. Thank you.'; return; }
     st.opt = c.options ? Math.max(0, c.options.findIndex((_, o) => !store.ratingOf(c, o))) : null;
@@ -109,13 +111,13 @@ function save(value) {
     showOption();
 }
 
-function next() {
+async function next() {
     const c = cur();
     const open = c.options ? c.options.findIndex((_, o) => !store.ratingOf(c, o)) : -1;
     if (open >= 0) { st.opt = open; showOption(); restart(); return; }
     store.finish(c.id);
     st.idx = nextIndex(st.queue, { has: (id) => isDone(st.queue.find((x) => x.id === id)) }, st.idx + 1);
-    showCase(); restart();
+    await showCase(); restart();
 }
 
 function wire() {
@@ -142,7 +144,7 @@ function wire() {
     $('cancelBad').onclick = () => { $('reasons').hidden = true; };
     $('best').onclick = () => { st.best = !st.best; $('best').textContent = st.best ? '★ Best of the six' : '☆ Best of the six'; };
     $('next').onclick = next;
-    $('skip').onclick = () => { st.idx = Math.min(st.queue.length, st.idx + 1); showCase(); restart(); };
+    $('skip').onclick = async () => { st.idx = Math.min(st.queue.length, st.idx + 1); await showCase(); restart(); };
     $('midi').onclick = async () => {
         try { await downloads.save({ filename: `audition-${cur().id}.mid`, data: caseMidi(cur(), st.opt) }); } catch { /* declined */ }
     };
@@ -165,7 +167,7 @@ async function boot() {
     wire();
     $('loadInfo').textContent = `${st.manifest.counts.queued} cases · ${store.count()} rated so far`;
     $('go').disabled = false;
-    $('go').onclick = () => { player.unlock(); $('start').hidden = true; showCase(); player.start(playState()); $('play').textContent = 'Stop'; };
+    $('go').onclick = async () => { player.unlock(); $('start').hidden = true; await showCase(); if (cur()) { player.start(playState()); $('play').textContent = 'Stop'; } };
     downloads = (await window.claude?.use?.('downloads').catch(() => null)) ?? null;
     $('midi').hidden = !downloads;
 }

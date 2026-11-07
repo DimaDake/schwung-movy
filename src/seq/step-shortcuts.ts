@@ -24,6 +24,7 @@ import { seqState, setFullVelocity } from './state.js';
 import { nextQuantCandidate } from './quant.js';
 import { armQuantOverlay } from './quant-overlay.js';
 import { watchedTrack } from './watch.js';
+import { mlog } from '../log.js';
 
 /* Shift + step button = Move's shifted step functions. Step 10 toggles Full
  * Velocity; further entries (Double Loop = Step 15, Quantize = Step 16) land
@@ -80,6 +81,7 @@ export function shiftStepFunction(step: number): void {
 export function cycleQuantize(): void {
     const track = watchedTrack();
     const next = nextQuantCandidate(seqState.clipQuant, seqState.defaultQuant);
+    mlog('quant: cycle t' + track + ' ' + seqState.clipQuant + '->' + next + ' def ' + seqState.defaultQuant);
     beginGesture('quant:' + track, 'CLIP QUANT', trackLabel(track));
     seqState.clipQuant = next;
     seqCmd('cq ' + track + ' ' + next);

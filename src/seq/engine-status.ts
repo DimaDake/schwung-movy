@@ -76,7 +76,10 @@ export function parseStatus(s: string): void {
             seqState.clipScaleIdx = rationalToIdx(n || 1, d || 1);
         }
         else if (key === 'ctr') seqState.clipTranspose = Number(val) || 0;
-        else if (key === 'quant') seqState.clipQuant = Number(val) || 0;
+        else if (key === 'quant') {   // trace: a stale snapshot undoing a just-sent `cq`
+            if ((Number(val) || 0) !== seqState.clipQuant) mlog('quant: status ' + seqState.clipQuant + '->' + val);
+            seqState.clipQuant = Number(val) || 0;
+        }
         else if (key === 'dquant') seqState.defaultQuant = Number(val) || 0;
         /* The engine's count of serviced chain-module changes. A movy chain
          * lives only inside the engine, so the UI cannot know it changed unless

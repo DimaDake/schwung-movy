@@ -143,8 +143,10 @@ export function handleStepButton(button: number, on: boolean, shiftHeld: boolean
          * tap on 16 still cycles quantize and one on 15 still doubles the
          * loop, on RELEASE; one on 14 says to hold. */
         if (on) aiHoldPress(holdStep(button)!);
-        else if (holdRelease(Date.now()) === 'tap') {
-            (button === STEP_QUANTIZE ? cycleQuantize : button === STEP_DOUBLE_LOOP ? doubleLoop : aiVariationTap)();
+        else {
+            const r = holdRelease(Date.now());
+            if (button === STEP_QUANTIZE) mlog('quant: step16 release ' + r + ' shift ' + shiftHeld);
+            if (r === 'tap') (button === STEP_QUANTIZE ? cycleQuantize : button === STEP_DOUBLE_LOOP ? doubleLoop : aiVariationTap)();
         }
     } else if (on && shiftHeld) {
         shiftStepFunction(button);

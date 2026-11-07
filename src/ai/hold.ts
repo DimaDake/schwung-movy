@@ -5,7 +5,7 @@
  * on Step 15 it still doubles the loop),
  * then a bar fills for a second and the request goes when it is full.
  * Letting go of the step or Shift before that cancels without a trace (on
- * Step 16 only Shift: the step's release still cycles quantize). A
+ * Step 16 the step's release still cycles quantize). A
  * press that cannot become a generator (recording, Session view, a Set
  * loading, no clip to vary from) is armed=false: no bar, no request, and its
  * release is a plain tap. */
@@ -41,7 +41,7 @@ export function holdRelease(now: number): 'tap' | 'cancel' | 'none' {
     if (fired) return 'none';
     /* Step 16's tap only moves a non-destructive setting, and an ordinary
      * press often outlasts HOLD_SHOW_MS — cancelling those dropped every
-     * second or third quantize toggle. Lifting Shift first still cancels. */
+     * second or third quantize toggle. */
     if (kind === 'quantize') return 'tap';
     return !armed || held < HOLD_SHOW_MS ? 'tap' : 'cancel';
 }
@@ -51,7 +51,12 @@ export function holdRelease(now: number): 'tap' | 'cancel' | 'none' {
 export function holdTick(now: number, shiftHeld: boolean, start: (k: HoldKind) => void): void {
     if (downAt < 0 || fired || !armed) return;
     const held = now - downAt;
-    if (!shiftHeld && held >= HOLD_SHOW_MS) { downAt = -1; return; }
+    if (!shiftHeld && held >= HOLD_SHOW_MS) {
+        /* Shift usually comes up a hair before the step, so on Step 16 this
+         * only stops the bar; the step's release is still the quantize tap. */
+        if (kind === 'quantize') armed = false; else downAt = -1;
+        return;
+    }
     if (held >= HOLD_FULL_MS) { fired = true; start(kind); }
 }
 

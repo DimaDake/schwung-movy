@@ -15,6 +15,9 @@ original.
 All of them work in **Track view**. Hold until the bar along the bottom of the
 screen fills. Let go early and nothing happens. A short tap keeps the button's
 normal job (quantize, double), and on Step 14 a tap only shows `HOLD TO GENERATE`.
+On Step 16, letting go of the step early still moves the quantize setting; to
+back out of a Smart Quantize hold without changing anything, let go of
+**Shift** first.
 
 ![Shift + hold Step 16](../assets/diagrams/gesture-generator.svg)
 

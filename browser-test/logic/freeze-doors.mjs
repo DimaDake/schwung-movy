@@ -1,7 +1,8 @@
 /* browser-test/logic/freeze-doors.mjs — every door into a frozen or freezing
  * track, through the real router (PR #30's review): the capture swallowing
- * presses, the clip page, the MIX slot, the master's browser, the external
- * keyboard, per-voice mutes, and the engine's own refusals (`frzr`).
+ * presses and darkening every LED but Back (knob rings included), the clip
+ * page, the MIX slot, the master's browser, the external keyboard, solo,
+ * per-voice mutes, and the engine's own refusals (`frzr`).
  *
  * The engine refuses the edits whatever the UI does (seq-core
  * engine/freeze_lock.rs, cargo-tested); these pin the UI's half: what is
@@ -62,6 +63,11 @@ export async function run() {
     ok('Play reaches nothing', !ops().some((o) => o === 'play' || o === 'stop'));
     midi([0x90, 16, 100]); midi([0x80, 16, 0]);
     ok('a step press edits nothing', !ops().some((o) => o.startsWith('tog')));
+    /* Reviewed: the external keyboard was not blocked during a capture. */
+    selectTrack(0); ops();
+    onMidiMessageExternal([0x90, 60, 100]); onMidiMessageExternal([0x80, 60, 0]);
+    ok('a key on another track records nothing while a capture runs', !ops().some((o) => o.startsWith('non ')));
+    selectTrack(2); ops();
     fz.freezeStatusField('frzc', '2:40');
     fz.freezeBusyToast();
     eq('the toast follows the progress', seqToastText(), 'FREEZING T3 40%');
@@ -93,12 +99,52 @@ export async function run() {
         globalThis.setButtonLED = savedB; globalThis.setLED = savedL;
     }
 
+    /* The knob rings too, through the real tick (app/tick.ts's busy branch). */
+    {
+        const { ledFrameReset } = await import('../../dist/esm/seq/led-cache.js');
+        const { updateKnobLEDsFrom, resetKnobLedCache } = await import('../../dist/esm/renderer/knob-leds.js');
+        const lit = new Map();
+        const savedB = globalThis.setButtonLED, savedL = globalThis.setLED;
+        globalThis.setButtonLED = (cc, c) => lit.set('b' + cc, c);
+        globalThis.setLED = (n, c) => lit.set('n' + n, c);
+        ledFrameReset();
+        updateKnobLEDsFrom([1, 1, 1, 1, 1, 1, 1, 1]);   // a page's rings, lit
+        ok('the rings start lit', lit.get('b71') > 0 && lit.get('n0') > 0);
+        fz.freezeConfirm(2, false, 'Surge', Date.now());
+        for (let f = 0; f < 4; f++) globalThis.tick();
+        eq('the knob rings dark during a capture', [71, 74, 78].map((cc) => lit.get('b' + cc)).join(','), '0,0,0');
+        eq('the knob touch LEDs dark too', [0, 3, 7].map((n) => lit.get('n' + n)).join(','), '0,0,0');
+        fz.freezeCancelCapture();
+        fz.freezeStatusField('frze', '5:2:asked');
+        globalThis.tick();
+        globalThis.setButtonLED = savedB; globalThis.setLED = savedL;
+        ledFrameReset(); resetKnobLedCache();   // the suites after start from a cold frame
+        ops();
+    }
+
     /* ── a frozen track ────────────────────────────────────────────────── */
     fz.freezeStatusField('frz', '4');   // T3
     ops();
 
+    /* Reviewed: solo is the other tracks' mutes, which a loop never heard.
+     * The engine's mute now silences the loop (freeze_bank.rs, cargo); solo
+     * reaches it through that same mute. */
+    {
+        const { toggleSolo, resetTrackMutes } = await import('../../dist/esm/mixer/track-mutes.js');
+        resetTrackMutes(); ops();
+        toggleSolo(0);
+        ok('soloing T1 mutes the frozen T3 in the engine', ops().some((o) => o === 'mute 2 1'));
+        toggleSolo(0);
+        ok('and the unsolo unmutes it', ops().some((o) => o === 'mute 2 0'));
+        resetTrackMutes(); ops();
+    }
+
     /* Reviewed: clipPageActive() returned before the guard. */
     appState.currentView = VIEW_CLIP_PARAMS;
+    resetSeqToast();
+    midi([0x90, 0, 127]);   // a finger on knob 1, before any turn
+    eq('a touch on the clip page already says why', seqToastText(), 'UNFREEZE T3 FIRST');
+    midi([0x80, 0, 0]);
     resetSeqToast();
     for (let k = 71; k <= 74; k++) midi([0xB0, k, 1]);
     ok('the clip page edits nothing', !ops().some((o) => /^(cscl|clen|ctr|cq) /.test(o)));
@@ -115,7 +161,17 @@ export async function run() {
     midi([0xB0, 71, 1]);
     eq('the synth slot is', seqToastText(), 'UNFREEZE T3 FIRST');
 
-    /* Reviewed: a send FX could not be added while a frozen track was focused. */
+    /* Reviewed: a send FX could not be added while a frozen track was focused.
+     * The same click on the same synth slot: refused on the track's chain,
+     * the master's own in Session mode. The clip page's knob turns above
+     * left the quantize overlay up, and it takes the click. */
+    (await import('../../dist/esm/seq/quant-overlay.js')).resetQuantOverlay();
+    selectTrack(2);
+    appState.trackChainIndex[2] = 1;
+    appState.currentView = VIEW_BROWSE;
+    resetSeqToast();
+    midi([0xB0, globalThis.MoveMainButton, 127]);
+    eq('the browser on the frozen track\'s chain says why', seqToastText(), 'UNFREEZE T3 FIRST');
     seqState.sessionMode = true;
     appState.currentView = VIEW_BROWSE;
     resetSeqToast();

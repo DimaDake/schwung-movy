@@ -256,6 +256,9 @@ mod tests {
         apply_batch(&mut e, "play", &mut out);
         e.advance_block(FRAMES, &mut out);
         assert!(e.loop_position(2).is_some());
+        /* A real clip in the other slot: an empty one has no length and would
+         * read as None without the slot check. */
+        e.tracks[2].clips[1] = e.tracks[2].clips[0].clone();
         e.tracks[2].playing_slot = Some(1);
         assert_eq!(e.loop_position(2), None, "a scene moved the track to another clip");
     }

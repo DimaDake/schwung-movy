@@ -44,6 +44,8 @@ pub const MAX_LOOP_SECONDS: f64 = 60.0;
 pub const MEM_BUDGET: usize = 200 << 20;
 const FADE_OUT_SECONDS: f32 = 0.25;
 const FADE_IN_SECONDS: f32 = 0.005;
+/// The longest block `play` crossfades a loop change in (stereo samples).
+const TAIL_SAMPLES: usize = 4096;
 
 /// Why a freeze ended without freezing, for the UI's message.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -126,6 +128,11 @@ struct Track {
     /// clip until lib.rs gives it back after the mix, so this block plays the
     /// heard loop from where it was. Cleared by the next `set_frame`.
     ending: Option<(usize, LoopAt)>,
+    /// The loop played last block: a change (a launch, a stop) fades it out
+    /// under the next one instead of cutting it.
+    last: Option<usize>,
+    /// That old loop while its fade-out lasts (it spans several blocks).
+    fading: Option<usize>,
     gain: f32,
 }
 
@@ -153,6 +160,9 @@ impl Track {
 
 pub struct FreezeBank {
     tracks: Vec<Track>,
+    /// A fading-out loop's block, mixed under the new one (allocated once,
+    /// in `new`, never on the audio thread).
+    tail: Vec<i16>,
     muted: u32,
     bpm_x100: u32,
     tickets: u32,
@@ -163,6 +173,7 @@ impl FreezeBank {
     pub fn new(tracks: usize) -> Self {
         FreezeBank {
             tracks: (0..tracks).map(|_| Track { gain: 1.0, ..Track::default() }).collect(),
+            tail: vec![0; TAIL_SAMPLES],
             muted: 0,
             bpm_x100: 12_000,
             tickets: 0,
@@ -355,7 +366,9 @@ impl FreezeBank {
                 return None;
             }
         };
-        k.loops[clip.slot] = Some(Player::new(frozen));
+        /* The heard loop takes over from the chain mid-sound: no fade-in.
+         * The others start (later, on a launch) like any loop. */
+        k.loops[clip.slot] = Some(if job.heard == Some(clip.slot) { Player::continuing(frozen) } else { Player::new(frozen) });
         job.next += 1;
         match job.clip() {
             Some(n) => {
@@ -396,9 +409,34 @@ impl FreezeBank {
             (None, Some(p), None) => (Some(p.slot), Some(at_of(p))),
             (None, None, None) => (None, None),
         };
+        /* Another loop than last block's (a launch, a stop): the old one fades
+         * out under the new one, which fades in (freeze.rs `Player`). */
+        let tail_n = out.len().min(self.tail.len());
+        if k.last != slot {
+            k.fading = k.last;
+            k.last = slot;
+        }
+        let mut tailed = false;
+        if let Some(f) = k.fading.filter(|&f| Some(f) != slot) {
+            match k.loops.get_mut(f).and_then(Option::as_mut) {
+                Some(old) => {
+                    old.render(&mut self.tail[..tail_n], None, bpm);
+                    tailed = true;
+                    if !old.fading() {
+                        k.fading = None;
+                    }
+                }
+                None => k.fading = None,
+            }
+        }
         match slot.and_then(|s| k.loops.get_mut(s)?.as_mut()) {
             Some(p) => p.render(out, at, bpm),
             None => out.fill(0),
+        }
+        if tailed {
+            for (o, t) in out.iter_mut().zip(&self.tail[..tail_n]) {
+                *o = o.saturating_add(*t);
+            }
         }
         if target == 1.0 && g0 == 1.0 {
             return true;

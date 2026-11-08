@@ -1,6 +1,7 @@
 //! freeze_bank.rs tests.
 
 use super::*;
+use crate::freeze::XFADE;
 use seq_core::TICKS_PER_BAR;
 
 const SR: u32 = 44_100;
@@ -43,10 +44,13 @@ fn frozen_one(b: &mut FreezeBank, t: usize) {
     assert_eq!(run(b, t, Some(0), 1000, 5_000).0, Some(Outcome::Captured));
 }
 
+/// The block a loop plays once any crossfade into it is over.
 fn play_slot(b: &mut FreezeBank, t: usize, slot: usize) -> Vec<i16> {
-    b.set_frame(|_| Some(at(1000.0, slot)), |_| None, 0, 12_000);
     let mut out = vec![7i16; BLOCK * 2];
-    assert!(b.play(t, &mut out));
+    for n in 0..=XFADE / BLOCK + 1 {
+        b.set_frame(|_| Some(at(1000.0 + (n * BLOCK) as f64, slot)), |_| None, 0, 12_000);
+        assert!(b.play(t, &mut out));
+    }
     out
 }
 
@@ -277,4 +281,37 @@ fn the_block_the_freeze_ends_in_plays_the_heard_loop() {
     let (o, out) = outcome_block(&mut b, 2, 3, 300, heard);
     assert_eq!(o, Outcome::Captured);
     assert!(out.iter().all(|&s| s == 500), "the heard loop until the playhead is back: {:?}", &out[..4]);
+}
+
+fn levels(b: &mut FreezeBank, t: usize, slot: Option<usize>, blocks: usize, from: usize) -> Vec<i16> {
+    let mut out = vec![0i16; BLOCK * 2];
+    let mut l = Vec::new();
+    for n in from..from + blocks {
+        let frame = (n * BLOCK) as f64;
+        b.set_frame(|_| slot.map(|s| at(frame, s)), |_| None, 0, 12_000);
+        b.play(t, &mut out);
+        l.extend(out.iter().step_by(2));
+    }
+    l
+}
+
+fn max_step(l: &[i16]) -> i32 {
+    l.windows(2).map(|w| (w[1] as i32 - w[0] as i32).abs()).max().unwrap_or(0)
+}
+
+/// Reviewed on device (clicks): a launch on a frozen track cut from one
+/// clip's loop to the other's, and a stop cut the loop off.
+#[test]
+fn a_clip_change_and_a_stop_crossfade() {
+    let mut b = FreezeBank::new(16);
+    b.begin_track(1, Some(0), &[clip(0), clip(1)]).unwrap();
+    run(&mut b, 1, Some(0), 1000, 5_000);
+    run(&mut b, 1, Some(1), 3000, 5_000);
+    assert!(b.frozen(1));
+    let mut l = levels(&mut b, 1, Some(0), 10, 100);
+    l.extend(levels(&mut b, 1, Some(1), 10, 110));
+    l.extend(levels(&mut b, 1, None, 4, 120));
+    let worst = l[XFADE..].windows(2).enumerate().max_by_key(|(_, w)| (w[1] as i32 - w[0] as i32).abs()).map(|(i, w)| (i + XFADE, w[0], w[1]));
+    assert!(max_step(&l[XFADE..]) < 100, "a step of {} at {:?}", max_step(&l[XFADE..]), worst);
+    assert_eq!(*l.last().unwrap(), 0, "silent once stopped");
 }

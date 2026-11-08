@@ -68,9 +68,9 @@ export function sessionPad(padNote: number, padMin: number): void {
     const cell = padToCell(padNote, padMin);
     if (!cell) return;
     const { track, slot } = cell;
-    /* Launching, deleting or duplicating a frozen track's clip would change
-     * what its loop stands for: unfreeze first. */
-    if (freezeGuard(track)) return;
+    /* Deleting or duplicating a frozen track's clip would change what its
+     * loops stand for: unfreeze first. Launching one plays its own loop. */
+    if ((deleteHeld || dupActive()) && freezeGuard(track)) return;
 
     if (deleteHeld) {
         aiForgetClip(track, slot);   // a generator session parked on it ends

@@ -245,6 +245,22 @@ export async function run() {
         (await import('../../dist/esm/renderer/knob-leds.js')).resetKnobLedCache();
     }
 
+    /* A frozen track's clips can be launched and selected (Session pads):
+     * each plays its own loop. Deleting one is still refused. */
+    {
+        const { sessionPad, sessionDeleteButton } = await import('../../dist/esm/seq/session.js');
+        seqState.sessionMode = true; rt(); ops();
+        sessionPad(68 + 8 * 1 + 1, 68);   // T3 is the second row from the bottom, slot 1
+        const launched = ops().filter((o) => o.startsWith('launch '));
+        ok('a Session pad launches a frozen track\'s clip', launched.length === 1);
+        eq('without the toast', ftoast.freezeToastTrack(), -1);
+        sessionDeleteButton(true);
+        sessionPad(68 + 8 * 1 + 1, 68);
+        sessionDeleteButton(false);
+        ok('deleting one is refused', !ops().some((o) => o.startsWith('clipdelat ')));
+        seqState.sessionMode = false; rt();
+    }
+
     /* Reviewed: the keyboard bypassed the pad guard. */
     rt();
     onMidiMessageExternal([0x90, 60, 100]); onMidiMessageExternal([0x80, 60, 0]);

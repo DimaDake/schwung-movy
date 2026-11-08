@@ -3,13 +3,15 @@
 import { C_WHITE, TRACK_COLOR } from './colors.js';
 
 /* Nothing can be played while it records, so instead of a keyboard they say
- * so: "FROZEN" scrolling right to left, white on ice blue. 3x4 letters, a
+ * so: "FREEZING" scrolling right to left, white on ice blue. 3x4 letters, a
  * blank column between them; one column every STEP_MS. The grid is diffed
  * against the LED cache and paced by the LED budget like any pad repaint, so
  * a scroll step costs at most the pads that actually change. */
 const ICE = TRACK_COLOR[2];   // Azure Blue dim: the palette's one cool hue that reads as blue
 const STEP_MS = 220;
-const TEXT = 'FROZEN ';
+/** What the pads spell while a freeze records. */
+export const FREEZE_PAD_TEXT = 'FREEZING ';
+const TEXT = FREEZE_PAD_TEXT;
 /* Rows top to bottom; bit 2 = left column. */
 const GLYPHS: Record<string, number[]> = {
     F: [0b111, 0b100, 0b110, 0b100],
@@ -18,6 +20,8 @@ const GLYPHS: Record<string, number[]> = {
     Z: [0b111, 0b001, 0b100, 0b111],
     E: [0b111, 0b110, 0b100, 0b111],
     N: [0b101, 0b111, 0b111, 0b101],
+    I: [0b111, 0b010, 0b010, 0b111],
+    G: [0b111, 0b100, 0b101, 0b111],
 };
 const SPAN = TEXT.length * 4;
 

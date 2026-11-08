@@ -171,6 +171,9 @@ export async function run() {
     const { C_WHITE, TRACK_COLOR } = await import('../../dist/esm/seq/colors.js');
     const ICE = TRACK_COLOR[2];
     const { frozenPadColor } = await import('../../dist/esm/seq/freeze-pads.js');
+    /* The pads spell FREEZING while it records (FROZEN would say it is done). */
+    const { FREEZE_PAD_TEXT } = await import('../../dist/esm/seq/freeze-pads.js');
+    eq('the pads say FREEZING', FREEZE_PAD_TEXT.trim(), 'FREEZING');
     // t = 0: the "F" sits in columns 0-2. Top row (pads 24-31) reads 111.
     eq('F top bar', [24, 25, 26].map(i => frozenPadColor(i, 0)).every(c => c === C_WHITE), true);
     eq('the gap column is ice', frozenPadColor(27, 0), ICE);

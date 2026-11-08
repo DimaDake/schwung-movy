@@ -55,9 +55,10 @@ Note the module's name and version and report it (below).
 - **Processing runs out before 16 tracks do.** Six or seven tracks of ordinary
   synths is typical. Light modules go much further.
 - **Tracks only sound while Movy is open.**
-- **Freeze records one clip, in real time.** A frozen loop follows tempo
-  changes with its pitch, keeps the swing it was recorded with, and is at most
-  60 seconds long. Unfreezing stops the transport.
+- **Freeze records in real time**, every clip of the track one after
+  another. A frozen loop follows tempo changes with its pitch, keeps the swing
+  it was recorded with, and is at most 60 seconds long. Unfreezing stops the
+  transport.
 - **Capture keeps notes only**, not knob moves. Record automation live instead.
 - **External MIDI**: notes, mod wheel and pitch bend only. No other CCs, aftertouch or clock.
 - **Move features not in Movy:** note repeat, 16 Pitches, sampling and resampling,

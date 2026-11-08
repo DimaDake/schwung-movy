@@ -15,13 +15,16 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Added
 
-- **Freeze a track.** Shift + double tap a track button records its clip into
-  a loop and unloads its synth and effects: it sounds the same, keeps its MIX
-  slot (level, pan, sends, mute, solo), and its CPU goes back to the Set.
-  Frozen tracks are saved with the Set and open without loading their chain.
-  The engine refuses every edit to a frozen track's clips, whichever control
-  it comes from; a loop plays only while its own clip does, and is at most
-  60 seconds long.
+- **Freeze a track.** Shift + a track button opens its menu; FREEZE records
+  every clip of the track into loops and unloads its synth and effects: it
+  sounds the same, launches, scenes and the song still work, it keeps its MIX
+  slot (level, pan, sends, mute, solo), and its CPU goes back to the Set. A
+  frozen track shows the waveform of the clip it plays; Loop mode can cut a
+  frozen clip shorter. Frozen tracks are saved with the Set and open without
+  loading their chain (live again when the synth's sound or the clips changed,
+  e.g. an older version restored). The engine refuses every other edit to a
+  frozen track, whichever control it comes from; a knob touch or a jog press
+  says how to unfreeze. Each loop is at most 60 seconds, all of them 200 MB.
 
 ### Changed
 

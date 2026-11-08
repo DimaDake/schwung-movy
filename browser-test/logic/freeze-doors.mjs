@@ -20,10 +20,12 @@ export async function run() {
     const { seqEngineTick, resetSeqEngine } = await import('../../dist/esm/seq/engine.js');
     const { seqState, resetSeqState } = await import('../../dist/esm/seq/state.js');
     const { sessionTick, resetSetSession, sessionReady } = await import('../../dist/esm/seq/set-session.js');
-    const { appState, VIEW_CLIP_PARAMS, VIEW_BROWSE, VIEW_CHAIN } = await import('../../dist/esm/app/state.js');
+    const { appState, VIEW_CLIP_PARAMS, VIEW_BROWSE, VIEW_CHAIN, VIEW_KNOBS } = await import('../../dist/esm/app/state.js');
     const { selectTrack } = await import('../../dist/esm/track/focus.js');
     const { seqToastText, resetSeqToast } = await import('../../dist/esm/seq/render.js');
     const fz = await import('../../dist/esm/seq/freeze.js');
+    const ftoast = await import('../../dist/esm/seq/freeze-toast.js');
+    const { browserState } = await import('../../dist/esm/browser/state.js');
     const busy = await import('../../dist/esm/seq/freeze-busy.js');
     const { onMidiMessageExternal } = await import('../../dist/esm/midi/external.js');
     const { padMuteGesture } = await import('../../dist/esm/mixer/pad-mutes.js');
@@ -45,9 +47,9 @@ export async function run() {
     /* ── a capture owns the device ─────────────────────────────────────── */
     fz.freezeConfirm(2, false, 'Surge', 10_000);
     ok('busy from the confirm, before the status shows it', fz.freezeBusy(10_000));
-    eq('the toast is up at once', seqToastText(), 'FREEZING T3 0%');
+    eq('the toast is up at once', seqToastText(), 'FREEZING T3 1/1 0%');
     eq('and nobody answering frees it', fz.freezeBusy(14_000), false);
-    fz.freezeStatusField('frzc', '2:30');
+    fz.freezeStatusField('frzc', '2:0/2:30');
     ok('a capture is busy', fz.freezeBusy(Date.now()));
     eq('a press is swallowed', busy.freezeSwallows([0xB0, 85, 127]), true);
     eq('a pad too', busy.freezeSwallows([0x90, 70, 100]), true);
@@ -68,9 +70,9 @@ export async function run() {
     onMidiMessageExternal([0x90, 60, 100]); onMidiMessageExternal([0x80, 60, 0]);
     ok('a key on another track records nothing while a capture runs', !ops().some((o) => o.startsWith('non ')));
     selectTrack(2); ops();
-    fz.freezeStatusField('frzc', '2:40');
+    fz.freezeStatusField('frzc', '2:1/2:40');
     fz.freezeBusyToast();
-    eq('the toast follows the progress', seqToastText(), 'FREEZING T3 40%');
+    eq('the toast follows the progress', seqToastText(), 'FREEZING T3 2/2 40%');
     eng.params.frzx = undefined;
     midi([0xB0, globalThis.MoveBack, 127]);
     eq('Back cancels the capture', eng.params.frzx, '2');
@@ -94,7 +96,11 @@ export async function run() {
         eq('the octave arrow dark', lit.get('b54'), 0);
         ok('Back lit', lit.get('b' + globalThis.MoveBack) > 0);
         eq('the steps dark', [16, 23, 31].map((n) => lit.get('n' + n)).join(','), '0,0,0');
-        eq('the pads dark', [68, 85, 99].map((n) => lit.get('n' + n)).join(','), '0,0,0');
+        const { frozenPadColor } = await import('../../dist/esm/seq/freeze-pads.js');
+        const { C_WHITE, TRACK_COLOR } = await import('../../dist/esm/seq/colors.js');
+        ok('the pads scroll FROZEN while it records', [68, 85, 99].every((n) => [C_WHITE, TRACK_COLOR[2]].includes(lit.get('n' + n))));
+        eq('the animation is the frozen one', lit.get('n68') !== undefined, true);
+        void frozenPadColor;
         busy.freezeBusyEnd();
         globalThis.setButtonLED = savedB; globalThis.setLED = savedL;
     }
@@ -122,6 +128,7 @@ export async function run() {
         ops();
     }
 
+    const rt = () => { resetSeqToast(); ftoast.resetFreezeToast(); };
     /* ── a frozen track ────────────────────────────────────────────────── */
     fz.freezeStatusField('frz', '4');   // T3
     ops();
@@ -141,25 +148,25 @@ export async function run() {
 
     /* Reviewed: clipPageActive() returned before the guard. */
     appState.currentView = VIEW_CLIP_PARAMS;
-    resetSeqToast();
+    rt();
     midi([0x90, 0, 127]);   // a finger on knob 1, before any turn
-    eq('a touch on the clip page already says why', seqToastText(), 'UNFREEZE T3 FIRST');
+    eq('a touch on the clip page already says why', ftoast.freezeToastTrack(), 2);
     midi([0x80, 0, 0]);
-    resetSeqToast();
+    rt();
     for (let k = 71; k <= 74; k++) midi([0xB0, k, 1]);
     ok('the clip page edits nothing', !ops().some((o) => /^(cscl|clen|ctr|cq) /.test(o)));
-    eq('and says why', seqToastText(), 'UNFREEZE T3 FIRST');
+    eq('and says why', ftoast.freezeToastTrack(), 2);
 
     /* Reviewed: the MIX page of a frozen track was unreachable. */
     appState.currentView = VIEW_CHAIN;
     appState.trackChainIndex[2] = MIX_CHAIN_INDEX;
-    resetSeqToast();
+    rt();
     midi([0xB0, 71, 1]);
-    ok('the MIX slot is not refused', seqToastText() !== 'UNFREEZE T3 FIRST');
+    ok('the MIX slot is not refused', ftoast.freezeToastTrack() !== 2);
     appState.trackChainIndex[2] = 1;
-    resetSeqToast();
+    rt();
     midi([0xB0, 71, 1]);
-    eq('the synth slot is', seqToastText(), 'UNFREEZE T3 FIRST');
+    eq('the synth slot is', ftoast.freezeToastTrack(), 2);
 
     /* Reviewed: a send FX could not be added while a frozen track was focused.
      * The same click on the same synth slot: refused on the track's chain,
@@ -169,22 +176,80 @@ export async function run() {
     selectTrack(2);
     appState.trackChainIndex[2] = 1;
     appState.currentView = VIEW_BROWSE;
-    resetSeqToast();
+    browserState.componentKey = 'synth'; browserState.paramSlot = 2;
+    rt();
     midi([0xB0, globalThis.MoveMainButton, 127]);
-    eq('the browser on the frozen track\'s chain says why', seqToastText(), 'UNFREEZE T3 FIRST');
+    eq('the browser on the frozen track\'s chain says why', ftoast.freezeToastTrack(), 2);
     seqState.sessionMode = true;
     appState.currentView = VIEW_BROWSE;
-    resetSeqToast();
+    rt();
     midi([0xB0, globalThis.MoveMainButton, 127]);
-    ok('the master\'s browser picks', seqToastText() !== 'UNFREEZE T3 FIRST');
+    ok('the master\'s browser picks', ftoast.freezeToastTrack() !== 2);
     seqState.sessionMode = false;
+    /* The old review branch's rule: the browser asks the slot it was opened
+     * on — a send slot belongs to no track, even in Track view. */
+    appState.currentView = VIEW_BROWSE;
+    browserState.componentKey = 'send1'; browserState.paramSlot = 0;
+    rt();
+    midi([0xB0, globalThis.MoveMainButton, 127]);
+    ok('a send slot\'s browser picks while a frozen track is focused', ftoast.freezeToastTrack() !== 2);
+    browserState.componentKey = 'synth';
     appState.currentView = VIEW_CHAIN;
 
+    /* A knob touch or a jog press on the frozen chain: the big toast. */
+    rt();
+    midi([0x90, 3, 127]); midi([0x80, 3, 0]);
+    eq('a knob touch shows the big toast', ftoast.freezeToastTrack(), 2);
+    appState.trackChainIndex[2] = MIX_CHAIN_INDEX;
+    rt();
+    midi([0x90, 3, 127]); midi([0x80, 3, 0]);
+    eq('not on the MIX slot', ftoast.freezeToastTrack(), -1);
+    appState.trackChainIndex[2] = 1;
+    rt();
+    midi([0xB0, globalThis.MoveMainButton, 127]); midi([0xB0, globalThis.MoveMainButton, 0]);
+    eq('a jog press shows it', ftoast.freezeToastTrack(), 2);
+
+    /* A step press on a frozen track: the same big toast. In Loop mode the
+     * steps are bars and reach the engine (it allows a cut, refuses a grow). */
+    rt();
+    midi([0x90, 16, 100]); midi([0x80, 16, 0]);
+    eq('a step press shows the big toast', ftoast.freezeToastTrack(), 2);
+    seqState.loopMode = true;
+    rt();
+    midi([0x90, 16, 100]); midi([0x80, 16, 0]);
+    eq('Loop mode is not refused by the UI', ftoast.freezeToastTrack(), -1);
+    seqState.loopMode = false;
+    ops();
+
+    /* A frozen track has no module pages: the next tick leaves them. */
+    appState.currentView = VIEW_KNOBS;
+    globalThis.tick();
+    eq('back on the chain level', appState.currentView, VIEW_CHAIN);
+
+    /* Shift + track button: that track's menu, the active track kept. */
+    {
+        const menu = await import('../../dist/esm/seq/track-menu.js');
+        selectTrack(2); run(2);
+        midi([0xB0, globalThis.MoveShift, 127]);
+        midi([0xB0, 40, 127]); midi([0xB0, 40, 0]);   // CC 40: the group's fourth track
+        midi([0xB0, globalThis.MoveShift, 0]);
+        eq('the menu is open for T4', menu.trackMenuTrack(), 3);
+        eq('the active track is unchanged', appState.activeTrack.index, 2);
+        midi([0xB0, 85, 127]); midi([0xB0, 85, 0]);
+        ok('Play is swallowed while it is open', !ops().some((o) => o === 'play'));
+        midi([0xB0, globalThis.MoveBack, 127]); midi([0xB0, globalThis.MoveBack, 0]);
+        ok('Back closes it', !menu.trackMenuActive());
+        /* The tick above spent this frame's LED budget: the suites after
+         * start from a cold frame. */
+        (await import('../../dist/esm/seq/led-cache.js')).ledFrameReset();
+        (await import('../../dist/esm/renderer/knob-leds.js')).resetKnobLedCache();
+    }
+
     /* Reviewed: the keyboard bypassed the pad guard. */
-    resetSeqToast();
+    rt();
     onMidiMessageExternal([0x90, 60, 100]); onMidiMessageExternal([0x80, 60, 0]);
     ok('a key records nothing', !ops().some((o) => o.startsWith('non ')));
-    eq('and says why', seqToastText(), 'UNFREEZE T3 FIRST');
+    eq('and says why', ftoast.freezeToastTrack(), 2);
 
     /* Reviewed: Mute + pad toggled voice mutes the loop cannot honour. */
     padMuteGesture(2, 36, false);
@@ -192,11 +257,11 @@ export async function run() {
     ok('no voice mute or solo', !ops().some((o) => /^p(mute|solo) /.test(o)));
 
     /* The engine's word, whatever the door. */
-    resetSeqToast();
+    rt();
     fz.freezeStatusField('frzr', '3:2');
-    ok('first sight says nothing', seqToastText() === '');
+    ok('first sight says nothing', ftoast.freezeToastTrack() === -1);
     fz.freezeStatusField('frzr', '4:5');
-    eq('a refusal the engine made is said', seqToastText(), 'UNFREEZE T6 FIRST');
+    eq('a refusal the engine made shows the big toast', ftoast.freezeToastTrack(), 5);
     fz.freezeStatusField('frze', '2:4:muted');
     eq('a muted track is not frozen', seqToastText(), 'UNMUTE T5 TO FREEZE IT');
     fz.freezeStatusField('frze', '3:4:long');
@@ -205,7 +270,7 @@ export async function run() {
     eq('nor past the memory budget', seqToastText(), 'FREEZE: MEMORY FULL');
 
     fz.resetFreeze();
-    resetSeqToast();
+    rt();
     uninstallMockEngine(); uninstallMockFs();
     resetSeqEngine(); resetSeqState(); resetSetSession();
 }

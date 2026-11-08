@@ -126,8 +126,8 @@ The selected pad lights white, a sounding pad green. To mute one voice, see
 
 ## Freezing a track
 
-Freezing a track records what its clip plays into a loop, unloads its synth and
-effects, and plays the loop in their place. The track sounds the same and its
+Freezing a track records every clip it has into loops, unloads its synth and
+effects, and plays the loops in their place. The track sounds the same and its
 level, pan, sends, mute and solo keep working, but the processing its chain
 used goes back to the rest of the Set. Measured on the device, 16 tracks of
 synths playing chords:
@@ -140,33 +140,46 @@ synths playing chords:
 
 **To freeze a track:**
 
-1. Hold **Shift** and **double tap** the track's button (two taps within about
-   half a second). The first tap is an ordinary track press.
-2. **Freeze T3?** comes up. **Click the jog** to confirm; turn it to **Cancel**,
-   or press **Back**, to leave it.
-3. **FREEZING T3** counts up while it records, then says **T3 FROZEN**.
+1. Hold **Shift** and press the track's button. Its menu comes up; you stay on
+   the track you were on.
+2. **Click the jog** on **FREEZE T3**. **Back** closes the menu.
+3. **FREEZING T3 1/3** counts up while it records, clip by clip, then says
+   **T3 FROZEN**.
 
-It records the track's **selected clip**, which has to be the one playing. It
-takes **two passes** of the clip, in real time, so reverb and delay tails from
-the end of the loop are already in its start and the loop repeats seamlessly.
-With the transport playing, nothing stops: keep playing. With it stopped, the
-clip plays for the recording with the output silent, then stops again.
+![The track menu](../assets/screens/track_menu.png){ .small }
 
-While it records, the Move belongs to the recording: every LED but **Back** goes
-dark and every other press is ignored, so a stray **Play** cannot cut it short.
-**Back** cancels it, and the track stays as it was.
+It records **every clip of the track**, each over its loop, in **two passes** in
+real time, so reverb and delay tails from the end of a loop are already in its
+start and the loop repeats seamlessly. With the transport playing, nothing
+stops: the clip that plays is recorded first, and you hear it; then you hear
+its loop while the other clips record in the background. With the transport
+stopped, the clips play for the recording with the output silent, then it stops
+again.
+
+While it records, the Move belongs to the recording: the pads scroll
+**FROZEN**, every other LED but **Back** goes dark, and every other press is
+ignored, so a stray **Play** cannot cut it short. **Back** cancels it, and the
+track stays as it was.
 
 Movy says no, and why, to a track that is **muted** (it would record silence) or
-recording, and to a loop longer than **60 seconds** (a long clip at a slow speed
-and a slow tempo gets there quickly). All frozen loops together are kept under
-128 MB of memory; past that, unfreeze a track first.
+recording, to a track that plays nothing while the transport runs (launch a clip
+first), and to a clip longer than **60 seconds** (a long clip at a slow speed and
+a slow tempo gets there quickly). All frozen loops together are kept under
+200 MB of memory; past that, unfreeze a track first.
 
 **A frozen track:**
 
 ![A frozen track](../assets/screens/frozen_view.png){ .small }
 
-- **Plays its loop** in time with its clip, whenever that clip plays. A scene or
-  a launch that plays another clip of the track plays nothing on it.
+- **Shows the waveform** of the clip it plays, with a playhead.
+- **Plays the loop of whichever clip plays**: launches, scenes and the song all
+  work. An empty clip slot plays nothing.
+- **Loop mode cuts it.** Move the loop start later or the end earlier and the
+  loop plays just that part, and the waveform shows just that part. A loop
+  longer than what was recorded is refused.
+
+    ![A cut loop](../assets/screens/frozen_view_cut.png){ .small }
+
 - **Follows tempo changes** like tape: faster and higher, or slower and lower.
   A swing change does not reach it: the loop keeps the swing it was recorded with.
 - **Keeps its MIX slot.** Turn the jog to **MIX** for its level, pan and sends;
@@ -174,19 +187,23 @@ and a slow tempo gets there quickly). All frozen loops together are kept under
   muted synth would ring out.
 - **Cannot be edited** until you unfreeze it: notes, the Clip page, its synth and
   effects, the module browser, recording into it from the pads or a keyboard,
-  Capture, muting a single drum voice, deleting or pasting its clips. Movy says
-  **UNFREEZE T3 FIRST**. Undo leaves its clips alone.
-- **Its pads** scroll **FROZEN** (they play nothing), and the
+  Capture, muting a single drum voice, deleting or pasting its clips. Touching a
+  knob, pressing the jog, or any of those says how to get back:
+
+    ![Unfreeze first](../assets/screens/freeze_big_toast.png){ .small }
+
+  Undo leaves its clips alone.
+- **Its pads are dark** (they play nothing), and the
   [CPU meter](system.md#the-cpu-meter) marks it with an **F**.
 
-**To unfreeze**, **Shift** + **double tap** the track again. The synth and
-effects come back with the settings they had when frozen. Loading them pauses
-the audio for a moment, so, as in Live, unfreezing stops the transport; while
-it plays, Movy asks first:
+**To unfreeze**, **Shift** + the track's button, then click **UNFREEZE T3**. The
+synth and effects come back with the settings they had when frozen. Loading them
+pauses the audio for a moment, so, as in Live, unfreezing stops the transport;
+while it plays, the first click asks **CONFIRM?** and the second unfreezes.
 
-![Unfreeze while playing](../assets/screens/unfreeze_stops_modal.png){ .small }
+![Unfreeze while playing](../assets/screens/track_menu_unfreeze.png){ .small }
 
 **Saved with the Set.** A frozen track opens frozen, without loading its synth,
 and renaming or duplicating the Set keeps it. A track opens **unfrozen, with its
-chain**, when its chain or its clip is no longer what was frozen, for example
-after restoring an older version of the Set.
+chain**, when its synth, its sound or its clips are no longer what was frozen,
+for example after restoring an older version of the Set. Freeze it again.

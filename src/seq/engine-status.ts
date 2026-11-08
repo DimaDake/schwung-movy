@@ -119,7 +119,7 @@ export function parseStatus(s: string, served = Infinity): void {
         else if (key === 'prq') noteProbeGen(Number(val) || 0);
         else if (key === 'chpend') seqState.chainPending = Number(val) || 0;
         else if (key === 'sbad') seqState.setBad = val === '-' ? '' : val;
-        else if (key === 'frz' || key === 'frzc' || key === 'frze' || key === 'frzm' || key === 'frzr') freezeStatusField(key, val);
+        else if (key === 'frz' || key === 'frzc' || key === 'frze' || key === 'frzm' || key === 'frzr' || key === 'frzp') freezeStatusField(key, val);
         else if (key === 'chcost') seqState.cpuCost = val;
         else if (key === 'mtr') seqState.mixMeter = val;
         else if (key === 'chwall') seqState.cpuWall = val;

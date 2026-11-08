@@ -1,8 +1,8 @@
-/* The pads of a frozen track (seq/freeze.ts). */
+/* The pads while a freeze records (seq/freeze-busy.ts). */
 
 import { C_WHITE, TRACK_COLOR } from './colors.js';
 
-/* They play nothing (the chain is unloaded), so instead of a keyboard they say
+/* Nothing can be played while it records, so instead of a keyboard they say
  * so: "FROZEN" scrolling right to left, white on ice blue. 3x4 letters, a
  * blank column between them; one column every STEP_MS. The grid is diffed
  * against the LED cache and paced by the LED budget like any pad repaint, so

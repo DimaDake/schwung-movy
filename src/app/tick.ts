@@ -8,7 +8,6 @@ import { clipPageActive } from '../seq/clip-page.js';
 import { buildFlagsPageVM } from '../seq/flags-page-vm.js';
 import { buildVersionsPageVM } from '../seq/versions-page-vm.js';
 import { versionsPageState } from '../seq/versions-page.js';
-import { renderFlagsView } from '../renderer/flags-view.js';
 import { renderSetsView } from '../renderer/sets-view.js';
 import { buildSetsPageVM } from '../seq/sets-page-vm.js';
 import { setsPageState, setsPageTick } from '../seq/sets-page.js';
@@ -106,8 +105,13 @@ import {
     seqToastActive, seqToastTick, seqToastVersion,
     seqHeaderActive, seqHeaderTick,
 } from '../seq/render.js';
-import { isFrozen, frozenName, freezeBusy, freezeBusyToast } from '../seq/freeze.js';
-import { frozenPadColor } from '../seq/freeze-pads.js';
+import { isFrozen, freezeBusy, freezeBusyToast } from '../seq/freeze.js';
+import { buildFrozenViewVM } from '../seq/frozen-view-vm.js';
+import { freezeScreenSig } from '../seq/freeze-screen.js';
+import { freezeToastTrack } from '../seq/freeze-toast.js';
+import { drawFreezeToast } from '../renderer/freeze-toast-view.js';
+import { trackMenuActive, trackMenuTrack, buildTrackMenuVM } from '../seq/track-menu.js';
+import { renderFlagsView } from '../renderer/flags-view.js';
 import { freezeBusyLeds, freezeBusyEnd } from '../seq/freeze-busy.js';
 import { renderFrozenView } from '../renderer/frozen-view.js';
 
@@ -137,6 +141,7 @@ const lastModuleName = new Map<string, string>();
  * LED colors every tick. Initialized to 0 (C_BLACK); first tick syncs all. */
 const chromaticCache = new Uint8Array(32);
 let wasFreezeBusy = false;
+let lastFreezeSig = '';
 let busyToastVersion = -1;
 
 /* Assemble the automation snapshot for the param viewmodel from the seq mirror
@@ -548,9 +553,24 @@ function tickBody(): void {
         appState.dirty = true;
     } else if (wasFreezeBusy) {
         wasFreezeBusy = false;
+        /* The capture wrote the pads through the seq cache; the pad painters
+         * keep their own. Marked unknown, each pad is repainted by its painter
+         * within the LED budget — no boot-style LED sweep, which would hold
+         * every other painter for its frames. */
         freezeBusyEnd();
-        appState.initLedsDone = false; appState.initLedIndex = 0; chromaticCache.fill(0);
+        chromaticCache.fill(255); drumCache.fill(255);
         appState.dirty = true;
+    }
+    /* A frozen track has no module pages: it stays on the chain level, where
+     * the jog moves slots and its MIX page is one of them. */
+    if (appState.currentView === VIEW_KNOBS && isFrozen(appState.activeTrack.index)
+        && !isMixSlot(appState.trackChainIndex[appState.activeTrack.index])) {
+        appState.currentView = VIEW_CHAIN;
+        appState.dirty = true;
+    }
+    {
+        const sig = freezeScreenSig(appState.activeTrack.index, Date.now());
+        if (sig !== lastFreezeSig) { lastFreezeSig = sig; appState.dirty = true; }
     }
     /* Session toggle changes pad ownership: invalidate the seq LED cache and
      * re-init the instrument pad LEDs when returning to Note mode. */
@@ -991,8 +1011,7 @@ function tickBody(): void {
              * (seq/freeze.ts), and no jog toast over it. */
             const frozen = isFrozen(appState.activeTrack.index) && !isMixSlot(chainIdx);
             if (frozen) {
-                renderFrozenView('T' + (appState.activeTrack.index + 1), frozenName(appState.activeTrack.index),
-                                 chainIdx, CHAIN_SLOTS.length);
+                renderFrozenView(buildFrozenViewVM(appState.activeTrack.index, chainIdx, CHAIN_SLOTS.length));
             } else {
                 renderChainView(vm, chainIdx, moduleJogHint(), 'T' + (appState.activeTrack.index + 1),
                                 undefined, undefined as any, paramBodyFor(drawnPageOwner, schwungBody, lastAutoView),
@@ -1011,7 +1030,9 @@ function tickBody(): void {
          * else the master's. */
         const vol = volumeOverlay() ?? masterVolumeOverlay();
         if (vol) drawVolumeOverlay(vol);
-        viewCovered = !!vol || quantOverlayActive() || undoToastActive() || leaveModalActive();
+        const freezeToast = freezeToastTrack();
+        viewCovered = !!vol || quantOverlayActive() || undoToastActive() || leaveModalActive()
+            || trackMenuActive() || freezeToast >= 0;
         if (assignActive()) { drawJogToast(assignToastText()); jogToastShown = true; }
         if (toastShowing) drawSeqToast();
         if (headerShowing) drawSeqHeader();
@@ -1024,6 +1045,10 @@ function tickBody(): void {
          * leave modal, both of which own the screen while they are up. */
         if (undoToastActive()) drawUndoOverlay(undoToast()!);
         // Leave-Movy modal draws on top of everything else.
+        /* A frozen track's big toast, then the track menu (it owns the screen
+         * while open), both under the leave dialog. */
+        if (freezeToast >= 0) drawFreezeToast('T' + (freezeToast + 1));
+        if (trackMenuActive()) renderFlagsView(buildTrackMenuVM(), 'T' + (trackMenuTrack() + 1));
         if (leaveModalActive()) drawLeaveModal(leaveModalLabels(), leaveModalSel(), leaveModalTitle(), leaveModalNote());
         lastToastShowing = toastShowing;
         lastToastVersion = toastVersion;
@@ -1074,7 +1099,8 @@ function tickBody(): void {
                 // with what a press sends. -1 = not part of the rack.
                 const note = drumNoteOfPhys(p, PAD_MIN, drumCfg);
                 const playing = note >= 0 && (activeHasNote(track, note) || isSounding(p));
-                const color = isFrozen(track) ? frozenPadColor(i, Date.now())
+                /* A frozen track plays no notes: its pads are dark. */
+                const color = isFrozen(track) ? 0
                     : drumPadLedColor(p, PAD_MIN, drumCfg, sel, track, playing,
                                       note >= 0 && padVoiceSilent(note));
                 if (drumCache[i] !== color) {
@@ -1111,8 +1137,7 @@ function tickBody(): void {
             const p     = PAD_MIN + i;
             const pitch = map[i];
             const isPlaying = isSounding(p) || (pitch >= 0 && activeHasNote(track, pitch));
-            const color = isFrozen(track) ? frozenPadColor(i, Date.now())
-                                          : padColor(p, PAD_MIN, track, isPlaying, holdNotes);
+            const color = isFrozen(track) ? 0 : padColor(p, PAD_MIN, track, isPlaying, holdNotes);
             if (chromaticCache[i] !== color) {
                 if (!ledBudgetTake()) continue;   // cache left stale: retries next tick
                 chromaticCache[i] = color;

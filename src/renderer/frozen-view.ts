@@ -1,31 +1,36 @@
-/* A frozen track's chain view (seq/freeze.ts). Its chain is unloaded behind a
- * recorded loop, so there is no module page to draw — and the empty-slot
- * screen ("CLICK JOG: ADD MODULE") would invite exactly the edit a frozen
- * track refuses. This says what the track is instead: frozen, which synth it
- * was, and how to bring it back.
+/* A frozen track's chain view (seq/frozen-view-vm.ts). Its chain is unloaded
+ * behind recorded loops, so there is no module page to draw: the waveform of
+ * the clip it plays instead, only the playable part, with a playhead. No
+ * instruction text: a knob touch or a jog press shows the way out (the big
+ * freeze toast). The slot bar stays, so the jog still reaches the MIX slot.
  *
  * Pure, like every renderer: same inputs, same pixels. */
 
+import type { FrozenViewVM } from '../seq/frozen-view-vm.js';
 import { fontPrint, fontWidth } from '../font/index.js';
 import { drawBankBar, drawHeader } from './header.js';
 import { W } from './layout.js';
 
-function centered(y: number, text: string): void {
-    let t = text;
-    while (t.length > 1 && fontWidth(t) > W - 4) t = t.slice(0, -1);
-    fontPrint(Math.max(0, Math.floor((W - fontWidth(t)) / 2)), y, t, 1);
-}
+const MID = 37;        // the waveform's centre line
+const HALF = 22;       // its half height: rows 15..59
 
-/** `slot`/`slotCount`: where the jog is in the chain. The slot bar stays, so
- *  the jog still reaches the MIX slot, which a frozen track keeps (tick.ts
- *  draws the ordinary MIX page there instead of this). */
-export function renderFrozenView(trackLabel: string, moduleName: string, slot = 0, slotCount = 0): void {
+export function renderFrozenView(vm: FrozenViewVM): void {
     clear_screen();
-    drawHeader(trackLabel, 'FROZEN', true);
-    drawBankBar(slot, slotCount);
-    centered(19, moduleName ? moduleName.toUpperCase() : 'FROZEN TRACK');
-    centered(27, 'PLAYING ITS FROZEN LOOP');
-    centered(38, 'JOG TO MIX: LEVEL & SENDS');
-    centered(48, 'SHIFT + DOUBLE TAP TRACK');
-    centered(56, 'TO UNFREEZE');
+    drawHeader(vm.label + ' FROZEN', vm.name ? vm.name.toUpperCase() : null, true);
+    drawBankBar(vm.slot, vm.slotCount);
+    if (vm.empty || vm.cols.length === 0) {
+        const t = vm.empty ? 'EMPTY CLIP' : '...';
+        fontPrint(Math.floor((W - fontWidth(t)) / 2), MID - 2, t, 1);
+        return;
+    }
+    for (let x = 0; x < vm.cols.length; x++) {
+        const h = Math.max(1, Math.round((vm.cols[x] / 255) * HALF));
+        fill_rect(x, MID - h, 1, 2 * h, 1);
+    }
+    if (vm.playX >= 0) {
+        // The playhead: a column cut out of the wave, readable over any level.
+        fill_rect(vm.playX, MID - HALF, 1, 2 * HALF, 0);
+        fill_rect(vm.playX, MID - HALF, 1, 1, 1);
+        fill_rect(vm.playX, MID + HALF - 1, 1, 1, 1);
+    }
 }

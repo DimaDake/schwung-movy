@@ -1,14 +1,15 @@
 /* Freeze — the UI half (plans/2026-10-23-stems-freeze-export-wifi.md, F3).
  *
  * The engine does the work (movy-dsp freeze_bank.rs): it records two passes of
- * a track's active clip, then plays that loop in place of the chain and
+ * every clip of a track, then plays those loops in place of the chain and
  * unloads the chain. This file holds what the status line says about it, the
- * gesture (Shift + double tap on a track button), the messages, and the guard
- * every editing path asks before it touches a frozen track: a frozen track has
- * to be unfrozen before its notes, clips or sound can change.
+ * messages, and the guard every editing path asks before it touches a frozen
+ * track: a frozen track has to be unfrozen before its notes, clips or sound
+ * can change. The menu that freezes is seq/track-menu.ts (Shift + track).
  *
  * Status fields (lib.rs): `frz=<hex mask>` frozen-or-thawing tracks,
- * `frzc=<track>:<pct>` the capture in progress (or `-`), and
+ * `frzc=<track>:<done>/<total>:<pct>` the freeze in progress (or `-`),
+ * `frzp=<seq>` bumped when a waveform is ready (seq/freeze-wave.ts), and
  * `frze=<seq>:<track>:<code>` the last event, and — while any track is frozen —
  * `frzm=<track>:<module>,...` the module each was frozen from. And from the
  * sequencer, `frzr=<count>:<track>`: an edit the engine refused because the
@@ -20,19 +21,17 @@
 
 import { paramSet } from '../host/param.js';
 import { seqToast } from './render.js';
-
-/* The same window Loop mode's double tap on a bar uses (loop-mode.ts). */
-const DOUBLE_TAP_MS = 450;
+import { showFreezeToast } from './freeze-toast.js';
 
 let frozenMask = 0;
-let capture: { track: number; pct: number } | null = null;
+let capture: { track: number; done: number; total: number; pct: number } | null = null;
+let peaksSeq = '';
 let lastSeq = -1;
 let lastRefused = '';
 /* A freeze confirmed whose capture the status has not shown yet. */
 let pending = -1;
 let pendingAt = 0;
 const PENDING_MS = 3000;
-let lastTap = { track: -1, ms: -DOUBLE_TAP_MS };
 /* The synth each frozen track was, taken when the freeze was confirmed — the
  * chain is unloaded afterwards, so it cannot be asked any more. */
 const names: string[] = [];
@@ -72,18 +71,23 @@ export function freezeStatusField(key: string, val: string): void {
             if (i > 0) moduleIds[Number(pair.slice(0, i))] = pair.slice(i + 1);
         }
     } else if (key === 'frzc') {
-        const [t, p] = val.split(':').map(Number);
+        const [tS, dn, pS] = val.split(':');
+        const [d, n] = (dn ?? '').split('/').map(Number);
+        const t = Number(tS);
         /* In steps of 10: the engine's whole percent moves every ~40 ms, and each
          * new toast text is a full repaint (tick.ts, seqToastVersion). Ten per
-         * capture show it moving; a hundred would only cost UI time. */
-        const step = Math.floor((p || 0) / 10) * 10;
-        const next = val === '-' || !Number.isFinite(t) ? null : { track: t, pct: step };
+         * clip show it moving; a hundred would only cost UI time. */
+        const step = Math.floor((Number(pS) || 0) / 10) * 10;
+        const next = val === '-' || !Number.isFinite(t) || !Number.isFinite(n)
+            ? null : { track: t, done: d || 0, total: n || 1, pct: step };
         if (next) pending = -1;
-        if (next && (!capture || next.pct !== capture.pct)) seqToast(`FREEZING ${label(next.track)} ${next.pct}%`);
         capture = next;
+        if (next) freezeBusyToast();
+    } else if (key === 'frzp') {
+        peaksSeq = val;
     } else if (key === 'frzr') {
         /* Same first-sight rule as `frze`. */
-        if (lastRefused !== '' && val !== lastRefused) seqToast(`UNFREEZE ${label(Number(val.split(':')[1]))} FIRST`);
+        if (lastRefused !== '' && val !== lastRefused) showFreezeToast(Number(val.split(':')[1]));
         lastRefused = val;
     } else if (key === 'frze') {
         const [seqS, tS, code] = val.split(':');
@@ -116,10 +120,18 @@ export function freezeBusy(nowMs: number): boolean {
     return capture !== null || pending >= 0;
 }
 
-/** The capture's toast, kept up for as long as it runs. Same text, no repaint. */
+/** The freeze's toast, kept up for as long as it runs: which clip of how many,
+ *  and how far into it. Same text, no repaint. */
 export function freezeBusyToast(): void {
     const t = capture ? capture.track : pending;
-    if (t >= 0) seqToast(`FREEZING ${label(t)} ${capture ? capture.pct : 0}%`);
+    if (t < 0) return;
+    const c = capture ?? { done: 0, total: 1, pct: 0 };
+    seqToast(`FREEZING ${label(t)} ${Math.min(c.done + 1, c.total)}/${c.total} ${c.pct}%`);
+}
+
+/** Bumped by the engine whenever a frozen clip's waveform is ready. */
+export function freezePeaksSeq(): string {
+    return peaksSeq;
 }
 
 /**
@@ -128,19 +140,8 @@ export function freezeBusyToast(): void {
  */
 export function freezeGuard(track: number): boolean {
     if (!isFrozen(track)) return false;
-    seqToast(`UNFREEZE ${label(track)} FIRST`);
+    showFreezeToast(track);
     return true;
-}
-
-/**
- * A Shift + track-button press. `true` on the SECOND press of the same track
- * within the window — the caller opens the Freeze / Unfreeze dialog instead of
- * switching. The first press is an ordinary track press.
- */
-export function freezeTrackTap(track: number, nowMs: number): boolean {
-    const second = lastTap.track === track && nowMs - lastTap.ms <= DOUBLE_TAP_MS;
-    lastTap = second ? { track: -1, ms: -DOUBLE_TAP_MS } : { track, ms: nowMs };
-    return second;
 }
 
 /** The dialog was confirmed. `name` is the track's synth, while it is still loaded. */
@@ -149,7 +150,7 @@ export function freezeConfirm(track: number, unfreeze: boolean, name = '', nowMs
         names[track] = name;
         pending = track;
         pendingAt = nowMs;
-        seqToast(`FREEZING ${label(track)} 0%`);
+        freezeBusyToast();
     }
     paramSet(unfreeze ? 'unfrz' : 'frz', String(track));
 }
@@ -175,7 +176,7 @@ export function resetFreeze(): void {
     lastSeq = -1;
     lastRefused = '';
     pending = -1;
-    lastTap = { track: -1, ms: -DOUBLE_TAP_MS };
+    peaksSeq = '';
     names.length = 0;
     moduleIds = [];
 }

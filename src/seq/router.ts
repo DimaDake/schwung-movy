@@ -63,9 +63,11 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
 
     /* A frozen track plays a recorded loop, not its notes: a step edit (Track
      * view; Shift + step shortcuts stay) or a played pad note-on is refused
-     * with a message. Note-offs always pass — the ledger owns them. */
+     * with a message. Note-offs always pass — the ledger owns them. Loop
+     * mode's steps are bars: a cut of the window reaches the engine, which
+     * plays that part of the recording and refuses a window past it. */
     if (statusType === 0x90 && d2 > 0 && !seqState.sessionMode && !shiftHeld
-        && ((d1 >= STEP_NOTE_BASE && d1 < STEP_NOTE_BASE + NUM_STEP_BUTTONS)
+        && ((d1 >= STEP_NOTE_BASE && d1 < STEP_NOTE_BASE + NUM_STEP_BUTTONS && !seqState.loopMode)
             || (padsPlayNotes() && d1 >= PAD_MIN && d1 <= PAD_MAX))
         && freezeGuard(appState.activeTrack.index)) {
         return true;

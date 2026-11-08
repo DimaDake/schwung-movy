@@ -634,7 +634,7 @@ _origLog('\nTest: freeze per-tick cost');
     const { renderFrozenView } = await import('../dist/esm/renderer/frozen-view.js');
     fz.resetFreeze();
     const v0 = seqToastVersion();
-    for (let pct = 0; pct <= 100; pct++) fz.freezeStatusField('frzc', `2:${pct}`);
+    for (let pct = 0; pct <= 100; pct++) fz.freezeStatusField('frzc', `2:0/1:${pct}`);
     fz.freezeStatusField('frzc', '-');
     check('progress repaints over a whole capture (0..100 %)', seqToastVersion() - v0, 11);
 
@@ -658,18 +658,23 @@ _origLog('\nTest: freeze per-tick cost');
         for (const cc of [85, 86, 88, 54, 55, 40, 41, 42, 43, 50]) cachedSetButtonLED(cc, 127);
         let settle = 0;
         for (let f = 1; f <= 20; f++) {
-            sent = 0; ledFrameReset(); busy.freezeBusyLeds();
+            sent = 0; ledFrameReset(); busy.freezeBusyLeds(0);
             if (sent > 0) settle = f;
         }
-        check('busy LEDs: frames until dark', settle, 3);
+        /* Dark buttons and steps, the pads on the first FROZEN frame. */
+        check('busy LEDs: frames until settled', settle, 3);
         sent = 0;
-        for (let f = 0; f < 100; f++) { ledFrameReset(); busy.freezeBusyLeds(); }
+        for (let f = 0; f < 100; f++) { ledFrameReset(); busy.freezeBusyLeds(0); }
         check('busy LEDs: packets over 100 steady ticks', sent, 0);
+        /* One scroll step of the pads' FROZEN: only pads that change. */
+        sent = 0;
+        for (let f = 0; f < 3; f++) { ledFrameReset(); busy.freezeBusyLeds(220); }
+        check('busy pads: packets per scroll step', sent, 32);
         globalThis.setButtonLED = savedB; globalThis.setLED = savedL;
         seqLedsInvalidate();
 
         fz.freezeConfirm(2, false, 'X', 0);
-        fz.freezeStatusField('frzc', '2:35');
+        fz.freezeStatusField('frzc', '2:0/1:35');
         const v1 = seqToastVersion();
         for (let i = 0; i < 100; i++) fz.freezeBusyToast();
         check('busy toast: repaints over 100 ticks at one step', seqToastVersion() - v1, 0);
@@ -677,12 +682,29 @@ _origLog('\nTest: freeze per-tick cost');
     }
 
     fillRectCount = 0;
-    renderFrozenView('T4', 'OBXD', 1, 6);
-    /* A full page of text, drawn only when the view repaints (the same gate as
-     * the chain view it replaces), never per tick: the note view's full-paint
-     * budget, not a per-tick one. 600 since it gained the slot bar and the
-     * MIX line (PR #30 review): still under a module page's full paint. */
-    check('frozen view fill_rect per repaint', fillRectCount, 600);
+    const cols = Array.from({ length: 128 }, (_, x) => (x * 37) % 256);
+    renderFrozenView({ label: 'T4', name: 'OBXD', slot: 1, slotCount: 6, cols, playX: 64, empty: false });
+    /* The waveform: one rect a column, drawn only when the view repaints —
+     * the playhead moves it at most 128 times a loop (seq/freeze-screen.ts),
+     * never per tick. Under a module page's full paint. */
+    check('frozen view fill_rect per repaint', fillRectCount, 300);
+    {
+        const { freezeScreenSig } = await import('../dist/esm/seq/freeze-screen.js');
+        const { seqState } = await import('../dist/esm/seq/state.js');
+        fz.freezeStatusField('frz', '8');
+        seqState.session[3] = { exist: 1, playing: 0, queued: -1, selected: 0 };
+        seqState.playing = true; seqState.loopStart = 0; seqState.lenSteps = 64;
+        let changes = 0, last = '';
+        // One 4-bar loop at tick resolution: 64 steps x 24 ticks.
+        for (let tick = 0; tick < 64 * 24; tick++) {
+            seqState.posTick = tick;
+            const sig = freezeScreenSig(3, 0);
+            if (sig !== last) { changes++; last = sig; }
+        }
+        check('frozen view repaints per loop (playhead columns)', changes, 129);
+        seqState.playing = false; seqState.lenSteps = 0; seqState.posTick = 0;
+        seqState.session[3] = { exist: 0, playing: -1, queued: -1, selected: 0 };
+    }
     _origLog(`    (frozen view: ${fillRectCount} fill_rect)`);
     fz.resetFreeze();
 }

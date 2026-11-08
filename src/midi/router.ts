@@ -59,7 +59,7 @@ import { closeParamPage, paramPageActive } from '../seq/param-page.js';
 import { CHAIN_SLOTS, MASTER_FX_SLOTS, LAST_CHAIN_INDEX, LAST_MASTER_INDEX,
          LFO_CHAIN_INDEX, MASTER_LFO_INDEX, isLfoSlot, isMasterLfoSlot } from '../chain/config.js';
 import { keyboardState } from '../keyboard/state.js';
-import { browserState } from '../browser/state.js';
+import { browserState, browsedTrack } from '../browser/state.js';
 import { noteOn, noteOff, changeOctave } from '../keyboard/handler.js';
 import { soundingPitch, soundingTrack } from '../keyboard/held-notes.js';
 import { releaseAllLive } from '../keyboard/release.js';
@@ -84,8 +84,10 @@ import { aiRunningInput } from '../ai/job.js';
 import { aiPreviewActive } from '../ai/preview.js';
 import { previewInput } from '../ai/preview-input.js';
 import { leaveModalActive, openLeaveModal, closeLeaveModal, leaveModalMove, leaveModalConfirm, leaveModalPass,
-         leaveModalState, openFreezeModal } from '../app/leave-modal.js';
-import { freezeTrackTap, freezeConfirm, freezeCancelCapture, freezeGuard, isFrozen, freezeBusy } from '../seq/freeze.js';
+         } from '../app/leave-modal.js';
+import { freezeCancelCapture, freezeGuard, freezeBusy } from '../seq/freeze.js';
+import { openTrackMenu } from '../seq/track-menu.js';
+import { trackMenuMidi } from '../seq/track-menu-input.js';
 import { freezeSwallows } from '../seq/freeze-busy.js';
 import { isMixSlot } from '../chain/config.js';
 import {
@@ -173,14 +175,23 @@ function masterChainActive(): boolean {
         && appState.currentView !== VIEW_FILE_BROWSE;
 }
 
-/* Whether the knobs / jog click would edit a frozen track's unloaded chain.
- * Not in Session mode: the master chain is on screen there, and a module
- * browser opened from it is the master's too (picking a send FX while a frozen
- * track is focused). Not on the MIX slot: level, pan and sends are the
- * engine's mixer, which a frozen track keeps. */
-function frozenChainUnderEdit(): boolean {
-    if (seqState.sessionMode) return false;
-    return !isMixSlot(appState.trackChainIndex[appState.activeTrack.index]);
+/* The track whose chain the knobs / jog click would edit, or -1 for none a
+ * freeze can stand behind. Not in Session mode: the master chain is on screen
+ * there. In the module browser, the track it was opened on (`browsedTrack`):
+ * a send or master FX slot belongs to no track, so a send FX can be picked
+ * while a frozen track is focused. Not on the MIX slot: level, pan and sends
+ * are the engine's mixer, which a frozen track keeps. */
+function chainEditTrack(): number {
+    if (seqState.sessionMode) return -1;
+    if (appState.currentView === VIEW_BROWSE || appState.currentView === VIEW_FILE_BROWSE) return browsedTrack();
+    const t = appState.activeTrack.index;
+    return isMixSlot(appState.trackChainIndex[t]) ? -1 : t;
+}
+
+/** Refused (and the big toast shown) when that chain is a frozen track's. */
+function frozenChainRefuses(): boolean {
+    const t = chainEditTrack();
+    return t >= 0 && freezeGuard(t);
 }
 
 /* The master slot grid is on screen (jog scrolls slots, click adds/drills). */
@@ -242,6 +253,9 @@ export function onMidiMessageInternal(data: number[]): void {
         }
         if (freezeSwallows(data)) { appState.dirty = true; return; }
     }
+
+    /* The track menu (Shift + track button) owns input while it is open. */
+    if (trackMenuMidi(data)) { appState.dirty = true; return; }
 
     /* Schwung's keyboard (the Sets page's rename) owns every control while it
      * is up, releases included — it tracks its own presses, a pad would
@@ -317,13 +331,6 @@ export function onMidiMessageInternal(data: number[]): void {
                  * reset cannot cover presses that arrived after it. Live notes
                  * need no equivalent only because everything that sounds one
                  * dismisses first; move a pad to `through` and that changes. */
-                /* Freeze stays in movy: nothing is stranded, Shift may still be
-                 * down under the finger, so held input is left alone. */
-                if (action === 'freeze' || action === 'unfreeze') {
-                    const t = leaveModalState.track;
-                    freezeConfirm(t, action === 'unfreeze', appState.trackModels[t]?.[1]?.getModuleName() ?? '');
-                    return;
-                }
                 resetHeldInput(true);
                 if (action === 'close') platform.exit();
                 else if (action === 'poweroff') platform.powerOff();
@@ -412,6 +419,12 @@ export function onMidiMessageInternal(data: number[]): void {
             /* SP-54: gated to the 5 real cells so knobs 5-7 (blank) never
              * reach a component with no such keys. */
             if (d1 < 5) stepParamsOwner().page?.knobTouch(d1, d2 > 0);
+            appState.dirty = true;
+            return;
+        }
+        /* A frozen track's chain is unloaded: a touch says so (the big toast)
+         * and goes no further. The MIX slot is the engine's mixer and works. */
+        if (d2 > 0 && frozenChainRefuses()) {
             appState.dirty = true;
             return;
         }
@@ -683,7 +696,7 @@ export function onMidiMessageInternal(data: number[]): void {
         const track = appState.activeTrack.index;
         /* A frozen track's chain is unloaded: an edit would go nowhere and the
          * unfreeze would bring the old sound back. Say so instead. */
-        if (frozenChainUnderEdit() && freezeGuard(track)) return;
+        if (frozenChainRefuses()) return;
         /*
          * THE LANE MUST TARGET THE PARAMETER THAT IS ACTUALLY UNDER THE KNOB.
          *
@@ -734,12 +747,10 @@ export function onMidiMessageInternal(data: number[]): void {
             /* Snapshot before switching so the hold-release closure returns
              * exactly here. beginTrackSwitch also closes the global Main/Clip
              * Params pages, which a track button always leaves. */
-            /* Shift + double tap: Freeze / Unfreeze that track (seq/freeze.ts).
-             * The first tap was an ordinary track press; the second opens the
-             * dialog instead of switching again. Shift + HOLD + volume is not a
-             * double tap, so the track-volume gesture is untouched. */
-            if (appState.shiftHeld && freezeTrackTap(track, Date.now())) {
-                openFreezeModal(track, isFrozen(track));
+            /* Shift + track button: that track's menu (Freeze / Unfreeze,
+             * seq/track-menu.ts), without switching to it. */
+            if (appState.shiftHeld) {
+                openTrackMenu(track);
                 appState.dirty = true;
                 return;
             }
@@ -871,7 +882,7 @@ export function onMidiMessageInternal(data: number[]): void {
         }
         /* A frozen track's chain is unloaded: the click would open the module
          * browser on an empty slot. Say why instead (seq/freeze.ts). */
-        if (frozenChainUnderEdit() && freezeGuard(appState.activeTrack.index)) {
+        if (frozenChainRefuses()) {
             appState.dirty = true;
             return;
         }

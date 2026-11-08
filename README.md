@@ -26,8 +26,9 @@ Move's software and owns the whole device. The Move can also boot straight into 
 - **Scenes and song mode**: launch whole clip columns and chain them into a looping song.
 - **Mixing**: per-track level, pan and sends, three shared send effects, four
   master effects, and a 16-track mixer on one screen.
-- **Freeze**: record a track's clip into a loop and unload its synth and
-  effects; it sounds the same and its CPU goes back to the Set.
+- **Freeze**: record every clip of a track into loops and unload its synth
+  and effects; it sounds the same, scenes still work, and its CPU goes back to
+  the Set.
 - **Generators**: Smart Quantize, Variation, Smart Double and New Clip offer new
   takes on a clip that fit the scene's chords and groove, on the device and offline.
 - **Sets and backups**: Movy's own Sets list, automatic saving, and 32 restorable versions per Set.

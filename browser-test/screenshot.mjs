@@ -46,7 +46,7 @@ const PRESETS = [
     'ai_preview_orig', 'ai_preview_opt1', 'ai_preview_opt3', 'ai_preview_var8', 'ai_preview_scrolled', 'ai_hold_progress_50', 'ai_hold_variation_50', 'ai_hold_double_50', 'ai_hold_newclip_50',
     'cpu-movy-tracks', 'cpu-unsplit-module', 'cpu-overscale',
     'cpu-empty', 'cpu-sends', 'cpu-sends-quiet', 'cpu-master', 'cpu-frozen', 'leave_modal',
-    'power_modal', 'unfreeze_stops_modal', 'frozen_view', 'capture_select', 'capture_fixed', 'undo_toast', 'redo_toast',
+    'power_modal', 'track_menu', 'track_menu_unfreeze', 'frozen_view', 'frozen_view_cut', 'freeze_big_toast', 'capture_select', 'capture_fixed', 'undo_toast', 'redo_toast',
     'undo_empty', 'undo_unavailable', 'clip-undo-toast', 'track_volume_unity',
     'track_volume_quiet', 'track_volume_min', 'track_volume_max', 'master_volume',
     'font_5x3_all', 'font_small_all', 'font_big_all_1', 'font_big_all_2', 'page_body',
@@ -106,7 +106,7 @@ const BASE = {
     'flags-top': 'test8', 'flags-scrolled': 'test8', gen_preview_knob: 'test8',
     ai_preview_orig: 'test8', ai_preview_opt1: 'test8', ai_preview_opt3: 'test8', ai_preview_var8: 'test8', ai_preview_scrolled: 'test8', ai_hold_progress_50: 'test8', ai_hold_variation_50: 'test8', ai_hold_double_50: 'test8', ai_hold_newclip_50: 'test8',
                                                                             lfo_chain: 'test8',         lfo_assign_toast: 'test8',
-    leave_modal: 'test8', power_modal: 'test8', unfreeze_stops_modal: 'test8', frozen_view: 'test8',
+    leave_modal: 'test8', power_modal: 'test8', track_menu: 'test8', track_menu_unfreeze: 'test8', frozen_view: 'test8', frozen_view_cut: 'test8', freeze_big_toast: 'test8',
     master_volume: 'test8',
     track_volume_unity: 'test8', track_volume_quiet: 'test8',
     track_volume_min: 'test8', track_volume_max: 'test8',
@@ -189,6 +189,7 @@ const { renderSetsView }  = await import('../dist/esm/renderer/sets-view.js');
 const { buildSetsPageVM } = await import('../dist/esm/seq/sets-page-vm.js');
 const { renderCpuView }   = await import('../dist/esm/renderer/cpu-view.js');
 const { renderFrozenView } = await import('../dist/esm/renderer/frozen-view.js');
+const { drawFreezeToast } = await import('../dist/esm/renderer/freeze-toast-view.js');
 const freeze = await import('../dist/esm/seq/freeze.js');
 const { buildCpuPageVM }  = await import('../dist/esm/seq/cpu-page-vm.js');
 const { buildFlagsPageVM } = await import('../dist/esm/seq/flags-page-vm.js');
@@ -716,17 +717,33 @@ function applyView(preset) {
             lastRender();
             break;
         }
-        /* Unfreeze with the transport running: the note line, Yes / No. */
-        case 'unfreeze_stops_modal': {
-            showChain(1, false);
-            const base = lastRender;
-            lastRender = () => { base(); drawLeaveModal(['Yes', 'No'], 0, 'Unfreeze T3?', 'Playback will stop'); };
+        /* Shift + track button: the track menu, drawn like Settings. */
+        case 'track_menu':
+        case 'track_menu_unfreeze': {
+            const un = preset === 'track_menu_unfreeze';
+            const vm = { rows: [{ name: (un ? 'UNFREEZE' : 'FREEZE') + ' T3', value: un ? 'CONFIRM?' : '>', selected: true }],
+                         selected: 0, hint: un ? 'Click again: play stops, the synth comes back.' : 'Records every clip. Saves CPU.' };
+            lastRender = () => renderFlagsView(vm, 'T3');
             lastRender();
             break;
         }
-        /* A frozen track's chain view: what it was, and how to bring it back. */
-        case 'frozen_view': {
-            lastRender = () => renderFrozenView('T4', 'OBXD', 1, 6);
+        /* A frozen track: the waveform of the clip it plays (a four-beat
+         * pattern with decaying hits), the playhead, the slot bar. A Loop-mode
+         * cut shows only the part that plays. Then the big toast a knob touch
+         * or a jog press brings up. */
+        case 'frozen_view':
+        case 'frozen_view_cut':
+        case 'freeze_big_toast': {
+            const cut = preset === 'frozen_view_cut';
+            const beats = cut ? 2 : 4;
+            const cols = Array.from({ length: 128 }, (_, x) => {
+                const ph = (x * beats / 128) % 1;
+                return Math.round(40 + 200 * Math.exp(-ph * 6) * (1 - 0.15 * Math.floor(x * beats / 128)));
+            });
+            const vm = { label: 'T4', name: 'OBXD', slot: 1, slotCount: 6, cols, playX: cut ? 90 : 40, empty: false };
+            lastRender = preset === 'freeze_big_toast'
+                ? () => { renderFrozenView(vm); drawFreezeToast('T4'); }
+                : () => renderFrozenView(vm);
             lastRender();
             break;
         }

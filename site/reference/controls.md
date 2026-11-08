@@ -59,7 +59,7 @@ The shortcuts also work in Session view, except the Clip page and the generators
 | **Shift** + **pad** (drums) | Select a voice without playing it. |
 | **Mute** + **pad** (drums) | Mute that voice. **Shift** + **Mute** + pad: solo it. |
 | **Track buttons** | Select a track in the focused group. Hold: look and come back. |
-| **Shift** + **double tap** a track button | [Freeze](../manual/sounds.md#freezing-a-track) the track, or unfreeze a frozen one. **Back** cancels a freeze while it records. |
+| **Shift** + track button | That track's menu: [Freeze](../manual/sounds.md#freezing-a-track) it, or unfreeze a frozen one. **Back** cancels a freeze while it records. |
 
 ## Sequencer
 

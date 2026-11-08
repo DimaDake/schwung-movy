@@ -28,18 +28,18 @@ export async function run() {
     eq('T1 not', fz.isFrozen(0), false);
     eq('a negative track is never frozen', fz.isFrozen(-1), false);
 
-    fz.freezeStatusField('frzc', '2:45');
+    fz.freezeStatusField('frzc', '2:0/3:45');
     eq('capturing T3', fz.freezeCapturing(), 2);
-    ok('progress is shown, in steps of 10', seqToastActive() && seqToastText() === 'FREEZING T3 40%');
+    ok('progress: which clip of how many, in steps of 10', seqToastActive() && seqToastText() === 'FREEZING T3 1/3 40%');
     const { seqToastVersion } = await import('../../dist/esm/seq/render.js');
     const v0 = seqToastVersion();
-    fz.freezeStatusField('frzc', '2:49');
+    fz.freezeStatusField('frzc', '2:0/3:49');
     eq('inside the same step: no new toast, no repaint', seqToastVersion(), v0);
-    fz.freezeStatusField('frzc', '2:51');
+    fz.freezeStatusField('frzc', '2:0/3:51');
     ok('the next step is a new toast version (tick.ts repaints on it)', seqToastVersion() === v0 + 1);
-    eq('the toast says it', seqToastText(), 'FREEZING T3 50%');
-    fz.freezeStatusField('frzc', '2:52');
-    eq('more of the same step is not', seqToastVersion(), v0 + 1);
+    eq('the toast says it', seqToastText(), 'FREEZING T3 1/3 50%');
+    fz.freezeStatusField('frzc', '2:1/3:0');
+    eq('the next clip', seqToastText(), 'FREEZING T3 2/3 0%');
     fz.freezeStatusField('frzc', '-');
     eq('no capture', fz.freezeCapturing(), -1);
 
@@ -55,53 +55,93 @@ export async function run() {
     eq('a cancel', seqToastText(), 'FREEZE CANCELLED');
 
     _log('\nfreeze: the guard');
+    const ftoast = await import('../../dist/esm/seq/freeze-toast.js');
+    ftoast.resetFreezeToast();
     eq('an unfrozen track passes', fz.freezeGuard(0), false);
+    eq('no toast for it', ftoast.freezeToastTrack(), -1);
     eq('a frozen one is refused', fz.freezeGuard(3), true);
-    eq('and told why', seqToastText(), 'UNFREEZE T4 FIRST');
+    eq('with the big toast naming it', ftoast.freezeToastTrack(), 3);
+    eq('for about a second and a half', ftoast.freezeToastTrack(Date.now() + 1600), -1);
+    ftoast.resetFreezeToast();
+    fz.freezeStatusField('frzr', '4:3');
+    eq('an engine refusal first seen says nothing', ftoast.freezeToastTrack(), -1);
+    fz.freezeStatusField('frzr', '5:3');
+    eq('a new engine refusal shows the big toast', ftoast.freezeToastTrack(), 3);
+    eq('there is no double tap any more', fz.freezeTrackTap, undefined);
 
-    _log('\nfreeze: Shift + double tap');
-    fz.resetFreeze();
-    eq('first tap is an ordinary press', fz.freezeTrackTap(2, 1000), false);
-    eq('second within 450 ms opens the dialog', fz.freezeTrackTap(2, 1300), true);
-    eq('a third does not chain on', fz.freezeTrackTap(2, 1400), false);
-    eq('too slow is two single taps', fz.freezeTrackTap(2, 2000), false);
-    eq('another track does not count', fz.freezeTrackTap(5, 2100), false);
-
-    _log('\nfreeze: the dialog');
-    modal.openFreezeModal(2, false);
-    eq('title', modal.leaveModalTitle(), 'Freeze T3?');
-    eq('options, Freeze first (the default)', modal.leaveModalLabels().join('|'), 'Freeze|Cancel');
-    eq('confirm', modal.leaveModalConfirm(), 'freeze');
-    eq('the track rides the state', modal.leaveModalState.track, 2);
-    modal.openFreezeModal(3, true);
-    eq('a frozen track asks to unfreeze', modal.leaveModalTitle(), 'Unfreeze T4?');
-    eq('stopped: no note', modal.leaveModalNote(), '');
-    modal.leaveModalMove(1);
-    eq('Cancel is one jog step away', modal.leaveModalConfirm(), 'cancel');
-
-    _log('\nfreeze: unfreeze while playing warns that playback stops');
+    _log('\nfreeze: the track menu (Shift + track)');
+    const menu = await import('../../dist/esm/seq/track-menu.js');
     const transport = (await import('../../dist/esm/seq/state.js')).seqState;
-    transport.playing = true;
-    modal.openFreezeModal(3, true);
-    eq('same title', modal.leaveModalTitle(), 'Unfreeze T4?');
-    eq('the note says playback stops', modal.leaveModalNote(), 'Playback will stop');
-    eq('a yes/no question', modal.leaveModalLabels().join('|'), 'Yes|No');
-    eq('Yes (the default) unfreezes', modal.leaveModalConfirm(), 'unfreeze');
-    modal.openFreezeModal(3, true);
-    modal.leaveModalMove(1);
-    eq('No cancels', modal.leaveModalConfirm(), 'cancel');
-    modal.openFreezeModal(2, false);
-    eq('a freeze while playing does not stop: no note', modal.leaveModalNote(), '');
-    eq('and keeps its options', modal.leaveModalLabels().join('|'), 'Freeze|Cancel');
-    modal.closeLeaveModal('test');
-    modal.openFreezeModal(3, true);
+    writes.length = 0;
+    menu.openTrackMenu(2);
+    eq('open for T3', menu.trackMenuTrack(), 2);
+    let vm = menu.buildTrackMenuVM();
+    eq('one row: FREEZE T3', vm.rows.map(r => r.name).join('|'), 'FREEZE T3');
+    eq('the hint says what it does', vm.hint, 'Records every clip. Saves CPU.');
+    menu.trackMenuClick('Surge');
+    eq('a click freezes it', writes.join(' '), 'frz=2');
+    eq('and closes the menu', menu.trackMenuActive(), false);
+    fz.resetFreeze();
+    fz.freezeStatusField('frz', '8');            // T4 frozen
+    writes.length = 0;
+    menu.openTrackMenu(3);
+    eq('a frozen track offers UNFREEZE', menu.buildTrackMenuVM().rows[0].name, 'UNFREEZE T4');
     transport.playing = false;
-    eq('Stop pressed with the dialog up: the note goes', modal.leaveModalNote(), '');
-    eq('and the options are the plain ones', modal.leaveModalLabels().join('|'), 'Unfreeze|Cancel');
-    modal.closeLeaveModal('test');
-    modal.openLeaveModal();
-    eq('the leave menu is unchanged', modal.leaveModalTitle(), 'Leave Movy?');
-    modal.closeLeaveModal('test');
+    menu.trackMenuClick('');
+    eq('stopped: one click unfreezes', writes.join(' '), 'unfrz=3');
+    writes.length = 0;
+    transport.playing = true;
+    menu.openTrackMenu(3);
+    menu.trackMenuClick('');
+    eq('playing: the first click only arms', writes.length, 0);
+    eq('and asks', menu.buildTrackMenuVM().rows[0].value, 'CONFIRM?');
+    eq('saying play stops', menu.buildTrackMenuVM().hint, 'Click again: play stops, the synth comes back.');
+    menu.trackMenuClick('');
+    eq('the second unfreezes', writes.join(' '), 'unfrz=3');
+    menu.openTrackMenu(3);
+    menu.trackMenuClick('');
+    transport.playing = false;
+    eq('Stop meanwhile: the arm is gone', menu.buildTrackMenuVM().rows[0].value, '>');
+    menu.closeTrackMenu();
+    transport.playing = false;
+    fz.resetFreeze();
+
+    _log('\nfreeze: the waveform shows only the playable part');
+    {
+        const { buildFrozenViewVM, WAVE_COLS } = await import('../../dist/esm/seq/frozen-view-vm.js');
+        const { resetFreezeWave } = await import('../../dist/esm/seq/freeze-wave.js');
+        const st = (await import('../../dist/esm/seq/state.js')).seqState;
+        const savedGet = globalThis.host_module_get_param;
+        const asked = [];
+        // Recorded over steps 0-15: quiet first half, loud second half.
+        globalThis.host_module_get_param = (k) => {
+            asked.push(k);
+            return k === 'frzpk_3_0' ? '0 16 ' + '10'.repeat(128) + 'f0'.repeat(128) : null;
+        };
+        resetFreezeWave();
+        fz.freezeStatusField('frz', '8');
+        fz.freezeStatusField('frzp', '1');
+        st.session[3] = { exist: 1, playing: 0, queued: -1, selected: 0 };
+        st.loopStart = 0; st.lenSteps = 16; st.playing = false;
+        let vm = buildFrozenViewVM(3, 1, 6);
+        eq('the whole recording: quiet then loud', [vm.cols[0], vm.cols[WAVE_COLS - 1]].join(','), '16,240');
+        eq('stopped: no playhead', vm.playX, -1);
+        st.loopStart = 8; st.lenSteps = 8;
+        vm = buildFrozenViewVM(3, 1, 6);
+        ok('a Loop-mode cut to the second half shows only it', vm.cols.every((c) => c === 240));
+        st.playing = true; st.posTick = (8 + 4) * 24;
+        eq('the playhead halfway through the cut', buildFrozenViewVM(3, 1, 6).playX, WAVE_COLS / 2);
+        eq('fetched once, not per frame', asked.filter((k) => k === 'frzpk_3_0').length, 1);
+        fz.freezeStatusField('frzp', '2');
+        buildFrozenViewVM(3, 1, 6);
+        eq('a new waveform is fetched again', asked.filter((k) => k === 'frzpk_3_0').length, 2);
+        st.session[3] = { exist: 0, playing: -1, queued: -1, selected: 0 };
+        eq('an empty slot says so', buildFrozenViewVM(3, 1, 6).empty, true);
+        st.playing = false; st.loopStart = 0; st.lenSteps = 0; st.posTick = 0;
+        globalThis.host_module_get_param = savedGet;
+        resetFreezeWave();
+        fz.resetFreeze();
+    }
 
     _log('\nfreeze: what reaches the engine');
     writes.length = 0;
@@ -113,7 +153,7 @@ export async function run() {
     eq('frzx <the confirmed track>', writes.join(' '), 'frzx=2');
     writes.length = 0;
     eq('Back with no capture does nothing', fz.freezeCancelCapture(), false);
-    fz.freezeStatusField('frzc', '6:10');
+    fz.freezeStatusField('frzc', '6:0/1:10');
     eq('Back during a capture cancels it', fz.freezeCancelCapture(), true);
     eq('frzx <track>', writes.join(' '), 'frzx=6');
 

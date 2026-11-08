@@ -25,14 +25,25 @@ static uint64_t g_next_ms;
 static int helper_usable(void);
 static int run_helper(void);
 
+static rlim_t address_space(void) {
+    struct rlimit rl;
+    return getrlimit(RLIMIT_AS, &rl) == 0 ? rl.rlim_cur : RLIM_INFINITY;
+}
+
 /* Before the audio thread exists: locking memory faults in every page under
  * the process's mm lock, which stalled a live audio thread 85 ms (measured).
- * As ableton the limit is too low, so the helper raises it first. */
+ * As ableton the limit is too low, so the helper raises it first, and lifts
+ * the address-space cap with it (rt.h says why) before any chain forks. */
 void rt_init(void) {
     snprintf(g_helper, sizeof g_helper, "%s/bin/heal", g_mh_module_dir);
     g_locked = mlockall(MCL_CURRENT | MCL_FUTURE) == 0;
-    if (!g_locked && helper_usable() && run_helper() == 0) g_locked = mlockall(MCL_CURRENT | MCL_FUTURE) == 0;
-    mh_log("rt: memory %s", g_locked ? "locked" : "NOT locked (degraded)");
+    if (rt_helper_wanted(g_locked, address_space()) && helper_usable()) run_helper();
+    if (!g_locked) g_locked = mlockall(MCL_CURRENT | MCL_FUTURE) == 0;
+    const char *mem = g_locked ? "locked" : "NOT locked (degraded)";
+    rlim_t as = address_space();
+    if (as == RLIM_INFINITY) mh_log("rt: memory %s, address space unlimited", mem);
+    else mh_log("rt: memory %s, address space capped at %llu MB (fork-mode modules may not boot)", mem,
+                (unsigned long long)(as >> 20));
 }
 
 const char *rt_state(void) {

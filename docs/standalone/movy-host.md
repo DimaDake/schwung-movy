@@ -164,11 +164,21 @@ ableton cannot get `SCHED_FIFO` (WP0 findings §3.1). The launcher re-stages
 shipped one, and runs `schwung-heal`, which installs it. movy-host calls
 `bin/heal rt <pid> <audio tid>`. The helper touches only a process whose
 executable is the `movy-host` beside it: the audio thread by **tid**
-(FIFO 70) and `movy-render*` (FIFO 68), plus `RLIMIT_MEMLOCK`. It goes by tid
+(FIFO 70) and `movy-render*` (FIFO 68), plus `RLIMIT_MEMLOCK` and `RLIMIT_AS`. It goes by tid
 because a thread spawned from the audio thread inherits its name. Memory is
 locked before the audio thread starts: a `mlockall` with audio live stalled one
 frame for 85 ms. With no usable helper movy-host runs degraded and says so
 (`rt: … DEGRADED`, `STATE rt=other`).
+
+The address-space cap is lifted in the same call, before any set loads. Move's
+launcher caps every process at 1.66 GiB, and a fork-mode module (osirus, the
+Virus) forks its DSP emulator from movy-host: the emulator inherits the cap
+and all of movy-host's mappings, with ~830 MB of its own on top. Once the
+freeze helpers' malloc arenas took movy-host to 883 MB with six Virus chains,
+every emulator died in `bootDSPs` (SIGSEGV in `virus_debug.log`) and the page
+stayed on "Booting DSP...". The cap never bounded RAM (it is per process). The
+log says `rt: … address space unlimited`, or `capped at … MB` when the helper
+could not lift it.
 
 ## Core placement (WP11)
 

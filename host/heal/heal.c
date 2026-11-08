@@ -9,7 +9,10 @@
  *
  * It touches ONLY a process whose executable is the movy-host beside it, and
  * ONLY that process's audio thread (FIFO 70, Move's audio priority) and
- * movy-render* threads (FIFO 68, below it), plus its RLIMIT_MEMLOCK. The audio
+ * movy-render* threads (FIFO 68, below it), plus its RLIMIT_MEMLOCK and
+ * RLIMIT_AS (Move's launcher caps the address space at 1.66 GiB, and a
+ * fork-mode module's emulator inherits that cap on top of movy-host's own
+ * mappings, then dies booting: host/rt.h). The audio
  * thread goes by tid, not name: a thread spawned FROM it inherits "movy-audio"
  * and must not be promoted with it. Nothing
  * from the environment is read, nothing is executed, and it exits at once. */
@@ -69,6 +72,7 @@ int main(int argc, char **argv) {
 
     struct rlimit inf = { RLIM_INFINITY, RLIM_INFINITY };
     int bad = prlimit((pid_t)pid, RLIMIT_MEMLOCK, &inf, NULL) != 0;
+    bad |= prlimit((pid_t)pid, RLIMIT_AS, &inf, NULL) != 0;
     char task_dir[64];
     snprintf(task_dir, sizeof task_dir, "/proc/%ld/task", pid);
     DIR *d = opendir(task_dir);

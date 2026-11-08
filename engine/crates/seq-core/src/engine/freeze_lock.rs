@@ -101,7 +101,7 @@ impl FreezeLock {
         self.swapped.get(t).copied().unwrap_or(false)
     }
 
-    pub(crate) fn set_swapped(&mut self, t: usize, on: bool) {
+    pub fn set_swapped(&mut self, t: usize, on: bool) {
         if let Some(s) = self.swapped.get_mut(t) {
             *s = on;
         }

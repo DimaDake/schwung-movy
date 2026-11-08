@@ -56,7 +56,7 @@ pub enum Job {
     /// was just frozen, if any, then the manifest, and drop WAVs it no longer
     /// names. The samples are shared with the audio thread's player, so the
     /// handover cost no copy.
-    Freeze { uuid: String, manifest: String, wav: Option<(usize, Arc<Vec<i16>>, u32)> },
+    Freeze { uuid: String, manifest: String, wavs: Vec<crate::freeze_files::Wav> },
     /// movy's own library (set_lib_jobs.rs): on this thread so a duplicate or
     /// a delete can never race an autosave of the same Set.
     Lib(crate::set_lib_jobs::LibCmd),
@@ -120,6 +120,9 @@ struct Shared {
     /// The frozen tracks of the Set in `loaded`, read with it (freeze_files.rs)
     /// and taken by the audio thread right after it applies those bytes.
     frozen: Option<(String, Vec<crate::freeze_files::FrozenLoad>)>,
+    /// Waveform overviews of loops just written, `(uuid, track, slot,
+    /// peaks)`: computed here, off the audio thread, and taken by it.
+    peaks: Vec<(String, usize, usize, Vec<u8>)>,
 }
 
 pub struct Saver {
@@ -515,12 +518,16 @@ fn worker(root: String, shared: Arc<Mutex<Shared>>, rx: std::sync::mpsc::Receive
                     }
                 }
             }
-            Msg::Work(Job::Freeze { uuid, manifest, wav }) => {
-                let w = wav.as_ref().map(|(t, s, rate)| (*t, s.as_slice(), *rate));
-                if let Err(e) = crate::freeze_files::write(&store.set_dir(&uuid), &manifest, w) {
-                    crate::host::log(&format!("freeze: {uuid} not written: {e}"));
-                }
+            Msg::Work(Job::Freeze { uuid, manifest, wavs }) => {
+                let peaks = match crate::freeze_files::write(&store.set_dir(&uuid), &manifest, &wavs) {
+                    Ok(p) => p,
+                    Err(e) => {
+                        crate::host::log(&format!("freeze: {uuid} not written: {e}"));
+                        Vec::new()
+                    }
+                };
                 let mut sh = shared.lock().unwrap();
+                sh.peaks.extend(peaks.into_iter().map(|(t, s, p)| (uuid.clone(), t, s, p)));
                 sh.dirty = sh.dirty.saturating_sub(1);
             }
             Msg::Work(Job::Flush) => {}
@@ -545,6 +552,7 @@ impl Saver {
             gc: "idle".to_string(),
             lib: String::new(),
             frozen: None,
+            peaks: Vec::new(),
         }));
         let w = Arc::clone(&shared);
         let r = root.to_string();
@@ -644,6 +652,12 @@ impl Saver {
         self.shared.lock().unwrap().frozen.take()
     }
 
+    /// Peaks the saver computed since the last call. `try_lock`: asked every
+    /// block, it never waits on the saver — a miss is the next block's.
+    pub fn take_peaks(&self) -> Vec<(String, usize, usize, Vec<u8>)> {
+        self.shared.try_lock().map(|mut sh| std::mem::take(&mut sh.peaks)).unwrap_or_default()
+    }
+
     #[cfg(test)]
     pub fn take_loaded(&self) -> Option<(String, String, u32)> {
         self.shared.lock().unwrap().loaded.take()
@@ -705,19 +719,23 @@ mod tests {
     #[test]
     fn a_frozen_track_survives_a_reopen_and_an_unfreeze_cleans_up() {
         use crate::freeze::LoopMap;
-        use crate::freeze_files::{encode_manifest, Entry};
+        use crate::freeze_files::{encode_manifest, ClipEntry, Entry, PEAK_COLS};
         let root = tmp("freeze");
         let map = LoopMap::new(seq_core::TICKS_PER_BAR, 12_000, 44_100).unwrap();
         let samples: Vec<i16> = (0..map.frames() * 2).map(|i| (i % 1000) as i16).collect();
-        let manifest = encode_manifest(&[Entry { track: 3, len_ticks: map.len_ticks(), bpm_x100: 12_000,
-            rate: 44_100, frames: map.frames(), slot: 0, print: 1, modules: "synth=obxd".into() }]);
+        let win = seq_core::engine::RecWindow { start_ticks: 0, len_ticks: seq_core::TICKS_PER_BAR };
+        let manifest = encode_manifest(&[Entry { track: 3, bpm_x100: 12_000, rate: 44_100, chain_print: 7,
+            modules: "synth=obxd".into(),
+            clips: vec![ClipEntry { slot: 0, len_ticks: map.len_ticks(), frames: map.frames(), win, print: 1 }] }]);
 
         let s = Saver::new(&root);
         s.submit(Job::Open { uuid: "u1".into(), seed: None });
         s.submit(Job::Save { uuid: "u1".into(), payload: "movy1\ncl 0 0 16 0 x\n".into(), gen: 1, chains: "0\n".into() });
-        s.submit(Job::Freeze { uuid: "u1".into(), manifest, wav: Some((3, Arc::new(samples.clone()), 44_100)) });
+        s.submit(Job::Freeze { uuid: "u1".into(), manifest, wavs: vec![(3, 0, Arc::new(samples.clone()), 44_100)] });
         s.drain_for_test();
         assert_eq!(s.shared.lock().unwrap().dirty, 0, "the freeze counted and settled like a save");
+        let p = s.take_peaks();
+        assert_eq!((p.len(), p[0].1, p[0].2, p[0].3.len()), (1, 3, 0, PEAK_COLS), "the saver hands the peaks back");
 
         let s2 = Saver::new(&root);
         s2.submit(Job::Open { uuid: "u1".into(), seed: None });
@@ -725,11 +743,11 @@ mod tests {
         assert!(s2.take_loaded().is_some());
         let (uuid, frozen) = s2.take_frozen().expect("the frozen tracks come with the Set");
         assert_eq!((uuid.as_str(), frozen.len()), ("u1", 1));
-        assert_eq!((frozen[0].track, frozen[0].map, &frozen[0].samples), (3, map, &samples));
+        assert_eq!((frozen[0].track, frozen[0].clips[0].map, &frozen[0].clips[0].samples), (3, map, &samples));
 
-        s2.submit(Job::Freeze { uuid: "u1".into(), manifest: encode_manifest(&[]), wav: None });
+        s2.submit(Job::Freeze { uuid: "u1".into(), manifest: encode_manifest(&[]), wavs: Vec::new() });
         s2.drain_for_test();
-        assert!(!SetStore::new(&root).set_dir("u1").join("freeze/t3.wav").exists(), "unfreeze drops the loop");
+        assert!(!SetStore::new(&root).set_dir("u1").join("freeze/t3-s0.wav").exists(), "unfreeze drops the loop");
     }
 
     #[test]

@@ -49,7 +49,9 @@ mod chain_reaper;
 mod freeze_bank;
 mod freeze_mem;
 mod freeze_files;
-use freeze::LoopMap;
+use freeze::{LoopAt, LoopMap};
+use freeze_bank::{ClipJob, Outcome as FreezeOutcome};
+use seq_core::track::CLIPS_PER_TRACK;
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use chain_slots::ChainSlots;
@@ -146,7 +148,7 @@ pub(crate) fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.118.0";
+const ENGINE_VERSION: &str = "0.119.0";
 
 /* Blocks between autosaves. The callback runs at ~344 Hz, so this is ~2 s —
  * flash on this device is not free and the sequencer is dirty constantly while
@@ -235,8 +237,38 @@ struct Instance {
     /// the output is silent until that capture ends, then the transport stops
     /// again. The owner's choice (plans/2026-10-23-stems-freeze-export-wifi.md).
     freeze_silent: Option<usize>,
+    /// Per freezing track whose heard clip is in: where its loop was when the
+    /// playhead was lent to the next capture, so it can be heard (and the
+    /// playhead given back) in phase. Clock ticks.
+    freeze_anchor: [Option<HeardAnchor>; chain_slots::MOVY_CHAINS],
+    /// Each frozen clip's waveform overview, computed by the saver
+    /// (freeze_files.rs), and a counter the UI watches (`frzp`).
+    freeze_peaks: Vec<[Option<Vec<u8>>; CLIPS_PER_TRACK]>,
+    freeze_peaks_seq: u32,
     /// Next block at which an autosave may run. Rate limits flash writes.
     save_at: u64,
+}
+
+/// Where a heard loop was when its track's playhead was lent to a capture
+/// (`service_freeze_events`): it keeps running on the clock from there.
+#[derive(Clone, Copy, Debug)]
+struct HeardAnchor {
+    slot: usize,
+    /// Position inside the window, and the clock, at the hand-over.
+    rel: f64,
+    clock: f64,
+    win_start: f64,
+    win_len: f64,
+}
+
+impl HeardAnchor {
+    fn rel_at(&self, clock: f64) -> f64 {
+        (self.rel + clock - self.clock).rem_euclid(self.win_len)
+    }
+
+    fn at(&self, clock: f64) -> LoopAt {
+        LoopAt { pos: self.win_start + self.rel_at(clock), win_start: self.win_start, win_len: self.win_len }
+    }
 }
 
 impl Instance {
@@ -261,6 +293,9 @@ impl Instance {
             held_chains: None,
             set_bad: String::new(),
             freeze_silent: None,
+            freeze_anchor: [None; chain_slots::MOVY_CHAINS],
+            freeze_peaks: (0..chain_slots::MOVY_CHAINS).map(|_| Default::default()).collect(),
+            freeze_peaks_seq: 0,
             set_applied: 0,
             save_at: 0,
             probe_gen: 0,
@@ -719,8 +754,14 @@ impl Instance {
                 s.push_str(&format!(" sbad={}", if self.set_bad.is_empty() { "-" } else { &self.set_bad }));
                 s.push_str(&self.chains.freeze_status());
                 s.push_str(&self.engine.freeze_lock.status());
+                s.push_str(&format!(" frzp={}", self.freeze_peaks_seq));
                 Some(s)
             }
+            /* `frzpk_<track>_<slot>`: a frozen clip's waveform, as
+             * `<rec_start_steps> <rec_len_steps> <hex peaks>` — the window it was
+             * recorded over, so the UI can show only the part its current
+             * window plays. Asked on `frzp` changes only. */
+            k if k.starts_with("frzpk_") => self.freeze_peaks_get(k),
             /* The UI compares this `uuid` against the Set it believes is open
              * and re-sends `open` when they differ. That comparison is what
              * replaces restore-gate.ts: a command nobody acknowledged is simply
@@ -900,13 +941,27 @@ impl Instance {
             /* The Set's frozen tracks (freeze_files.rs), read with these bytes:
              * installed right after the restore queued their chains, so those
              * loads are taken back before a single one runs. */
+            self.freeze_peaks.iter_mut().for_each(|p| *p = Default::default());
+            self.freeze_peaks_seq = self.freeze_peaks_seq.wrapping_add(1);
             if let Some((_, frozen)) = saver.take_frozen() {
                 for f in frozen {
-                    let print = self.engine.clip_fingerprint(f.track, f.slot);
-                    self.chains.freeze_install(f, &chains, print);
+                    let t = f.track;
+                    let peaks: Vec<(usize, Vec<u8>)> = f.clips.iter().map(|c| (c.slot, c.peaks.clone())).collect();
+                    let windows = self.engine.clip_windows(t);
+                    let mut clips = [None; CLIPS_PER_TRACK];
+                    for (slot, w) in windows.iter().enumerate() {
+                        clips[slot] = w.and_then(|w| Some((self.engine.clip_fingerprint(t, slot)?, w)));
+                    }
+                    if self.chains.freeze_install(f, &chains, clips) {
+                        for (slot, p) in peaks {
+                            if let Some(e) = self.freeze_peaks.get_mut(t).and_then(|r| r.get_mut(slot)) {
+                                *e = Some(p);
+                            }
+                        }
+                    }
                 }
                 for t in 0..seq_core::track::NUM_TRACKS.min(chain_slots::MOVY_CHAINS) {
-                    let w = self.lock_windows(t);
+                    let w = self.chains.freeze_windows(t);
                     self.engine.freeze_lock.set_track(t, w);
                 }
             }
@@ -929,13 +984,21 @@ impl Instance {
         /* A freeze or thaw since the last block: the Set's freeze files follow
          * (the WAV of a track just frozen, then the manifest). */
         let t_frz = std::time::Instant::now();
-        if let Some((manifest, wav)) = self.chains.take_freeze_files() {
+        for (uuid, t, slot, p) in saver.take_peaks() {
+            if uuid == self.set_uuid {
+                if let Some(e) = self.freeze_peaks.get_mut(t).and_then(|r| r.get_mut(slot)) {
+                    *e = Some(p);
+                    self.freeze_peaks_seq = self.freeze_peaks_seq.wrapping_add(1);
+                }
+            }
+        }
+        if let Some((manifest, wavs)) = self.chains.take_freeze_files() {
             let us = t_frz.elapsed().as_micros();
             if us >= 1000 {
                 host::log(&format!("freeze: files took {us} us on the audio thread"));
             }
             if !self.set_uuid.is_empty() {
-                saver.submit(set_saver::Job::Freeze { uuid: self.set_uuid.clone(), manifest, wav });
+                saver.submit(set_saver::Job::Freeze { uuid: self.set_uuid.clone(), manifest, wavs });
             }
         }
 
@@ -976,36 +1039,45 @@ impl Instance {
         }
     }
 
-    /// Start freezing track `t`: its ACTIVE clip, which must be the one
-    /// playing when the transport runs. With the transport stopped, it is
-    /// started for this track alone and silenced (`freeze_silent`).
-    /// A muted track is refused (the capture would record silence), and so is
-    /// one recording: the take is not finished.
+    /// Start freezing track `t`: every clip of it (plans/2026-11-08-freeze-
+    /// all-clips-design.md). Playing, the clip it plays is recorded first and
+    /// heard; the rest follow unheard (`freeze_events`). Stopped, the
+    /// transport is started for this track alone, one clip after another,
+    /// with the output silenced (`freeze_silent`). Refused: a muted track
+    /// (the capture would record silence), one recording (the take is not
+    /// finished), one whose clips run at a speed that does not divide them,
+    /// and — the transport running — a track that plays nothing.
     fn freeze_track(&mut self, t: usize) -> Result<(), &'static str> {
         let track = self.engine.tracks.get(t).ok_or("nochain")?;
-        let slot = track.active_clip;
-        if !track.active().exists() {
-            return Err("noclip");
-        }
-        if self.engine.playing && track.playing_slot != Some(slot) {
-            return Err("notplaying");
-        }
         if track.muted {
             return Err("muted");
         }
         if self.engine.recording_on(t) {
             return Err("rec");
         }
-        let len = self.engine.freeze_len_ticks(t, slot).ok_or("speed")?;
-        let map = LoopMap::new(len, self.engine.clock.bpm_x100(), host::sample_rate()).ok_or("noclip")?;
-        let print = self.engine.clip_fingerprint(t, slot).ok_or("noclip")?;
-        self.chains.freeze_begin(t, map, slot, print)?;
-        let w = self.lock_windows(t);
-        self.engine.freeze_lock.set_track(t, w);
-        if !self.engine.playing {
-            if !self.engine.play_alone(t) {
+        let heard = if self.engine.playing { Some(track.playing_slot.ok_or("notplaying")?) } else { None };
+        let windows = self.engine.clip_windows(t);
+        let (bpm, rate) = (self.engine.clock.bpm_x100(), host::sample_rate());
+        let mut clips = Vec::with_capacity(CLIPS_PER_TRACK);
+        let mut prints = [None; CLIPS_PER_TRACK];
+        for (slot, w) in windows.iter().enumerate() {
+            let Some(win) = *w else { continue };
+            let len = self.engine.freeze_len_ticks(t, slot).ok_or("speed")?;
+            let map = LoopMap::new(len, bpm, rate).ok_or("noclip")?;
+            prints[slot] = self.engine.clip_fingerprint(t, slot);
+            clips.push(ClipJob { slot, map, win });
+        }
+        if clips.is_empty() || heard.is_some_and(|h| windows.get(h).copied().flatten().is_none()) {
+            return Err(if clips.is_empty() { "noclip" } else { "notplaying" });
+        }
+        self.chains.freeze_begin(t, heard, &clips, prints)?;
+        self.freeze_anchor[t] = None;
+        self.sync_freeze_lock();
+        if heard.is_none() {
+            if !self.engine.play_alone_slot(t, clips[0].slot) {
                 self.chains.freeze_cancel(t);
-                self.engine.freeze_lock.set_track(t, None);
+                let _ = self.chains.take_freeze_event(t);
+                self.sync_freeze_lock();
                 return Err("noclip");
             }
             self.freeze_silent = Some(t);
@@ -1014,22 +1086,63 @@ impl Instance {
     }
 
     /// The sequencer's freeze lock follows the bank (engine/freeze_lock.rs):
-    /// locked from the request until the chain is back. Once per block, and
-    /// after an open installs frozen tracks.
+    /// every clip window of a freezing, frozen or thawing track. Once per
+    /// block, and after an open installs frozen tracks.
     fn sync_freeze_lock(&mut self) {
         for t in 0..seq_core::track::NUM_TRACKS.min(chain_slots::MOVY_CHAINS) {
-            let w = self.lock_windows(t);
+            let w = self.chains.freeze_windows(t);
             self.engine.freeze_lock.set_track(t, w);
         }
     }
 
-    /// The lock for track `t`: the window of the slot its loop is (being)
-    /// recorded from, or unlocked.
-    fn lock_windows(&self, t: usize) -> Option<seq_core::engine::TrackWindows> {
-        let slot = self.chains.freeze_locked_slot(t)?;
-        let mut w = [None; seq_core::track::CLIPS_PER_TRACK];
-        w[slot] = self.engine.clip_windows(t)[slot];
-        Some(w)
+    /// After the chains rendered: move each freezing track's playhead the
+    /// way its freeze says. A clip done hands the playhead to the next clip
+    /// (playing: remembering where the heard loop is; stopped: from the
+    /// start, alone); the end of a freeze, or a cancel, gives it back to the
+    /// heard clip in phase.
+    fn service_freeze_events(&mut self) {
+        for t in 0..chain_slots::MOVY_CHAINS {
+            let Some(ev) = self.chains.take_freeze_event(t) else { continue };
+            match ev {
+                FreezeOutcome::ClipDone { slot, next } => {
+                    if self.freeze_silent == Some(t) {
+                        self.engine.stop(&mut self.out);
+                        if !self.engine.play_alone_slot(t, next) {
+                            self.chains.freeze_cancel(t);
+                        }
+                        continue;
+                    }
+                    if self.freeze_anchor[t].is_none() {
+                        if let Some(p) = self.engine.loop_position(t).filter(|p| p.slot == slot) {
+                            self.freeze_anchor[t] = Some(HeardAnchor { slot, rel: p.pos - p.win_start,
+                                clock: self.engine.clock_ticks_f64(), win_start: p.win_start, win_len: p.win_len });
+                        }
+                    }
+                    self.engine.freeze_swap_in(t, next, &mut self.out);
+                }
+                FreezeOutcome::Cancelled(freeze_bank::Cancel::SetChanged) => {
+                    self.freeze_anchor[t] = None;
+                    self.engine.freeze_lock.set_swapped(t, false);
+                }
+                _ => {
+                    if let Some(a) = self.freeze_anchor[t].take() {
+                        let rel = a.rel_at(self.engine.clock_ticks_f64());
+                        self.engine.freeze_swap_out(t, Some(a.slot), rel.floor() as u64, &mut self.out);
+                    }
+                }
+            }
+        }
+    }
+
+    /// `frzpk_<track>_<slot>` (see `get_param`).
+    fn freeze_peaks_get(&self, key: &str) -> Option<String> {
+        let mut it = key.strip_prefix("frzpk_")?.split('_').map(|v| v.parse::<usize>().ok());
+        let (t, slot) = (it.next()??, it.next()??);
+        let peaks = self.freeze_peaks.get(t)?.get(slot)?.as_ref()?;
+        let w = self.engine.freeze_lock.window(t, slot)?;
+        let tps = seq_core::TICKS_PER_STEP;
+        let hex: String = peaks.iter().map(|p| format!("{p:02x}")).collect();
+        Some(format!("{} {} {hex}", w.start_ticks / tps, w.len_ticks / tps))
     }
 
     fn render(&mut self, out_audio: &mut [i16]) {
@@ -1059,9 +1172,13 @@ impl Instance {
         self.sync_freeze_lock();
         let engine = &self.engine;
         let muted = engine.tracks.iter().enumerate().fold(0u32, |m, (t, k)| m | ((k.muted as u32) << t));
-        self.chains.freeze_frame(|t| engine.loop_position(t).map(|p| p.pos), muted, engine.clock.bpm_x100());
+        let (anchors, clock) = (&self.freeze_anchor, engine.clock_ticks_f64());
+        self.chains.freeze_frame(|t| engine.loop_position(t),
+                                 |t| anchors[t].map(|a| a.at(clock)),
+                                 muted, engine.clock.bpm_x100());
         self.chains.prof.lap(Stage::Load, &mut lap);
         self.chains.render(out_audio);
+        self.service_freeze_events();
         if let Some(t) = self.freeze_silent {
             // The silent pass: nothing of it is heard, click included.
             out_audio.fill(0);

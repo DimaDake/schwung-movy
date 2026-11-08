@@ -143,8 +143,10 @@ synths playing chords:
 1. Hold **Shift** and press the track's button. Its menu comes up; you stay on
    the track you were on.
 2. **Click the jog** on **FREEZE T3**. **Back** closes the menu.
-3. **FREEZING T3 1/3** counts up while it records, clip by clip, then says
-   **T3 FROZEN**.
+3. Movy switches to T3. Its waveform grows on the screen as it records, and
+   **FREEZING T3 1/3** counts up, clip by clip, then it says **T3 FROZEN**.
+
+![Freezing](../assets/screens/freezing_view.png){ .small }
 
 ![The track menu](../assets/screens/track_menu.png){ .small }
 
@@ -157,7 +159,7 @@ stopped, the clips play for the recording with the output silent, then it stops
 again.
 
 While it records, the Move belongs to the recording: the pads scroll
-**FROZEN**, every other LED but **Back** goes dark, and every other press is
+**FREEZING**, every other LED but **Back** goes dark, and every other press is
 ignored, so a stray **Play** cannot cut it short. **Back** cancels it, and the
 track stays as it was.
 
@@ -171,9 +173,11 @@ a slow tempo gets there quickly). All frozen loops together are kept under
 
 ![A frozen track](../assets/screens/frozen_view.png){ .small }
 
-- **Shows the waveform** of the clip it plays, with a playhead.
-- **Plays the loop of whichever clip plays**: launches, scenes and the song all
-  work. An empty clip slot plays nothing.
+- **Shows the waveform** of its selected clip, lined up with the bars of the
+  strip at the bottom; the strip's playhead runs up through it.
+- **Plays the loop of whichever clip plays**: launch or select its clips in
+  Session view, and scenes and the song work as ever. An empty clip slot plays
+  nothing. Deleting or duplicating a clip still needs an unfreeze.
 - **Loop mode cuts it.** Move the loop start later or the end earlier and the
   loop plays just that part, and the waveform shows just that part. A loop
   longer than what was recorded is refused.

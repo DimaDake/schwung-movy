@@ -105,8 +105,9 @@ import {
     seqToastActive, seqToastTick, seqToastVersion,
     seqHeaderActive, seqHeaderTick,
 } from '../seq/render.js';
-import { isFrozen, freezeBusy, freezeBusyToast } from '../seq/freeze.js';
-import { buildFrozenViewVM } from '../seq/frozen-view-vm.js';
+import { isFrozen, freezeBusy, freezeBusyToast, freezeCapturing, freezePeaksSeq } from '../seq/freeze.js';
+import { buildFrozenViewVM, buildFreezingViewVM, frozenPlayX, freezingPlayX, type FrozenViewVM } from '../seq/frozen-view-vm.js';
+import { frozenPlayheadTick } from '../seq/frozen-playhead.js';
 import { freezeScreenSig } from '../seq/freeze-screen.js';
 import { freezeToastTrack } from '../seq/freeze-toast.js';
 import { drawFreezeToast } from '../renderer/freeze-toast-view.js';
@@ -142,6 +143,8 @@ const lastModuleName = new Map<string, string>();
 const chromaticCache = new Uint8Array(32);
 let wasFreezeBusy = false;
 let lastFreezeSig = '';
+let frozenVM: FrozenViewVM | null = null;   // the frozen screen last drawn, for its per-tick playhead
+let busySig = '';
 let busyToastVersion = -1;
 
 /* Assemble the automation snapshot for the param viewmodel from the seq mirror
@@ -545,9 +548,22 @@ function tickBody(): void {
         if (wasFreezeBusy) {
             freezeBusyLeds();
             updateKnobLEDsFrom(NO_LEVELS);
-            if (seqToastVersion() !== busyToastVersion) { busyToastVersion = seqToastVersion(); drawSeqToast(); }
+            /* The track being frozen, its waveform growing as it records (a
+             * repaint per engine `frzp`, every 5 %), the capture's playhead per
+             * tick, the toast with the progress under it. */
+            const t = freezeCapturing();
+            const sig = t + ':' + freezePeaksSeq();
+            const repainted = t >= 0 && sig !== busySig;
+            if (repainted) {
+                busySig = sig;
+                frozenVM = buildFreezingViewVM(t, appState.trackChainIndex[t] ?? 0, CHAIN_SLOTS.length);
+                renderFrozenView(frozenVM);
+            }
+            if (t >= 0 && frozenVM) frozenPlayheadTick(frozenVM, repainted, freezingPlayX());
+            if (repainted || seqToastVersion() !== busyToastVersion) { busyToastVersion = seqToastVersion(); drawSeqToast(); }
             return;
         }
+        busySig = '';
         wasFreezeBusy = true;
         busyToastVersion = seqToastVersion();
         appState.dirty = true;
@@ -1011,7 +1027,8 @@ function tickBody(): void {
              * (seq/freeze.ts), and no jog toast over it. */
             const frozen = isFrozen(appState.activeTrack.index) && !isMixSlot(chainIdx);
             if (frozen) {
-                renderFrozenView(buildFrozenViewVM(appState.activeTrack.index, chainIdx, CHAIN_SLOTS.length));
+                frozenVM = buildFrozenViewVM(appState.activeTrack.index, chainIdx, CHAIN_SLOTS.length);
+                renderFrozenView(frozenVM);
             } else {
                 renderChainView(vm, chainIdx, moduleJogHint(), 'T' + (appState.activeTrack.index + 1),
                                 undefined, undefined as any, paramBodyFor(drawnPageOwner, schwungBody, lastAutoView),
@@ -1185,6 +1202,12 @@ function tickBody(): void {
             if (noteViewActive() && !viewCovered) noteViewTick(viewRepainted && !noteViewInFrame);
             if (aiPreviewActive()) previewStripTick(viewRepainted);
             else drawLoopStrip();
+            /* A frozen track's playhead is the strip's, up through its wave. */
+            const ft = appState.activeTrack.index;
+            if (frozenVM && !viewCovered && !noteViewActive() && appState.currentView === VIEW_CHAIN
+                && isFrozen(ft) && !isMixSlot(appState.trackChainIndex[ft])) {
+                frozenPlayheadTick(frozenVM, viewRepainted, frozenPlayX(ft));
+            }
         }
     } else {
         leavePiano(viewRepainted);

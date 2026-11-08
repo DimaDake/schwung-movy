@@ -74,7 +74,7 @@ fn a_capture_freezes_after_two_passes_and_then_plays_the_loop() {
 fn the_heard_clip_is_recorded_first_then_slot_order() {
     let mut b = FreezeBank::new(16);
     b.begin_track(1, Some(4), &[clip(0), clip(2), clip(4)]).unwrap();
-    assert_eq!(b.progress(1), Some((0, 3, 0)));
+    assert_eq!(b.progress(1).map(|p| (p.0, p.1, p.2, p.3)), Some((0, 3, 0, 4)), "the heard clip, slot 4, first");
     assert_eq!(run(&mut b, 1, Some(4), 400, 5_000).0, Some(Outcome::ClipDone { slot: 4, next: 0 }));
     assert_eq!(run(&mut b, 1, Some(0), 100, 5_000).0, Some(Outcome::ClipDone { slot: 0, next: 2 }));
     assert_eq!(b.progress(1).map(|p| (p.0, p.1)), Some((2, 3)));

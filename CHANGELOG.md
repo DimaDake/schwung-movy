@@ -25,6 +25,10 @@ far. Earlier work is summarised in the timeline below for context.
   e.g. an older version restored). The engine refuses every other edit to a
   frozen track, whichever control it comes from; a knob touch or a jog press
   says how to unfreeze. Each loop is at most 60 seconds, all of them 200 MB.
+  While it records, the screen shows the frozen track's waveform growing; a
+  frozen track's waveform sits on the Loop strip's bars with the strip's
+  playhead through it. Loops cross-fade at their seam and at every start,
+  stop, launch and Loop-mode wrap, so a frozen track does not click.
 
 ### Changed
 

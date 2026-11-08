@@ -1158,6 +1158,16 @@ impl ChainSlots {
         self.freeze_events.get_mut(t)?.take()
     }
 
+    /// A freezing or frozen clip's waveform (see `FreezeBank::wave`).
+    pub fn freeze_wave(&self, t: usize, slot: usize) -> Option<[u8; crate::freeze::LIVE_COLS]> {
+        self.freeze.wave(t, slot)
+    }
+
+    /// The first freezing track's progress, for lib.rs's `frzp` pacing.
+    pub fn freeze_progress(&self) -> Option<(usize, u8, u8)> {
+        (0..MOVY_CHAINS).find_map(|t| self.freeze.progress(t).map(|(d, _, p, _, _)| (t, d, p)))
+    }
+
     /// Drop track `t`'s freeze. `true` if one was running.
     pub fn freeze_cancel(&mut self, t: usize) -> bool {
         let was = self.freeze.cancel(t);
@@ -1398,7 +1408,7 @@ impl ChainSlots {
     /// loops would pass `MEM_BUDGET`).
     pub fn freeze_status(&self) -> String {
         let cap = (0..MOVY_CHAINS)
-            .find_map(|t| self.freeze.progress(t).map(|(d, n, p)| format!("{t}:{d}/{n}:{p}")))
+            .find_map(|t| self.freeze.progress(t).map(|(d, n, p, s, a)| format!("{t}:{d}/{n}:{p}:{s}:{a}")))
             .unwrap_or_else(|| "-".to_string());
         let (seq, t, code) = self.freeze_last;
         let mask = self.freeze.frozen_mask();

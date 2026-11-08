@@ -307,6 +307,11 @@ impl Capture {
         self.since_sync = self.since_sync.saturating_add(frames);
     }
 
+    /// Where the capture is writing, 0.0 .. 1.0 of the loop (screen).
+    pub fn at(&self) -> f64 {
+        self.cur.pos.unwrap_or(0.0) / self.map.exact
+    }
+
     /// The waveform recorded so far (screen).
     pub fn live(&self) -> &[u8; LIVE_COLS] {
         &self.live

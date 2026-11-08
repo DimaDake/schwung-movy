@@ -28,7 +28,7 @@ export async function run() {
     eq('T1 not', fz.isFrozen(0), false);
     eq('a negative track is never frozen', fz.isFrozen(-1), false);
 
-    fz.freezeStatusField('frzc', '2:0/3:45');
+    fz.freezeStatusField('frzc', '2:0/3:45:0:0');
     eq('capturing T3', fz.freezeCapturing(), 2);
     ok('progress: which clip of how many, in steps of 10', seqToastActive() && seqToastText() === 'FREEZING T3 1/3 40%');
     const { seqToastVersion } = await import('../../dist/esm/seq/render.js');
@@ -106,9 +106,11 @@ export async function run() {
     transport.playing = false;
     fz.resetFreeze();
 
-    _log('\nfreeze: the waveform shows only the playable part');
+    _log('\nfreeze: the waveform shows only the playable part, on the strip\'s bars');
     {
-        const { buildFrozenViewVM, WAVE_COLS } = await import('../../dist/esm/seq/frozen-view-vm.js');
+        const vmMod = await import('../../dist/esm/seq/frozen-view-vm.js');
+        const { buildFrozenViewVM, buildFreezingViewVM, frozenPlayX, freezingPlayX, WAVE_COLS } = vmMod;
+        const { stripPlayheadX } = await import('../../dist/esm/seq/loop-strip.js');
         const { resetFreezeWave } = await import('../../dist/esm/seq/freeze-wave.js');
         const st = (await import('../../dist/esm/seq/state.js')).seqState;
         const savedGet = globalThis.host_module_get_param;
@@ -122,21 +124,35 @@ export async function run() {
         fz.freezeStatusField('frz', '8');
         fz.freezeStatusField('frzp', '1');
         st.session[3] = { exist: 1, playing: 0, queued: -1, selected: 0 };
-        st.loopStart = 0; st.lenSteps = 16; st.playing = false;
+        st.loopStart = 0; st.lenSteps = 16; st.barOffset = 0; st.playing = false;
         let vm = buildFrozenViewVM(3, 1, 6);
         eq('the whole recording: quiet then loud', [vm.cols[0], vm.cols[WAVE_COLS - 1]].join(','), '16,240');
-        eq('stopped: no playhead', vm.playX, -1);
+        eq('stopped: no playhead', frozenPlayX(3), -1);
         st.loopStart = 8; st.lenSteps = 8;
         vm = buildFrozenViewVM(3, 1, 6);
-        ok('a Loop-mode cut to the second half shows only it', vm.cols.every((c) => c === 240));
+        ok('a Loop-mode cut shows only the part that plays', vm.cols.slice(0, 64).every((c) => c === 0));
+        ok('where the strip has it', vm.cols.slice(64).every((c) => c === 240));
         st.playing = true; st.posTick = (8 + 4) * 24;
-        eq('the playhead halfway through the cut', buildFrozenViewVM(3, 1, 6).playX, WAVE_COLS / 2);
+        eq('the playhead IS the strip\'s', frozenPlayX(3), stripPlayheadX());
+        ok('over the audio it plays', vm.cols[frozenPlayX(3)] === 240);
+        st.session[3] = { exist: 3, playing: 1, queued: -1, selected: 0 };
+        eq('another clip playing: no playhead on this one', frozenPlayX(3), -1);
         eq('fetched once, not per frame', asked.filter((k) => k === 'frzpk_3_0').length, 1);
         fz.freezeStatusField('frzp', '2');
         buildFrozenViewVM(3, 1, 6);
         eq('a new waveform is fetched again', asked.filter((k) => k === 'frzpk_3_0').length, 2);
         st.session[3] = { exist: 0, playing: -1, queued: -1, selected: 0 };
         eq('an empty slot says so', buildFrozenViewVM(3, 1, 6).empty, true);
+
+        // While it records: the clip being recorded, across the width, growing.
+        globalThis.host_module_get_param = (k) => k === 'frzpk_3_2' ? '0 16 ' + 'ff'.repeat(64) + '00'.repeat(192) : null;
+        fz.freezeStatusField('frzc', '3:1/3:30:2:250');
+        fz.freezeStatusField('frzp', '3');
+        vm = buildFreezingViewVM(3, 1, 6);
+        ok('the recorded quarter is drawn, the rest not yet', vm.cols[10] === 255 && vm.cols[100] === 0);
+        eq('it says FREEZING', vm.recording, true);
+        eq('the playhead is where the capture writes', freezingPlayX(), 32);
+        fz.freezeStatusField('frzc', '-');
         st.playing = false; st.loopStart = 0; st.lenSteps = 0; st.posTick = 0;
         globalThis.host_module_get_param = savedGet;
         resetFreezeWave();

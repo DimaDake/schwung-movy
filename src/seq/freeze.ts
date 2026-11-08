@@ -24,7 +24,7 @@ import { seqToast } from './render.js';
 import { showFreezeToast } from './freeze-toast.js';
 
 let frozenMask = 0;
-let capture: { track: number; done: number; total: number; pct: number } | null = null;
+let capture: { track: number; done: number; total: number; pct: number; slot: number; at: number } | null = null;
 let peaksSeq = '';
 let lastSeq = -1;
 let lastRefused = '';
@@ -71,7 +71,7 @@ export function freezeStatusField(key: string, val: string): void {
             if (i > 0) moduleIds[Number(pair.slice(0, i))] = pair.slice(i + 1);
         }
     } else if (key === 'frzc') {
-        const [tS, dn, pS] = val.split(':');
+        const [tS, dn, pS, sS, aS] = val.split(':');
         const [d, n] = (dn ?? '').split('/').map(Number);
         const t = Number(tS);
         /* In steps of 10: the engine's whole percent moves every ~40 ms, and each
@@ -79,7 +79,7 @@ export function freezeStatusField(key: string, val: string): void {
          * clip show it moving; a hundred would only cost UI time. */
         const step = Math.floor((Number(pS) || 0) / 10) * 10;
         const next = val === '-' || !Number.isFinite(t) || !Number.isFinite(n)
-            ? null : { track: t, done: d || 0, total: n || 1, pct: step };
+            ? null : { track: t, done: d || 0, total: n || 1, pct: step, slot: Number(sS) || 0, at: (Number(aS) || 0) / 1000 };
         if (next) pending = -1;
         capture = next;
         if (next) freezeBusyToast();
@@ -125,8 +125,13 @@ export function freezeBusy(nowMs: number): boolean {
 export function freezeBusyToast(): void {
     const t = capture ? capture.track : pending;
     if (t < 0) return;
-    const c = capture ?? { done: 0, total: 1, pct: 0 };
+    const c = capture ?? { done: 0, total: 1, pct: 0, slot: 0, at: 0 };
     seqToast(`FREEZING ${label(t)} ${Math.min(c.done + 1, c.total)}/${c.total} ${c.pct}%`);
+}
+
+/** The clip a freeze is recording and where in it (0..1), or null. */
+export function freezeCaptureAt(): { track: number; slot: number; at: number } | null {
+    return capture ? { track: capture.track, slot: capture.slot, at: capture.at } : null;
 }
 
 /** Bumped by the engine whenever a frozen clip's waveform is ready. */

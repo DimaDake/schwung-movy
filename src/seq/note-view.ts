@@ -9,6 +9,7 @@
 
 import { aiPreviewActive } from '../ai/preview.js';
 import { W } from '../renderer/layout.js';
+import { paintPlayheadColumn } from '../renderer/playhead-column.js';
 import { appState, VIEW_CHAIN, VIEW_KEYS, VIEW_KNOBS } from '../app/state.js';
 import { paramGet } from '../host/param.js';
 import { columnSpans, hatchRows, layoutNotes, NV_BOT, NV_TOP, type NoteEv, type NoteRun } from './note-layout.js';
@@ -69,11 +70,7 @@ function liveNotes(): { list: NoteEv[]; heldEnd: number } {
 }
 
 function paintColumn(x: number, top: number, inverted: boolean): void {
-    fill_rect(x, top, 1, NV_BOT - top + 1, inverted ? 1 : 0);
-    for (const [y, h] of columnSpans(runs, x)) {
-        const y0 = Math.max(y, top);
-        if (y + h > y0) fill_rect(x, y0, 1, y + h - y0, inverted ? 0 : 1);
-    }
+    paintPlayheadColumn(x, top, NV_BOT, columnSpans(runs, x), inverted);
 }
 
 function paintAll(top: number): void {

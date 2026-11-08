@@ -353,3 +353,34 @@ fn a_launch_during_the_heard_capture_waits_for_the_freeze() {
     }
     assert_eq!(inst.engine.tracks[2].playing_slot, Some(1), "the launch landed after the freeze");
 }
+
+/// The waveform grows on screen while a freeze records, and is there the
+/// moment a clip is done (no wait for the saver, which also had no Set here).
+#[test]
+fn the_waveform_is_served_while_it_records_and_once_done() {
+    let mut inst = three_clips();
+    let mut audio = [0i16; 256];
+    inst.set_param("cmd", "play");
+    for _ in 0..20 {
+        inst.render(&mut audio);
+    }
+    inst.set_param("frz", "2");
+    let seq = |i: &mut Instance| i.get_param("status").unwrap().split(' ').find_map(|kv| kv.strip_prefix("frzp=").map(str::to_string));
+    let s0 = seq(&mut inst);
+    for _ in 0..300 {
+        inst.render(&mut audio);
+    }
+    let c = frzc(&mut inst);
+    let f: Vec<&str> = c.split(':').collect();
+    assert_eq!((f.len(), f[0], f[3]), (5, "2", "0"), "frzc names the clip recording and where: {c}");
+    assert_ne!(seq(&mut inst), s0, "frzp moves while it records");
+    let live = inst.get_param("frzpk_2_0").expect("the waveform so far");
+    let hex = live.split(' ').nth(2).unwrap();
+    assert!(hex.len() == 512 && hex.contains("07") && hex.contains("00"), "part of slot 0 is in (1000 -> 0x07): {live}");
+    while !frzc(&mut inst).starts_with("2:1/") {
+        inst.render(&mut audio);
+    }
+    let done = inst.get_param("frzpk_2_0").expect("slot 0's waveform, done");
+    assert!(done.split(' ').nth(2).unwrap().chars().collect::<Vec<_>>().chunks(2).all(|c| c == ['0', '7']),
+            "the whole loop: {done}");
+}

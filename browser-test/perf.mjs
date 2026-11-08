@@ -683,7 +683,7 @@ _origLog('\nTest: freeze per-tick cost');
 
     fillRectCount = 0;
     const cols = Array.from({ length: 128 }, (_, x) => (x * 37) % 256);
-    renderFrozenView({ label: 'T4', name: 'OBXD', slot: 1, slotCount: 6, cols, playX: 64, empty: false });
+    renderFrozenView({ label: 'T4', name: 'OBXD', slot: 1, slotCount: 6, cols, empty: false, recording: false });
     /* The waveform: one rect a column, drawn only when the view repaints —
      * the playhead moves it at most 128 times a loop (seq/freeze-screen.ts),
      * never per tick. Under a module page's full paint. */
@@ -701,7 +701,17 @@ _origLog('\nTest: freeze per-tick cost');
             const sig = freezeScreenSig(3, 0);
             if (sig !== last) { changes++; last = sig; }
         }
-        check('frozen view repaints per loop (playhead columns)', changes, 129);
+        check('frozen view repaints per loop (the playhead is per tick)', changes, 1);
+        /* The playhead: two columns a move, never the view. */
+        const { frozenPlayheadTick } = await import('../dist/esm/seq/frozen-playhead.js');
+        const vm = { label: 'T4', name: '', slot: 1, slotCount: 6, cols, empty: false, recording: false };
+        frozenPlayheadTick(vm, true, 10);
+        fillRectCount = 0;
+        frozenPlayheadTick(vm, false, 11);
+        check('frozen playhead fill_rect per move', fillRectCount, 4);
+        fillRectCount = 0;
+        frozenPlayheadTick(vm, false, 11);
+        check('frozen playhead fill_rect when it does not move', fillRectCount, 0);
         seqState.playing = false; seqState.lenSteps = 0; seqState.posTick = 0;
         seqState.session[3] = { exist: 0, playing: -1, queued: -1, selected: 0 };
     }

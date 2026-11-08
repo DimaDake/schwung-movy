@@ -245,6 +245,7 @@ struct Instance {
     /// (freeze_files.rs), and a counter the UI watches (`frzp`).
     freeze_peaks: Vec<[Option<Vec<u8>>; CLIPS_PER_TRACK]>,
     freeze_peaks_seq: u32,
+    freeze_wave_sig: Option<(usize, u8, u8)>,
     /// Next block at which an autosave may run. Rate limits flash writes.
     save_at: u64,
 }
@@ -296,6 +297,7 @@ impl Instance {
             freeze_anchor: [None; chain_slots::MOVY_CHAINS],
             freeze_peaks: (0..chain_slots::MOVY_CHAINS).map(|_| Default::default()).collect(),
             freeze_peaks_seq: 0,
+            freeze_wave_sig: None,
             set_applied: 0,
             save_at: 0,
             probe_gen: 0,
@@ -1156,10 +1158,14 @@ impl Instance {
     fn freeze_peaks_get(&self, key: &str) -> Option<String> {
         let mut it = key.strip_prefix("frzpk_")?.split('_').map(|v| v.parse::<usize>().ok());
         let (t, slot) = (it.next()??, it.next()??);
-        let peaks = self.freeze_peaks.get(t)?.get(slot)?.as_ref()?;
         let w = self.engine.freeze_lock.window(t, slot)?;
         let tps = seq_core::TICKS_PER_STEP;
-        let hex: String = peaks.iter().map(|p| format!("{p:02x}")).collect();
+        /* The capture's own drawing first: live while it records, ready the
+         * moment a clip is done; the saver's for a loop read from disk. */
+        let hex: String = match self.chains.freeze_wave(t, slot) {
+            Some(w) => w.iter().map(|p| format!("{p:02x}")).collect(),
+            None => self.freeze_peaks.get(t)?.get(slot)?.as_ref()?.iter().map(|p| format!("{p:02x}")).collect(),
+        };
         Some(format!("{} {} {hex}", w.start_ticks / tps, w.len_ticks / tps))
     }
 
@@ -1197,6 +1203,13 @@ impl Instance {
         self.chains.prof.lap(Stage::Load, &mut lap);
         self.chains.render(out_audio);
         self.service_freeze_events();
+        /* The screen redraws a recording waveform when `frzp` moves: every
+         * 5 % of a clip, and at each clip done. */
+        let sig = self.chains.freeze_progress().map(|(t, d, p)| (t, d, p / 5));
+        if sig != self.freeze_wave_sig {
+            self.freeze_wave_sig = sig;
+            self.freeze_peaks_seq = self.freeze_peaks_seq.wrapping_add(1);
+        }
         if let Some(t) = self.freeze_silent {
             // The silent pass: nothing of it is heard, click included.
             out_audio.fill(0);

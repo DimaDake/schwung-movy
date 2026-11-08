@@ -46,7 +46,7 @@ const PRESETS = [
     'ai_preview_orig', 'ai_preview_opt1', 'ai_preview_opt3', 'ai_preview_var8', 'ai_preview_scrolled', 'ai_hold_progress_50', 'ai_hold_variation_50', 'ai_hold_double_50', 'ai_hold_newclip_50',
     'cpu-movy-tracks', 'cpu-unsplit-module', 'cpu-overscale',
     'cpu-empty', 'cpu-sends', 'cpu-sends-quiet', 'cpu-master', 'cpu-frozen', 'leave_modal',
-    'power_modal', 'track_menu', 'track_menu_unfreeze', 'frozen_view', 'frozen_view_cut', 'freeze_big_toast', 'capture_select', 'capture_fixed', 'undo_toast', 'redo_toast',
+    'power_modal', 'track_menu', 'track_menu_unfreeze', 'frozen_view', 'frozen_view_cut', 'freezing_view', 'freeze_big_toast', 'capture_select', 'capture_fixed', 'undo_toast', 'redo_toast',
     'undo_empty', 'undo_unavailable', 'clip-undo-toast', 'track_volume_unity',
     'track_volume_quiet', 'track_volume_min', 'track_volume_max', 'master_volume',
     'font_5x3_all', 'font_small_all', 'font_big_all_1', 'font_big_all_2', 'page_body',
@@ -106,7 +106,7 @@ const BASE = {
     'flags-top': 'test8', 'flags-scrolled': 'test8', gen_preview_knob: 'test8',
     ai_preview_orig: 'test8', ai_preview_opt1: 'test8', ai_preview_opt3: 'test8', ai_preview_var8: 'test8', ai_preview_scrolled: 'test8', ai_hold_progress_50: 'test8', ai_hold_variation_50: 'test8', ai_hold_double_50: 'test8', ai_hold_newclip_50: 'test8',
                                                                             lfo_chain: 'test8',         lfo_assign_toast: 'test8',
-    leave_modal: 'test8', power_modal: 'test8', track_menu: 'test8', track_menu_unfreeze: 'test8', frozen_view: 'test8', frozen_view_cut: 'test8', freeze_big_toast: 'test8',
+    leave_modal: 'test8', power_modal: 'test8', track_menu: 'test8', track_menu_unfreeze: 'test8', frozen_view: 'test8', frozen_view_cut: 'test8', freezing_view: 'test8', freeze_big_toast: 'test8',
     master_volume: 'test8',
     track_volume_unity: 'test8', track_volume_quiet: 'test8',
     track_volume_min: 'test8', track_volume_max: 'test8',
@@ -190,6 +190,8 @@ const { buildSetsPageVM } = await import('../dist/esm/seq/sets-page-vm.js');
 const { renderCpuView }   = await import('../dist/esm/renderer/cpu-view.js');
 const { renderFrozenView } = await import('../dist/esm/renderer/frozen-view.js');
 const { drawFreezeToast } = await import('../dist/esm/renderer/freeze-toast-view.js');
+const { paintPlayheadColumn } = await import('../dist/esm/renderer/playhead-column.js');
+const frozenVmMod = await import('../dist/esm/seq/frozen-view-vm.js');
 const freeze = await import('../dist/esm/seq/freeze.js');
 const { buildCpuPageVM }  = await import('../dist/esm/seq/cpu-page-vm.js');
 const { buildFlagsPageVM } = await import('../dist/esm/seq/flags-page-vm.js');
@@ -731,19 +733,28 @@ function applyView(preset) {
          * pattern with decaying hits), the playhead, the slot bar. A Loop-mode
          * cut shows only the part that plays. Then the big toast a knob touch
          * or a jog press brings up. */
+        /* A Loop-mode cut leaves the first half of the bar unplayed (the strip
+         * has the same geometry). The playhead is the strip's, an inverted
+         * column through the wave. While freezing, the recorded part grows. */
         case 'frozen_view':
         case 'frozen_view_cut':
+        case 'freezing_view':
         case 'freeze_big_toast': {
             const cut = preset === 'frozen_view_cut';
-            const beats = cut ? 2 : 4;
+            const rec = preset === 'freezing_view';
             const cols = Array.from({ length: 128 }, (_, x) => {
-                const ph = (x * beats / 128) % 1;
-                return Math.round(40 + 200 * Math.exp(-ph * 6) * (1 - 0.15 * Math.floor(x * beats / 128)));
+                if ((cut && x < 64) || (rec && x >= 80)) return 0;
+                const ph = (x * 4 / 128) % 1;
+                return Math.round(40 + 200 * Math.exp(-ph * 6) * (1 - 0.15 * Math.floor(x * 4 / 128)));
             });
-            const vm = { label: 'T4', name: 'OBXD', slot: 1, slotCount: 6, cols, playX: cut ? 90 : 40, empty: false };
-            lastRender = preset === 'freeze_big_toast'
-                ? () => { renderFrozenView(vm); drawFreezeToast('T4'); }
-                : () => renderFrozenView(vm);
+            const vm = { label: 'T4', name: 'OBXD', slot: 1, slotCount: 6, cols, empty: false, recording: rec };
+            const px = cut ? 100 : rec ? 80 : 40;
+            const draw = () => {
+                renderFrozenView(vm);
+                paintPlayheadColumn(px, frozenVmMod.WAVE_TOP, frozenVmMod.WAVE_BOT, frozenVmMod.waveSpans(vm, px), true);
+                if (rec) drawJogToast('FREEZING T4 2/3 60%');
+            };
+            lastRender = preset === 'freeze_big_toast' ? () => { draw(); drawFreezeToast('T4'); } : draw;
             lastRender();
             break;
         }

@@ -31,7 +31,7 @@
 //! live track's tails ring out after its last note, and a hard cut would not
 //! — and back in over a few milliseconds.
 
-use crate::freeze::{Capture, Frozen, LoopAt, LoopMap, Player};
+use crate::freeze::{Capture, Frozen, LoopAt, LoopMap, Player, LIVE_COLS};
 use crate::freeze_mem::{Ask, FreezeMem, Gone};
 use seq_core::engine::{LoopPos, RecWindow, TrackWindows};
 use seq_core::track::CLIPS_PER_TRACK;
@@ -112,6 +112,9 @@ impl Job {
 #[derive(Default)]
 struct Track {
     loops: [Option<Player>; CLIPS_PER_TRACK],
+    /// Each loop's waveform as its capture drew it (screen; a loop read back
+    /// from disk has the saver's instead, lib.rs).
+    wave: [Option<[u8; LIVE_COLS]>; CLIPS_PER_TRACK],
     wins: [Option<RecWindow>; CLIPS_PER_TRACK],
     job: Option<Job>,
     thawing: bool,
@@ -322,6 +325,7 @@ impl FreezeBank {
             self.mem.retire(Gone::Shared(p.into_shared()));
         }
         k.wins = [None; CLIPS_PER_TRACK];
+        k.wave = [None; CLIPS_PER_TRACK];
         k.thawing = false;
         k.gain = 1.0;
     }
@@ -359,6 +363,7 @@ impl FreezeBank {
             return None;
         }
         let Cur::Capturing(cap) = std::mem::replace(&mut job.cur, Cur::Ask) else { unreachable!() };
+        let wave = *cap.live();
         let frozen = match cap.finish() {
             Ok(f) => f,
             Err(cap) => {
@@ -368,6 +373,7 @@ impl FreezeBank {
         };
         /* The heard loop takes over from the chain mid-sound: no fade-in.
          * The others start (later, on a launch) like any loop. */
+        k.wave[clip.slot] = Some(wave);
         k.loops[clip.slot] = Some(if job.heard == Some(clip.slot) { Player::continuing(frozen) } else { Player::new(frozen) });
         job.next += 1;
         match job.clip() {
@@ -481,16 +487,32 @@ impl FreezeBank {
         self.tracks.get(t).is_some_and(|k| k.thawing)
     }
 
-    /// A job's progress: clips done, clips in all, and the current clip's
-    /// percent (0 while its buffer is on its way).
-    pub fn progress(&self, t: usize) -> Option<(u8, u8, u8)> {
+    /// A job's progress: clips done, clips in all, the current clip's
+    /// percent (0 while its buffer is on its way), its slot, and where in it
+    /// the capture writes (per mille).
+    pub fn progress(&self, t: usize) -> Option<(u8, u8, u8, usize, u16)> {
         let j = self.tracks.get(t)?.job.as_ref()?;
         let total = j.todo.iter().flatten().count() as u8;
-        let pct = match &j.cur {
-            Cur::Capturing(c) => (c.progress() * 100.0) as u8,
-            _ => 0,
+        let slot = j.clip().map_or(0, |c| c.slot);
+        let (pct, at) = match &j.cur {
+            Cur::Capturing(c) => ((c.progress() * 100.0) as u8, (c.at() * 1000.0) as u16),
+            _ => (0, 0),
         };
-        Some((j.next as u8, total, pct))
+        Some((j.next as u8, total, pct, slot, at.min(999)))
+    }
+
+    /// Clip `slot`'s waveform: the one recording now, as far as it got, or
+    /// the one its capture drew.
+    pub fn wave(&self, t: usize, slot: usize) -> Option<[u8; LIVE_COLS]> {
+        let k = self.tracks.get(t)?;
+        if let Some(j) = &k.job {
+            if let (Cur::Capturing(c), Some(cl)) = (&j.cur, j.clip()) {
+                if cl.slot == slot {
+                    return Some(*c.live());
+                }
+            }
+        }
+        *k.wave.get(slot)?
     }
 
     pub fn set_snapshot(&mut self, t: usize, snap: Vec<(String, String)>) {

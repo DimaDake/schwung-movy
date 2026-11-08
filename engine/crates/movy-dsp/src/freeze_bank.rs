@@ -273,7 +273,8 @@ impl FreezeBank {
             out.fill(0);
             return true;
         }
-        p.render(out, pos, bpm);
+        let map = *p.frozen().map();
+        p.render(out, pos.map(|x| crate::freeze::LoopAt::whole(x, &map)), bpm);
         if target == 1.0 && g0 == 1.0 {
             return true;
         }

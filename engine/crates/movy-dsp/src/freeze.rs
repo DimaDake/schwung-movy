@@ -102,6 +102,49 @@ impl LoopMap {
     }
 }
 
+/// Where a loop plays from, for one block: the END-of-block position and
+/// the playable window, all in CLOCK ticks from the recorded start (seq-core
+/// `LoopPos` without its slot). A Loop-mode cut on a frozen clip narrows the
+/// window; the recording stays whole.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct LoopAt {
+    pub pos: f64,
+    pub win_start: f64,
+    pub win_len: f64,
+}
+
+impl LoopAt {
+    /// The whole recording as the window.
+    pub fn whole(pos: f64, map: &LoopMap) -> Self {
+        LoopAt { pos, win_start: 0.0, win_len: map.len_ticks as f64 }
+    }
+}
+
+/// A playable window in FRAMES of the loop buffer.
+#[derive(Clone, Copy, Debug)]
+struct Win {
+    start: f64,
+    len: f64,
+}
+
+impl Win {
+    fn whole(map: &LoopMap) -> Self {
+        Win { start: 0.0, len: map.exact }
+    }
+
+    /// `at`'s window in frames, kept inside the buffer (a stale or foreign
+    /// window must not index past it).
+    fn of(map: &LoopMap, at: &LoopAt) -> Self {
+        let start = (at.win_start * map.frames_per_tick).clamp(0.0, map.exact);
+        let len = (at.win_len * map.frames_per_tick).min(map.exact - start);
+        if len < 1.0 { Win::whole(map) } else { Win { start, len } }
+    }
+
+    fn wrap(&self, x: f64) -> f64 {
+        self.start + (x - self.start).rem_euclid(self.len)
+    }
+}
+
 /// A fractional frame position inside the loop that free-runs between
 /// resyncs (see the module docs).
 #[derive(Clone, Copy, Debug, Default)]
@@ -113,11 +156,11 @@ impl Cursor {
     /// Line the cursor up for a block that ENDS at `end_ticks` and spans
     /// `span` frames of the loop (the block's frames x the playback rate).
     /// Returns true when it had to jump (or had no position yet).
-    fn sync(&mut self, map: &LoopMap, end_ticks: f64, span: f64) -> bool {
-        let expected = (end_ticks * map.frames_per_tick - span).rem_euclid(map.exact);
+    fn sync(&mut self, map: &LoopMap, win: &Win, end_ticks: f64, span: f64) -> bool {
+        let expected = win.wrap(end_ticks * map.frames_per_tick - span);
         if let Some(p) = self.pos {
-            let d = (p - expected).rem_euclid(map.exact);
-            if d.min(map.exact - d) <= RESYNC_FRAMES {
+            let d = (p - expected).rem_euclid(win.len);
+            if d.min(win.len - d) <= RESYNC_FRAMES {
                 return false;
             }
         }
@@ -131,21 +174,22 @@ impl Cursor {
     /// than the loop (always, in practice: a loop is >= one step, thousands of
     /// frames) wraps at most once; the `while` covers the degenerate rest.
     #[inline]
-    fn for_each_index(&self, map: &LoopMap, frames: usize, mut f: impl FnMut(usize, usize)) {
-        let mut x = self.pos.unwrap_or(0.0);
+    fn for_each_index(&self, map: &LoopMap, win: &Win, frames: usize, mut f: impl FnMut(usize, usize)) {
+        let mut x = self.pos.unwrap_or(win.start);
         let last = map.len - 1;
+        let end = win.start + win.len;
         for k in 0..frames {
-            while x >= map.exact {
-                x -= map.exact;
+            while x >= end {
+                x -= win.len;
             }
             f(k, (x as usize).min(last));
             x += 1.0;
         }
     }
 
-    fn advance(&mut self, map: &LoopMap, span: f64) {
+    fn advance(&mut self, win: &Win, span: f64) {
         if let Some(p) = self.pos {
-            self.pos = Some((p + span).rem_euclid(map.exact));
+            self.pos = Some(win.wrap(p + span));
         }
     }
 }
@@ -193,17 +237,18 @@ impl Capture {
         }
         // Always rate 1: a capture runs at the tempo its map was built for
         // (the engine restarts it with a new map if the tempo moves).
-        if self.cur.sync(&self.map, end_ticks, frames as f64) {
+        let win = Win::whole(&self.map);
+        if self.cur.sync(&self.map, &win, end_ticks, frames as f64) {
             // A jump: whatever was recorded no longer lines up with a full
             // pass behind it. Start counting again.
             self.since_sync = 0;
         }
         let buf = &mut self.buf;
-        self.cur.for_each_index(&self.map, frames, |k, i| {
+        self.cur.for_each_index(&self.map, &win, frames, |k, i| {
             buf[i * 2] = block[k * 2];
             buf[i * 2 + 1] = block[k * 2 + 1];
         });
-        self.cur.advance(&self.map, frames as f64);
+        self.cur.advance(&win, frames as f64);
         self.since_sync = self.since_sync.saturating_add(frames);
     }
 
@@ -214,15 +259,16 @@ impl Capture {
         if frames == 0 {
             return;
         }
-        if self.cur.sync(&self.map, end_ticks, frames as f64) {
+        let win = Win::whole(&self.map);
+        if self.cur.sync(&self.map, &win, end_ticks, frames as f64) {
             self.since_sync = 0;
         }
         let buf = &mut self.buf;
-        self.cur.for_each_index(&self.map, frames, |_, i| {
+        self.cur.for_each_index(&self.map, &win, frames, |_, i| {
             buf[i * 2] = 0;
             buf[i * 2 + 1] = 0;
         });
-        self.cur.advance(&self.map, frames as f64);
+        self.cur.advance(&win, frames as f64);
         self.since_sync = self.since_sync.saturating_add(frames);
     }
 
@@ -281,15 +327,19 @@ impl Frozen {
 /// Tape-style playback at `rate`: one linear interpolation per frame, the
 /// loop wrapping without a modulo (see `Cursor::for_each_index`).
 #[inline]
-fn varispeed(buf: &[i16], map: &LoopMap, start: f64, rate: f64, out: &mut [i16]) {
+fn varispeed(buf: &[i16], map: &LoopMap, win: &Win, start: f64, rate: f64, out: &mut [i16]) {
     let mut x = start;
     let last = map.len - 1;
+    let end = win.start + win.len;
+    let first = win.start as usize;
     for k in 0..out.len() / 2 {
-        while x >= map.exact {
-            x -= map.exact;
+        while x >= end {
+            x -= win.len;
         }
         let i0 = (x as usize).min(last);
-        let i1 = if i0 == last { 0 } else { i0 + 1 };
+        // The frame after the window's last one is its first: a cut loop
+        // interpolates across its own seam, not into what was cut away.
+        let i1 = if i0 + 1 >= (end.ceil() as usize).min(map.len) { first } else { i0 + 1 };
         let f = (x - i0 as f64) as f32;
         for c in 0..2 {
             let a = buf[i0 * 2 + c] as f32;
@@ -311,13 +361,13 @@ impl Player {
         Player { frozen, cur: Cursor::default() }
     }
 
-    /// Fill `out` (interleaved stereo) for a block ending at loop position
-    /// `end_ticks`, with the transport at `bpm_x100`; `None` (transport
+    /// Fill `out` (interleaved stereo) for a block ending at `at` (inside its
+    /// window), with the transport at `bpm_x100`; `None` (transport
     /// stopped, nothing playing) is silence and forgets the position, so the
     /// next start lines up afresh. Audio thread.
-    pub fn render(&mut self, out: &mut [i16], end_ticks: Option<f64>, bpm_x100: u32) {
+    pub fn render(&mut self, out: &mut [i16], at: Option<LoopAt>, bpm_x100: u32) {
         let frames = out.len() / 2;
-        let Some(end) = end_ticks else {
+        let Some(at) = at else {
             out.fill(0);
             self.cur = Cursor::default();
             return;
@@ -328,18 +378,19 @@ impl Player {
         let map = self.frozen.map;
         let rate = (bpm_x100 as f64 / map.bpm_x100 as f64).clamp(MIN_RATE, MAX_RATE);
         let span = frames as f64 * rate;
-        self.cur.sync(&map, end, span);
+        let win = Win::of(&map, &at);
+        self.cur.sync(&map, &win, at.pos, span);
         let buf = &self.frozen.buf;
         if rate == 1.0 {
             // The captured tempo: the captured frames, bit for bit.
-            self.cur.for_each_index(&map, frames, |k, i| {
+            self.cur.for_each_index(&map, &win, frames, |k, i| {
                 out[k * 2] = buf[i * 2];
                 out[k * 2 + 1] = buf[i * 2 + 1];
             });
         } else {
-            varispeed(buf, &map, self.cur.pos.unwrap_or(0.0), rate, out);
+            varispeed(buf, &map, &win, self.cur.pos.unwrap_or(win.start), rate, out);
         }
-        self.cur.advance(&map, span);
+        self.cur.advance(&win, span);
     }
 
     pub fn frozen(&self) -> &Frozen {
@@ -350,6 +401,18 @@ impl Player {
     pub fn into_shared(self) -> Arc<Vec<i16>> {
         self.frozen.buf
     }
+}
+
+/// A waveform overview: `cols` columns of the loop, each the loudest sample
+/// in its stretch (either channel) on 0..=255. Megabytes of reading: NEVER on
+/// the audio thread (the saver computes it, freeze_files.rs).
+pub fn peaks(samples: &[i16], cols: usize) -> Vec<u8> {
+    let frames = samples.len() / 2;
+    (0..cols).map(|c| {
+        let (a, b) = (c * frames / cols.max(1), ((c + 1) * frames / cols.max(1)).max(c * frames / cols.max(1) + 1).min(frames));
+        let m = samples.get(a * 2..b * 2).map_or(0, |s| s.iter().map(|v| v.unsigned_abs().min(32_767) as u32).max().unwrap_or(0));
+        (m * 255 / 32_767) as u8
+    }).collect()
 }
 
 #[cfg(test)]
@@ -471,7 +534,7 @@ mod tests {
         // Three loops: every block must equal what the chain would have played.
         for _ in 0..(3.0 * map.exact / BLOCK as f64) as usize {
             let end = sim.step(0.0);
-            p.render(&mut out, Some(end), 12_000);
+            p.render(&mut out, Some(LoopAt::whole(end, &map)), 12_000);
             assert_eq!(out, sim.block());
         }
     }
@@ -486,10 +549,10 @@ mod tests {
         let mut resyncs = 0;
         for _ in 0..(1000.0 * map.exact / BLOCK as f64) as usize {
             let end = sim.step(0.0);
-            if c.sync(&map, end, BLOCK as f64) {
+            if c.sync(&map, &Win::whole(&map), end, BLOCK as f64) {
                 resyncs += 1;
             }
-            c.advance(&map, BLOCK as f64);
+            c.advance(&Win::whole(&map), BLOCK as f64);
         }
         assert_eq!(resyncs, 1, "only the first block may sync");
     }
@@ -504,7 +567,7 @@ mod tests {
         assert!(out.iter().all(|&s| s == 0));
         let mut sim = Sim::new(map, TICKS_PER_BAR, 50_000.0);
         let end = sim.step(0.0);
-        p.render(&mut out, Some(end), 12_000);
+        p.render(&mut out, Some(LoopAt::whole(end, &map)), 12_000);
         assert_eq!(out, sim.block());
     }
 
@@ -530,7 +593,7 @@ mod tests {
         for _ in 0..blocks {
             frame += BLOCK as f64 * rate;
             let end = (frame / map.frames_per_tick).rem_euclid(TICKS_PER_BAR as f64);
-            p.render(&mut out, Some(end), bpm_now);
+            p.render(&mut out, Some(LoopAt::whole(end, &map)), bpm_now);
             left.extend(out.iter().step_by(2));
         }
         left
@@ -583,5 +646,56 @@ mod tests {
         let map = bar_120();
         assert!(Frozen::from_samples(map, vec![0; map.frames() * 2]).is_some());
         assert!(Frozen::from_samples(map, vec![0; map.frames() * 2 - 2]).is_none());
+    }
+
+    /// Plays `blocks` blocks of a ramp loop through the window [ws, ws+wl)
+    /// (ticks) from transport frame `f0`; returns (expected, got) left samples.
+    fn play_window(ws: f64, wl: f64, f0: f64, blocks: usize) -> (Vec<i16>, Vec<i16>) {
+        let map = bar_120();
+        let mut p = Player::new(ramp(map, |i| (i % 30_000) as i16));
+        let fpt = map.frames_per_tick;
+        let (ws_f, wl_f) = (ws * fpt, wl * fpt);
+        let mut out = vec![0i16; BLOCK * 2];
+        let (mut want, mut got) = (Vec::new(), Vec::new());
+        let mut f = f0;
+        for _ in 0..blocks {
+            for k in 0..BLOCK {
+                let idx = (ws_f + (f + k as f64).rem_euclid(wl_f)) as usize;
+                want.push((idx % 30_000) as i16);
+            }
+            f += BLOCK as f64;
+            let at = LoopAt { pos: ws + (f / fpt).rem_euclid(wl), win_start: ws, win_len: wl };
+            p.render(&mut out, Some(at), 12_000);
+            got.extend(out.iter().step_by(2));
+        }
+        (want, got)
+    }
+
+    #[test]
+    fn a_sub_window_plays_the_recorded_frames_bit_for_bit() {
+        let tpb = TICKS_PER_BAR as f64;
+        // The middle half of the bar, three passes of it.
+        let (want, got) = play_window(tpb / 4.0, tpb / 2.0, 0.0, (3.0 * 44_100.0 / BLOCK as f64) as usize);
+        assert_eq!(got, want);
+    }
+
+    #[test]
+    fn a_block_across_the_window_end_wraps_inside_it() {
+        let tpb = TICKS_PER_BAR as f64;
+        // Starts 50 frames before the window's end: the first block wraps.
+        let (want, got) = play_window(tpb / 4.0, tpb / 2.0, 44_100.0 - 50.0, 4);
+        assert_eq!(got, want);
+        let end = ((22_050 + 44_100) % 30_000) as i16;
+        assert!(!got.contains(&end), "a frame past the window played");
+    }
+
+    #[test]
+    fn peaks_of_a_ramp() {
+        let buf: Vec<i16> = (0..1000).flat_map(|i| [(i * 32) as i16, -((i * 32) as i16)]).collect();
+        let p = peaks(&buf, 10);
+        assert_eq!(p.len(), 10);
+        assert!(p.windows(2).all(|w| w[0] < w[1]), "{p:?}");
+        assert_eq!(p[9], ((999 * 32) as u32 * 255 / 32_767) as u8);
+        assert!(peaks(&[], 4).iter().all(|&v| v == 0));
     }
 }

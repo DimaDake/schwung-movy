@@ -23,6 +23,7 @@ import { appState } from '../app/state.js';
 import { focusedTrack, selectTrack } from '../track/focus.js';
 import { dupActive, onUnit as dupOnUnit } from './duplicate.js';
 import { aiForgetClip } from '../ai/preview.js';
+import { freezeGuard } from './freeze.js';
 
 const COLS = 8;
 const ROWS = 4;
@@ -67,6 +68,9 @@ export function sessionPad(padNote: number, padMin: number): void {
     const cell = padToCell(padNote, padMin);
     if (!cell) return;
     const { track, slot } = cell;
+    /* Launching, deleting or duplicating a frozen track's clip would change
+     * what its loop stands for: unfreeze first. */
+    if (freezeGuard(track)) return;
 
     if (deleteHeld) {
         aiForgetClip(track, slot);   // a generator session parked on it ends

@@ -105,4 +105,7 @@ export function cachedSetAnimLED(note: number, base: number, animColor: number, 
 
 /* Forget everything sent — next tick repaints all sequencer LEDs. Use after
  * anything that may have clobbered LED hardware state. */
+/** Every button movy has lit (freeze-busy.ts darkens them all). */
+export function ledCachedButtons(): number[] { return [...lastButtonLed.keys()]; }
+
 export function seqLedsInvalidate(): void { lastNoteLed.clear(); lastButtonLed.clear(); lastAnimLed.clear(); }

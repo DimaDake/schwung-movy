@@ -15,6 +15,8 @@ mod ai_clip;
 pub use ai_clip::{parse_ai_notes, AiClipWrite};
 mod note_view;
 mod phase;
+mod freeze_lock;
+pub use freeze_lock::{clip_edit_verb as freeze_lock_verb, FreezeLock};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum OutEvent {
@@ -137,6 +139,9 @@ pub struct Engine {
     /// gesture the user made — the same list the screen reads out and
     /// persistence stores, with no second representation to keep in sync.
     pub song: Vec<u8>,
+    /// Freeze's lock (engine/freeze_lock.rs): per track, the clip slot a
+    /// loop was captured from. Set by movy-dsp; refuses the clip edits.
+    pub freeze_lock: FreezeLock,
     /// Raw index in `song` of the first press of the entry now playing.
     song_pos: usize,
     /// Master bar on which the current entry started. `None` until the song's
@@ -237,6 +242,7 @@ impl Engine {
             clip_clipboard: None,
             recording: false,
             song: Vec::new(),
+            freeze_lock: FreezeLock::default(),
             song_pos: 0,
             song_start_bar: None,
             song_armed: false,
@@ -597,6 +603,23 @@ impl Engine {
         self.clock.reset();
         self.master_tick = 0;
         self.playing = true;
+    }
+
+    /// Freeze's silent pass (movy-dsp `freeze_bank.rs`): start the transport
+    /// with ONLY `track` playing its active clip, from the loop start. `false`
+    /// — and nothing changes — when the transport already runs or the track
+    /// has no clip to play. The caller mutes the output and stops it again.
+    pub fn play_alone(&mut self, track: usize) -> bool {
+        if self.playing || track >= self.tracks.len() || !self.tracks[track].active().exists() {
+            return false;
+        }
+        for (i, t) in self.tracks.iter_mut().enumerate() {
+            t.playing_slot = if i == track { Some(t.active_clip) } else { None };
+            t.queued_slot = None;
+            t.pending_stop = false;
+        }
+        self.start_transport();
+        true
     }
 
     /// Play button / auto-start: every track plays its selected clip (native
@@ -1700,6 +1723,10 @@ impl Engine {
     }
 
     pub fn live_note_on(&mut self, track: usize, pitch: u8, vel: u8) {
+        // A frozen track records nothing, from any keyboard (freeze_lock.rs).
+        if self.freeze_lock.slot(track).is_some() {
+            return;
+        }
         self.capture_push(track, pitch, vel, true);
         if track >= NUM_TRACKS || track != self.rec_track {
             return;
@@ -2474,9 +2501,13 @@ impl Engine {
             .map(|t| (t.playing_slot, t.queued_slot, t.pending_stop))
             .collect();
 
+        /* A frozen track's clips are what its loop was recorded from: an undo
+         * of an edit made before the freeze must not change them under it. */
+        let kept = self.freeze_lock.keep_clips(&self.tracks);
         if !crate::persist::load(self, blob) {
             return false;
         }
+        self.freeze_lock.put_back(&mut self.tracks, kept);
 
         for (t, (playing, queued, pending)) in self.tracks.iter_mut().zip(transport) {
             t.playing_slot = playing;
@@ -2702,6 +2733,13 @@ mod tests {
 
     fn engine() -> Engine {
         Engine::new(RATE, 12000)
+    }
+
+    #[test]
+    fn play_alone_refuses_an_empty_track() {
+        let mut e = engine();
+        assert!(!e.play_alone(3));
+        assert!(!e.playing);
     }
 
     #[test]

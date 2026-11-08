@@ -10,6 +10,7 @@ import { seqState } from './state.js';
 import { scaleFor } from './cpu-scale.js';
 import { TRACK_COUNT } from '../track/ref.js';
 import { SEND_BUSES } from '../chain/config.js';
+import { isFrozen } from './freeze.js';
 
 /** Fallback block period, microseconds — 128 frames at 44.1 kHz. Only used
  *  before the first poll carrying `chwall`; the engine computes the real one
@@ -38,6 +39,10 @@ export type CpuColumnKind =
      *  `empty` because "costs nothing right now" and "there is nothing here"
      *  are the two different answers to a bar reading zero. */
     | 'asleep'
+    /** Frozen (seq/freeze.ts): its chain is unloaded and a recorded loop
+     *  plays instead. The bar is that loop's real cost — a few microseconds —
+     *  and a mark says why it is so small. */
+    | 'frozen'
     /** No module. */
     | 'empty'
     /** On the Schwung host, which renders outside movy entirely. Blank would
@@ -99,7 +104,7 @@ export function buildCpuPageVM(): CpuPageVM {
         }
         const [total, synth, peak] = (triples[t] || '').split('/');
         columns.push({
-            kind: asleep & bit ? 'asleep' : 'live',
+            kind: isFrozen(t) ? 'frozen' : asleep & bit ? 'asleep' : 'live',
             totalUs: num(total),
             // Clamped to the total: the FX segment is drawn as the difference,
             // and a synth reading larger than its own block would draw it

@@ -9,17 +9,34 @@
 
 import { CC_PLAY, CC_REC } from '../seq/constants.js';
 import { appState } from './state.js';
+import { seqState } from '../seq/state.js';
 import { mlog } from '../log.js';
 
-export type LeaveAction = 'close' | 'poweroff' | 'cancel';
-type ModalKind = 'leave' | 'power';
+export type LeaveAction = 'close' | 'poweroff' | 'cancel' | 'freeze' | 'unfreeze';
+/* `freeze`: the same menu asks "Freeze T3?" / "Unfreeze T3?" (seq/freeze.ts,
+ * Shift + double tap on a track button). Freeze is the default, as Power off
+ * is: the double tap already meant it, and the jog click still has to say so. */
+type ModalKind = 'leave' | 'power' | 'freeze';
 
 interface LeaveOption { label: string; action: LeaveAction; }
 
 const LEAVE: LeaveOption[] = [{ label: 'Close Movy', action: 'close' }];
 const POWER: LeaveOption[] = [{ label: 'Power off', action: 'poweroff' }, { label: 'Cancel', action: 'cancel' }];
+const FREEZE: LeaveOption[] = [{ label: 'Freeze', action: 'freeze' }, { label: 'Cancel', action: 'cancel' }];
+const UNFREEZE: LeaveOption[] = [{ label: 'Unfreeze', action: 'unfreeze' }, { label: 'Cancel', action: 'cancel' }];
+/* Unfreeze with the transport running: the reload blocks the audio for up to
+ * half a second, so the engine stops playback first (lib.rs `unfrz`), as
+ * Live does — and the dialog says so before the click, not after. */
+const UNFREEZE_STOPS: LeaveOption[] = [{ label: 'Yes', action: 'unfreeze' }, { label: 'No', action: 'cancel' }];
+
+function unfreezeStops(): boolean {
+    return leaveModalState.kind === 'freeze' && leaveModalState.unfreeze && seqState.playing;
+}
 
 function options(): LeaveOption[] {
+    if (leaveModalState.kind === 'freeze') {
+        return leaveModalState.unfreeze ? (unfreezeStops() ? UNFREEZE_STOPS : UNFREEZE) : FREEZE;
+    }
     return leaveModalState.kind === 'power' ? POWER : LEAVE;
 }
 
@@ -68,8 +85,8 @@ export function leaveModalPass(data: number[]): LeaveModalPass {
     return 'dismiss';
 }
 
-export const leaveModalState: { active: boolean; sel: number; kind: ModalKind } =
-    { active: false, sel: 0, kind: 'leave' };
+export const leaveModalState: { active: boolean; sel: number; kind: ModalKind; track: number; unfreeze: boolean } =
+    { active: false, sel: 0, kind: 'leave', track: -1, unfreeze: false };
 
 export function leaveModalActive(): boolean { return leaveModalState.active; }
 
@@ -78,7 +95,24 @@ export function leaveModalLabels(): string[] { return options().map((o) => o.lab
 export function leaveModalSel(): number { return leaveModalState.sel; }
 
 export function leaveModalTitle(): string {
+    if (leaveModalState.kind === 'freeze') {
+        return (leaveModalState.unfreeze ? 'Unfreeze T' : 'Freeze T') + (leaveModalState.track + 1) + '?';
+    }
     return leaveModalState.kind === 'power' ? 'Power off?' : 'Leave Movy?';
+}
+
+/* A line under the title, or '' for none. Read each frame, so Play pressed
+ * while the dialog is up (Play passes through it) changes the question. */
+export function leaveModalNote(): string {
+    return unfreezeStops() ? 'Playback will stop' : '';
+}
+
+export function openFreezeModal(track: number, unfreeze: boolean): void {
+    leaveModalState.active   = true;
+    leaveModalState.kind     = 'freeze';
+    leaveModalState.track    = track;
+    leaveModalState.unfreeze = unfreeze;
+    leaveModalState.sel      = 0;
 }
 
 export function openLeaveModal(): void {

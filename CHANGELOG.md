@@ -13,6 +13,16 @@ far. Earlier work is summarised in the timeline below for context.
 
 ## [Unreleased]
 
+### Added
+
+- **Freeze a track.** Shift + double tap a track button records its clip into
+  a loop and unloads its synth and effects: it sounds the same, keeps its MIX
+  slot (level, pan, sends, mute, solo), and its CPU goes back to the Set.
+  Frozen tracks are saved with the Set and open without loading their chain.
+  The engine refuses every edit to a frozen track's clips, whichever control
+  it comes from; a loop plays only while its own clip does, and is at most
+  60 seconds long.
+
 ### Changed
 
 - **Generators sound right with the band.** New Clip, Variation and a Smart

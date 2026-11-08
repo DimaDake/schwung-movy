@@ -90,6 +90,14 @@ impl LoadQueue {
         self.pending.iter().any(|r| r.slot == slot)
     }
 
+    /// Drop every load queued for `slot` (a Set opening with that track
+    /// frozen: its chain must not load). Returns how many were dropped.
+    pub fn remove_slot(&mut self, slot: usize) -> usize {
+        let before = self.pending.len();
+        self.pending.retain(|r| r.slot != slot);
+        before - self.pending.len()
+    }
+
     /// Attach a state blob to a pending load, if one is queued for this
     /// slot+component. Returns false when there is nothing pending — the caller
     /// then applies the state directly, because the module is already loaded.

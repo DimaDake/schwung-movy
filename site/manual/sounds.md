@@ -123,3 +123,70 @@ the voice name. **Shift** + pad selects a voice without playing it.
 
 The selected pad lights white, a sounding pad green. To mute one voice, see
 [Playing the pads → Muting one drum voice](playing.md#muting-one-drum-voice).
+
+## Freezing a track
+
+Freezing a track records what its clip plays into a loop, unloads its synth and
+effects, and plays the loop in their place. The track sounds the same and its
+level, pan, sends, mute and solo keep working, but the processing its chain
+used goes back to the rest of the Set. Measured on the device, 16 tracks of
+synths playing chords:
+
+| | CPU meter | Dropouts |
+| --- | --- | --- |
+| Nothing frozen | 39 % | yes |
+| 10 of the 16 frozen | 14 % | none |
+| All 16 frozen | 0.2 % | none |
+
+**To freeze a track:**
+
+1. Hold **Shift** and **double tap** the track's button (two taps within about
+   half a second). The first tap is an ordinary track press.
+2. **Freeze T3?** comes up. **Click the jog** to confirm; turn it to **Cancel**,
+   or press **Back**, to leave it.
+3. **FREEZING T3** counts up while it records, then says **T3 FROZEN**.
+
+It records the track's **selected clip**, which has to be the one playing. It
+takes **two passes** of the clip, in real time, so reverb and delay tails from
+the end of the loop are already in its start and the loop repeats seamlessly.
+With the transport playing, nothing stops: keep playing. With it stopped, the
+clip plays for the recording with the output silent, then stops again.
+
+While it records, the Move belongs to the recording: every LED but **Back** goes
+dark and every other press is ignored, so a stray **Play** cannot cut it short.
+**Back** cancels it, and the track stays as it was.
+
+Movy says no, and why, to a track that is **muted** (it would record silence) or
+recording, and to a loop longer than **60 seconds** (a long clip at a slow speed
+and a slow tempo gets there quickly). All frozen loops together are kept under
+128 MB of memory; past that, unfreeze a track first.
+
+**A frozen track:**
+
+![A frozen track](../assets/screens/frozen_view.png){ .small }
+
+- **Plays its loop** in time with its clip, whenever that clip plays. A scene or
+  a launch that plays another clip of the track plays nothing on it.
+- **Follows tempo changes** like tape: faster and higher, or slower and lower.
+  A swing change does not reach it: the loop keeps the swing it was recorded with.
+- **Keeps its MIX slot.** Turn the jog to **MIX** for its level, pan and sends;
+  muting it fades the loop out over a quarter of a second, as the tails of a
+  muted synth would ring out.
+- **Cannot be edited** until you unfreeze it: notes, the Clip page, its synth and
+  effects, the module browser, recording into it from the pads or a keyboard,
+  Capture, muting a single drum voice, deleting or pasting its clips. Movy says
+  **UNFREEZE T3 FIRST**. Undo leaves its clips alone.
+- **Its pads** scroll **FROZEN** (they play nothing), and the
+  [CPU meter](system.md#the-cpu-meter) marks it with an **F**.
+
+**To unfreeze**, **Shift** + **double tap** the track again. The synth and
+effects come back with the settings they had when frozen. Loading them pauses
+the audio for a moment, so, as in Live, unfreezing stops the transport; while
+it plays, Movy asks first:
+
+![Unfreeze while playing](../assets/screens/unfreeze_stops_modal.png){ .small }
+
+**Saved with the Set.** A frozen track opens frozen, without loading its synth,
+and renaming or duplicating the Set keeps it. A track opens **unfrozen, with its
+chain**, when its chain or its clip is no longer what was frozen, for example
+after restoring an older version of the Set.

@@ -168,6 +168,10 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
     let verb = it.next().unwrap_or("");
     let mut next = || it.next().and_then(|s| s.parse::<i64>().ok());
 
+    /* A frozen track's clip is its loop's source (engine/freeze_lock.rs). */
+    if engine.freeze_refuses(verb, op.split_whitespace().nth(1).and_then(|s| s.parse().ok())) {
+        return;
+    }
     if clears_capture(verb) {
         engine.capture_clear();
     }
@@ -1278,6 +1282,20 @@ mod tests {
              is_undoable_edit (a user edit undo must restore) or to \
              is_control_verb (transport/view/bookkeeping)"
         );
+    }
+
+    /// Freeze's lock (engine/freeze_lock.rs) refuses every edit to a frozen
+    /// track's clips: a new clip edit verb that is undoable is one it must
+    /// know about. The exceptions are set-level, or resolve their track
+    /// themselves (`capsel` writes into the capture's own track).
+    #[test]
+    fn every_undoable_edit_is_known_to_the_freeze_lock() {
+        let missing: Vec<String> = dispatched_verbs()
+            .into_iter()
+            .filter(|v| is_undoable_edit(v) && !crate::engine::freeze_lock_verb(v))
+            .filter(|v| !["mute", "bpm", "swing", "capsel"].contains(&v.as_str()))
+            .collect();
+        assert!(missing.is_empty(), "clip edits the freeze lock lets through: {missing:?}");
     }
 
     #[test]

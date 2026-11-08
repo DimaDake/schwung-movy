@@ -115,6 +115,7 @@ pub struct LoopAt {
 
 impl LoopAt {
     /// The whole recording as the window.
+    #[cfg(test)]
     pub fn whole(pos: f64, map: &LoopMap) -> Self {
         LoopAt { pos, win_start: 0.0, win_len: map.len_ticks as f64 }
     }
@@ -224,6 +225,7 @@ impl Capture {
         self.buf
     }
 
+    #[cfg(test)]
     pub fn map(&self) -> &LoopMap {
         &self.map
     }

@@ -610,11 +610,20 @@ impl Engine {
     /// — and nothing changes — when the transport already runs or the track
     /// has no clip to play. The caller mutes the output and stops it again.
     pub fn play_alone(&mut self, track: usize) -> bool {
-        if self.playing || track >= self.tracks.len() || !self.tracks[track].active().exists() {
+        match self.tracks.get(track) {
+            Some(t) => self.play_alone_slot(track, t.active_clip),
+            None => false,
+        }
+    }
+
+    /// `play_alone` for any clip `slot` of the track (a freeze records every
+    /// clip, one after another); the selection is left alone.
+    pub fn play_alone_slot(&mut self, track: usize, slot: usize) -> bool {
+        if self.playing || !self.tracks.get(track).and_then(|t| t.clips.get(slot)).is_some_and(|c| c.exists()) {
             return false;
         }
         for (i, t) in self.tracks.iter_mut().enumerate() {
-            t.playing_slot = if i == track { Some(t.active_clip) } else { None };
+            t.playing_slot = if i == track { Some(slot) } else { None };
             t.queued_slot = None;
             t.pending_stop = false;
         }
@@ -1955,7 +1964,10 @@ impl Engine {
             });
         }
         if self.master_tick % crate::TICKS_PER_BAR as u64 == 0 {
-            for t in &mut self.tracks {
+            /* A track lent to a freeze capture keeps its launches waiting
+             * (engine/freeze_lock.rs `freeze_swap_in`). */
+            let lock = &self.freeze_lock;
+            for (_, t) in self.tracks.iter_mut().enumerate().filter(|(i, _)| !lock.swapped(*i)) {
                 if let Some(slot) = t.queued_slot.take() {
                     t.playing_slot = Some(slot);
                     t.active_clip = slot;

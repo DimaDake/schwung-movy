@@ -14,7 +14,7 @@
 //! selection, copying FROM it. Undo keeps its clips as they are
 //! (`keep_clips` / `put_back`).
 
-use super::Engine;
+use super::{Engine, OutEvent};
 use crate::clip::Clip;
 use crate::track::{Track, CLIPS_PER_TRACK, NUM_TRACKS};
 
@@ -190,6 +190,66 @@ impl Engine {
             }
         }
         w
+    }
+
+    /// The clock in ticks since the transport started, with its sub-tick
+    /// fraction: what a heard loop's position is carried on while the track's
+    /// playhead is lent to a capture (movy-dsp lib.rs).
+    pub fn clock_ticks_f64(&self) -> f64 {
+        self.master_tick as f64 + self.clock.tick_fraction()
+    }
+
+    /// Lend track `t`'s playhead to a freeze capture: it plays `slot` from
+    /// its loop start NOW, the selection untouched, its sounding notes closed
+    /// first. Until `freeze_swap_out`, the track's launches, stops and
+    /// selects wait (`service_tick`), so a scene or the song cannot move the
+    /// clip being recorded. `false` for an empty slot.
+    pub fn freeze_swap_in(&mut self, t: usize, slot: usize, out: &mut Vec<OutEvent>) -> bool {
+        if !self.tracks.get(t).and_then(|k| k.clips.get(slot)).is_some_and(|c| c.exists()) {
+            return false;
+        }
+        self.flush_track_gates(t, out);
+        self.restart_track_at(t, slot, 0);
+        self.freeze_lock.set_swapped(t, true);
+        true
+    }
+
+    /// Give the playhead back: `Some(slot)` plays `slot` `rel_clock` CLOCK
+    /// ticks into its current window (the heard loop's position, carried by
+    /// the caller meanwhile), so the track picks up in phase; `None` leaves
+    /// it stopped. Launches that waited resolve from the next bar.
+    pub fn freeze_swap_out(&mut self, t: usize, slot: Option<usize>, rel_clock: u64, out: &mut Vec<OutEvent>) {
+        if t >= self.tracks.len() {
+            return;
+        }
+        self.flush_track_gates(t, out);
+        self.freeze_lock.set_swapped(t, false);
+        match slot {
+            Some(s) if self.tracks[t].clips.get(s).is_some_and(|c| c.exists()) => {
+                self.restart_track_at(t, s, rel_clock)
+            }
+            _ => self.tracks[t].playing_slot = None,
+        }
+    }
+
+    /// Track `t` plays `slot`, `rel_clock` clock ticks into its window: the
+    /// resets a launch does at a bar, then the playhead and the clip-scale
+    /// accumulator placed so `loop_position` reads `rel_clock` (+ the clock's
+    /// own fraction). clip ticks = (acc + clock ticks x num) / den.
+    fn restart_track_at(&mut self, t: usize, slot: usize, rel_clock: u64) {
+        let k = &mut self.tracks[t];
+        let c = &mut k.clips[slot];
+        c.release_pass_flags();
+        let (num, den) = (c.scale_num.max(1) as u64, c.scale_den.max(1) as u64);
+        let len = c.length_ticks().max(1) as u64;
+        let total = rel_clock * num;
+        k.playing_slot = Some(slot);
+        k.pos_tick = c.loop_start_ticks() + ((total / den) % len) as u32;
+        k.scale_acc = (total % den) as u32;
+        k.last_auto_step = -1;
+        k.auto_step = -1;
+        k.auto_cur = [-1; crate::track::LANES];
+        k.cycle = 1;
     }
 
     /// Whether track `t` is recording or armed to: a freeze waits for the take.
@@ -484,5 +544,99 @@ mod tests {
         let mut out = Vec::new();
         apply_batch(&mut e, "loop 2 16 16", &mut out);
         assert_eq!(e.clip_fingerprint(2, 0), f);
+    }
+
+    /// Two clips on track 2 (pitch 60 in slot 0, 72 in slot 1), slot 0 at
+    /// `num/den` speed, playing and locked.
+    fn two_clips(num: u8, den: u8) -> Engine {
+        let mut e = Engine::new(RATE, 12000);
+        let mut out = Vec::new();
+        apply_batch(&mut e, &format!("tog 2 0 60 100;tog 2 8 62 100;cscl 2 {num} {den};clipsel 2 1;tog 2 0 72 100;clipsel 2 0;play"), &mut out);
+        lock(&mut e, 2);
+        e
+    }
+
+    fn note_ons(out: &[crate::engine::OutEvent], track: u8) -> Vec<u8> {
+        out.iter().filter_map(|o| match o {
+            crate::engine::OutEvent::NoteOn { track: t, pitch, .. } if *t == track => Some(*pitch),
+            _ => None,
+        }).collect()
+    }
+
+    #[test]
+    fn swap_in_plays_the_slot_from_its_loop_start_now() {
+        let mut e = two_clips(1, 1);
+        let mut out = Vec::new();
+        for _ in 0..100 {
+            e.advance_block(FRAMES, &mut out);
+        }
+        assert!(e.freeze_swap_in(2, 1, &mut out));
+        assert_eq!(e.tracks[2].playing_slot, Some(1));
+        assert_eq!(e.tracks[2].active_clip, 0, "the selection is the user's");
+        assert!(e.freeze_lock.swapped(2));
+        out.clear();
+        e.advance_block(FRAMES, &mut out);
+        assert_eq!(note_ons(&out, 2), vec![72], "slot 1's first step, right away");
+    }
+
+    #[test]
+    fn a_launch_during_a_swap_waits_for_the_swap_out() {
+        let mut e = two_clips(1, 1);
+        let mut out = Vec::new();
+        e.advance_block(FRAMES, &mut out);
+        e.freeze_swap_in(2, 1, &mut out);
+        e.launch_clip(2, 0);
+        let bar_blocks = (RATE as f64 * 2.0 / FRAMES as f64) as usize + 2; // one bar at 120
+        for _ in 0..bar_blocks {
+            e.advance_block(FRAMES, &mut out);
+        }
+        assert_eq!(e.tracks[2].playing_slot, Some(1), "a launch moved the capture");
+        e.freeze_swap_out(2, Some(1), 0, &mut out);
+        assert!(!e.freeze_lock.swapped(2));
+        for _ in 0..bar_blocks {
+            e.advance_block(FRAMES, &mut out);
+        }
+        assert_eq!(e.tracks[2].playing_slot, Some(0), "the launch landed after the swap");
+    }
+
+    #[test]
+    fn swap_out_lands_the_heard_clip_in_phase() {
+        for (num, den) in [(1u8, 1u8), (1, 2), (3, 4)] {
+            let mut a = two_clips(num, den);
+            let mut b = two_clips(num, den);
+            let mut out = Vec::new();
+            for _ in 0..137 {
+                a.advance_block(FRAMES, &mut out);
+                b.advance_block(FRAMES, &mut out);
+            }
+            let p0 = b.loop_position(2).unwrap();
+            let c0 = b.clock_ticks_f64();
+            b.freeze_swap_in(2, 1, &mut out);
+            for _ in 0..911 {
+                a.advance_block(FRAMES, &mut out);
+                b.advance_block(FRAMES, &mut out);
+            }
+            let rel = (p0.pos - p0.win_start + b.clock_ticks_f64() - c0).rem_euclid(p0.win_len);
+            b.freeze_swap_out(2, Some(0), rel.floor() as u64, &mut out);
+            let (pa, pb) = (a.loop_position(2).unwrap(), b.loop_position(2).unwrap());
+            assert!((pa.pos - pb.pos).abs() < 1e-6, "{num}/{den}: {pa:?} vs {pb:?}");
+            for _ in 0..500 {
+                a.advance_block(FRAMES, &mut out);
+                b.advance_block(FRAMES, &mut out);
+                let (pa, pb) = (a.loop_position(2).unwrap(), b.loop_position(2).unwrap());
+                assert!((pa.pos - pb.pos).abs() < 1e-6, "{num}/{den} drifted: {pa:?} vs {pb:?}");
+            }
+        }
+    }
+
+    #[test]
+    fn play_alone_slot_plays_that_slot_from_its_start() {
+        let mut e = two_clips(1, 1);
+        let mut out = Vec::new();
+        apply_batch(&mut e, "stop", &mut out);
+        assert!(e.play_alone_slot(2, 1));
+        assert_eq!((e.tracks[2].playing_slot, e.tracks[2].active_clip), (Some(1), 0));
+        assert!(e.tracks[0].playing_slot.is_none());
+        assert!(!e.play_alone_slot(2, 5), "an empty slot");
     }
 }

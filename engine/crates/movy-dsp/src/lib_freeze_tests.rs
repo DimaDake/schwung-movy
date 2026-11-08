@@ -27,7 +27,7 @@ fn frz_refuses_a_muted_track_and_one_that_is_recording() {
     inst.set_param("cmd", "tog 3 0 60 100;mute 3 1");
     inst.set_param("frz", "3");
     assert!(frze(&mut inst).ends_with(":3:muted"), "{}", frze(&mut inst));
-    assert_eq!(inst.engine.freeze_lock.slot(3), None, "a refusal locks nothing");
+    assert!(!inst.engine.freeze_lock.locked(3), "a refusal locks nothing");
     inst.set_param("cmd", "mute 3 0;rec 3");
     inst.set_param("frz", "3");
     assert!(frze(&mut inst).ends_with(":3:rec"), "{}", frze(&mut inst));

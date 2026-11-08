@@ -16,7 +16,7 @@ pub use ai_clip::{parse_ai_notes, AiClipWrite};
 mod note_view;
 mod phase;
 mod freeze_lock;
-pub use freeze_lock::{clip_edit_verb as freeze_lock_verb, FreezeLock};
+pub use freeze_lock::{clip_edit_verb as freeze_lock_verb, FreezeLock, LoopPos, RecWindow, TrackWindows};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum OutEvent {
@@ -1724,7 +1724,7 @@ impl Engine {
 
     pub fn live_note_on(&mut self, track: usize, pitch: u8, vel: u8) {
         // A frozen track records nothing, from any keyboard (freeze_lock.rs).
-        if self.freeze_lock.slot(track).is_some() {
+        if self.freeze_lock.locked(track) {
             return;
         }
         self.capture_push(track, pitch, vel, true);

@@ -324,20 +324,27 @@ impl Clip {
     /// Set the loop window from a bar-aligned start and length (clamped to
     /// 16 bars total and at least one bar).
     pub fn set_loop(&mut self, start_steps: u16, len_steps: u16) {
+        (self.loop_start_steps, self.length_steps) = self.loop_after(start_steps, len_steps);
+    }
+
+    /// The `(start, length)` in steps that `set_loop` would leave: what a
+    /// frozen clip's lock checks before it lets a cut through.
+    pub fn loop_after(&self, start_steps: u16, len_steps: u16) -> (u16, u16) {
         let bar = STEPS_PER_BAR as u16;
-        let start = (start_steps / bar) * bar;
-        let len = len_steps.max(bar);
-        let start = start.min(MAX_STEPS - bar);
-        self.loop_start_steps = start;
-        self.length_steps = len.min(MAX_STEPS - start);
+        let start = ((start_steps / bar) * bar).min(MAX_STEPS - bar);
+        (start, len_steps.max(bar).min(MAX_STEPS - start))
     }
 
     /// Set the loop length in steps from the LENGTH knob, preserving
     /// `loop_start_steps`. Clamped to [1, MAX_STEPS - loop_start_steps]. Unlike
     /// `set_loop`, this is step-granular (not bar-aligned).
     pub fn set_clip_length(&mut self, steps: u16) {
-        let max = MAX_STEPS - self.loop_start_steps;
-        self.length_steps = steps.clamp(1, max);
+        self.length_steps = self.clip_length_after(steps);
+    }
+
+    /// The length `set_clip_length` would leave.
+    pub fn clip_length_after(&self, steps: u16) -> u16 {
+        steps.clamp(1, MAX_STEPS - self.loop_start_steps)
     }
 
     /// Double the loop: copy the window's notes into the following window and

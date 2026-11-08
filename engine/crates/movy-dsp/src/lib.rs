@@ -906,7 +906,8 @@ impl Instance {
                     self.chains.freeze_install(f, &chains, print);
                 }
                 for t in 0..seq_core::track::NUM_TRACKS.min(chain_slots::MOVY_CHAINS) {
-                    self.engine.freeze_lock.set(t, self.chains.freeze_locked_slot(t));
+                    let w = self.lock_windows(t);
+                    self.engine.freeze_lock.set_track(t, w);
                 }
             }
             self.set_gen = gen;
@@ -999,11 +1000,12 @@ impl Instance {
         let map = LoopMap::new(len, self.engine.clock.bpm_x100(), host::sample_rate()).ok_or("noclip")?;
         let print = self.engine.clip_fingerprint(t, slot).ok_or("noclip")?;
         self.chains.freeze_begin(t, map, slot, print)?;
-        self.engine.freeze_lock.set(t, Some(slot));
+        let w = self.lock_windows(t);
+        self.engine.freeze_lock.set_track(t, w);
         if !self.engine.playing {
             if !self.engine.play_alone(t) {
                 self.chains.freeze_cancel(t);
-                self.engine.freeze_lock.set(t, None);
+                self.engine.freeze_lock.set_track(t, None);
                 return Err("noclip");
             }
             self.freeze_silent = Some(t);
@@ -1016,8 +1018,18 @@ impl Instance {
     /// after an open installs frozen tracks.
     fn sync_freeze_lock(&mut self) {
         for t in 0..seq_core::track::NUM_TRACKS.min(chain_slots::MOVY_CHAINS) {
-            self.engine.freeze_lock.set(t, self.chains.freeze_locked_slot(t));
+            let w = self.lock_windows(t);
+            self.engine.freeze_lock.set_track(t, w);
         }
+    }
+
+    /// The lock for track `t`: the window of the slot its loop is (being)
+    /// recorded from, or unlocked.
+    fn lock_windows(&self, t: usize) -> Option<seq_core::engine::TrackWindows> {
+        let slot = self.chains.freeze_locked_slot(t)?;
+        let mut w = [None; seq_core::track::CLIPS_PER_TRACK];
+        w[slot] = self.engine.clip_windows(t)[slot];
+        Some(w)
     }
 
     fn render(&mut self, out_audio: &mut [i16]) {
@@ -1047,7 +1059,7 @@ impl Instance {
         self.sync_freeze_lock();
         let engine = &self.engine;
         let muted = engine.tracks.iter().enumerate().fold(0u32, |m, (t, k)| m | ((k.muted as u32) << t));
-        self.chains.freeze_frame(|t| engine.loop_position(t), muted, engine.clock.bpm_x100());
+        self.chains.freeze_frame(|t| engine.loop_position(t).map(|p| p.pos), muted, engine.clock.bpm_x100());
         self.chains.prof.lap(Stage::Load, &mut lap);
         self.chains.render(out_audio);
         if let Some(t) = self.freeze_silent {

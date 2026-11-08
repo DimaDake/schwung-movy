@@ -169,7 +169,8 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
     let mut next = || it.next().and_then(|s| s.parse::<i64>().ok());
 
     /* A frozen track's clip is its loop's source (engine/freeze_lock.rs). */
-    if engine.freeze_refuses(verb, op.split_whitespace().nth(1).and_then(|s| s.parse().ok())) {
+    let args: Vec<i64> = op.split_whitespace().skip(1).map_while(|s| s.parse().ok()).collect();
+    if engine.freeze_refuses(verb, &args) {
         return;
     }
     if clears_capture(verb) {

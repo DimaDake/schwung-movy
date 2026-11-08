@@ -16,11 +16,44 @@
 
 use super::Engine;
 use crate::clip::Clip;
-use crate::track::{Track, NUM_TRACKS};
+use crate::track::{Track, CLIPS_PER_TRACK, NUM_TRACKS};
+
+/// The stretch of a clip a loop was recorded over, in CLIP ticks: its loop
+/// window at freeze time. A frozen clip's window may shrink inside it (a
+/// Loop-mode cut plays that part of the recording), never leave it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct RecWindow {
+    pub start_ticks: u32,
+    pub len_ticks: u32,
+}
+
+impl RecWindow {
+    fn contains(&self, start_ticks: u32, len_ticks: u32) -> bool {
+        start_ticks >= self.start_ticks && start_ticks + len_ticks <= self.start_ticks + self.len_ticks
+    }
+}
+
+/// Per clip slot, the window its loop was recorded over (`None`: no loop).
+pub type TrackWindows = [Option<RecWindow>; CLIPS_PER_TRACK];
+
+/// Where a frozen track is inside the loop of the slot it plays, in CLOCK
+/// ticks measured from the RECORDED window's start: `pos` lies in
+/// `[win_start, win_start + win_len)`, the part of the recording the clip's
+/// current window plays.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct LoopPos {
+    pub slot: usize,
+    pub pos: f64,
+    pub win_start: f64,
+    pub win_len: f64,
+}
 
 #[derive(Debug, Default, Clone)]
 pub struct FreezeLock {
-    slots: [Option<u8>; NUM_TRACKS],
+    tracks: [Option<TrackWindows>; NUM_TRACKS],
+    /// The track's playhead is lent to a capture (`freeze_swap_in`): its
+    /// launches wait for the swap-out.
+    swapped: [bool; NUM_TRACKS],
     refused: u32,
     refused_track: usize,
 }
@@ -45,19 +78,33 @@ pub fn clip_edit_verb(verb: &str) -> bool {
 }
 
 impl FreezeLock {
-    /// The clip slot track `t`'s loop belongs to, while it is locked.
-    pub fn slot(&self, t: usize) -> Option<usize> {
-        self.slots.get(t).copied().flatten().map(usize::from)
-    }
-
-    pub fn set(&mut self, t: usize, slot: Option<usize>) {
-        if let Some(s) = self.slots.get_mut(t) {
-            *s = slot.map(|v| v as u8);
+    /// Lock track `t` with the windows its loops cover, or unlock it (`None`).
+    pub fn set_track(&mut self, t: usize, windows: Option<TrackWindows>) {
+        if let Some(s) = self.tracks.get_mut(t) {
+            *s = windows;
         }
     }
 
+    pub fn locked(&self, t: usize) -> bool {
+        self.tracks.get(t).is_some_and(Option::is_some)
+    }
+
+    pub fn window(&self, t: usize, slot: usize) -> Option<RecWindow> {
+        self.tracks.get(t)?.as_ref()?.get(slot).copied().flatten()
+    }
+
     pub fn any(&self) -> bool {
-        self.slots.iter().any(Option::is_some)
+        self.tracks.iter().any(Option::is_some)
+    }
+
+    pub fn swapped(&self, t: usize) -> bool {
+        self.swapped.get(t).copied().unwrap_or(false)
+    }
+
+    pub(crate) fn set_swapped(&mut self, t: usize, on: bool) {
+        if let Some(s) = self.swapped.get_mut(t) {
+            *s = on;
+        }
     }
 
     fn refuse(&mut self, t: usize) {
@@ -77,7 +124,7 @@ impl FreezeLock {
     /// Locked tracks' clips, taken before an undo restore.
     pub fn keep_clips(&self, tracks: &[Track]) -> Vec<(usize, Vec<Clip>)> {
         (0..NUM_TRACKS)
-            .filter(|&t| self.slot(t).is_some())
+            .filter(|&t| self.locked(t))
             .filter_map(|t| tracks.get(t).map(|k| (t, k.clips.clone())))
             .collect()
     }
@@ -93,28 +140,56 @@ impl FreezeLock {
 
 impl Engine {
     /// Whether `op` must not run because of a frozen track; counts the
-    /// refusal. Called by `apply_op` before it dispatches.
-    pub(crate) fn freeze_refuses(&mut self, verb: &str, first: Option<i64>) -> bool {
+    /// refusal. Called by `apply_op` before it dispatches, with the op's
+    /// integer arguments.
+    pub(crate) fn freeze_refuses(&mut self, verb: &str, args: &[i64]) -> bool {
         if !self.freeze_lock.any() {
             return false;
         }
+        let first = args.first().map(|&t| t as usize);
         let t = match verb {
             // a capture's tempo pick rewrites the clip it was committed to
             "capsel" => Some(self.cap_track),
             // arming only; a Rec press that ends a take is always allowed
-            "rec" if !(self.recording || self.count_in_left > 0 || self.pending_rec) => {
-                first.map(|t| t as usize)
-            }
-            v if clip_edit_verb(v) => first.map(|t| t as usize),
+            "rec" if !(self.recording || self.count_in_left > 0 || self.pending_rec) => first,
+            v if clip_edit_verb(v) => first,
             _ => None,
         };
-        match t {
-            Some(t) if self.freeze_lock.slot(t).is_some() => {
-                self.freeze_lock.refuse(t);
-                true
-            }
-            _ => false,
+        let Some(t) = t.filter(|&t| self.freeze_lock.locked(t)) else { return false };
+        if self.window_edit_fits(verb, t, args) {
+            return false;
         }
+        self.freeze_lock.refuse(t);
+        true
+    }
+
+    /// A Loop-mode cut on a frozen clip: `loop` / `clen` whose resulting
+    /// window stays inside the recorded one (freeze_bank plays that part).
+    fn window_edit_fits(&self, verb: &str, t: usize, args: &[i64]) -> bool {
+        let Some(track) = self.tracks.get(t) else { return false };
+        let Some(rec) = self.freeze_lock.window(t, track.active_clip) else { return false };
+        let clip = track.active();
+        let (start, len) = match (verb, args) {
+            ("loop", [_, s, l, ..]) if *s >= 0 && *l > 0 => clip.loop_after(*s as u16, *l as u16),
+            ("clen", [_, l, ..]) => (clip.loop_start_steps, clip.clip_length_after((*l).clamp(0, 65535) as u16)),
+            _ => return false,
+        };
+        let tps = crate::TICKS_PER_STEP;
+        rec.contains(start as u32 * tps, len as u32 * tps)
+    }
+
+    /// Track `t`'s clip windows now, one per non-empty slot: what a freeze
+    /// records and then locks.
+    pub fn clip_windows(&self, t: usize) -> TrackWindows {
+        let mut w = [None; CLIPS_PER_TRACK];
+        if let Some(track) = self.tracks.get(t) {
+            for (slot, c) in track.clips.iter().enumerate().take(CLIPS_PER_TRACK) {
+                if c.exists() && c.length_ticks() > 0 {
+                    w[slot] = Some(RecWindow { start_ticks: c.loop_start_ticks(), len_ticks: c.length_ticks() });
+                }
+            }
+        }
+        w
     }
 
     /// Whether track `t` is recording or armed to: a freeze waits for the take.
@@ -137,10 +212,12 @@ impl Engine {
     }
 
     /// What a loop was recorded from, as one number: the clip's notes, locks,
-    /// trigs and shape (FNV-1a; playback-only fields such as `fired` left out).
-    /// Saved with a frozen loop, so an open that finds another clip in the
-    /// slot — a Set version restored from before the freeze — opens the track
-    /// unfrozen rather than playing a loop of something else.
+    /// trigs and speed (FNV-1a; playback-only fields such as `fired` left
+    /// out, and the loop WINDOW too: it may shrink on a frozen clip, and is
+    /// saved and checked on its own). Saved with a frozen loop, so an open
+    /// that finds another clip in the slot — a Set version restored from
+    /// before the freeze — opens the track unfrozen rather than playing a
+    /// loop of something else.
     pub fn clip_fingerprint(&self, t: usize, slot: usize) -> Option<u64> {
         let c = self.tracks.get(t)?.clips.get(slot)?;
         let mut h: u64 = 0xcbf2_9ce4_8422_2325;
@@ -149,8 +226,6 @@ impl Engine {
                 h = (h ^ b as u64).wrapping_mul(0x0100_0000_01b3);
             }
         };
-        eat(c.length_steps as u64);
-        eat(c.loop_start_steps as u64);
         eat(((c.scale_num as u64) << 8) | c.scale_den as u64);
         eat(c.transpose as i64 as u64);
         eat(c.quant as u64);
@@ -169,21 +244,19 @@ impl Engine {
         Some(h)
     }
 
-    /// Where locked track `t` is inside its loop at the END of the last block,
-    /// in clock ticks with the clock's sub-tick fraction (and the clip-scale
-    /// accumulator's) included: what a frozen loop is indexed by. The integer
-    /// clock makes it land on the same frame every pass. `None` while stopped,
-    /// for an unlocked track, or while the track plays any OTHER slot than the
-    /// one its loop came from — a scene or a launch elsewhere is silence.
-    pub fn loop_position(&self, t: usize) -> Option<f64> {
-        let slot = self.freeze_lock.slot(t)?;
+    /// Where locked track `t` is inside the loop of the slot it plays, at the
+    /// END of the last block, with the clock's sub-tick fraction (and the
+    /// clip-scale accumulator's) included: what a frozen loop is indexed by.
+    /// The integer clock makes it land on the same frame every pass. `None`
+    /// while stopped, for an unlocked track, or when the playing slot has no
+    /// loop (an empty slot a scene launched is silence).
+    pub fn loop_position(&self, t: usize) -> Option<LoopPos> {
         if !self.playing {
             return None;
         }
         let track = self.tracks.get(t)?;
-        if track.playing_slot != Some(slot) {
-            return None;
-        }
+        let slot = track.playing_slot?;
+        let rec = self.freeze_lock.window(t, slot)?;
         let clip = track.playing()?;
         let len = clip.length_ticks();
         if len == 0 {
@@ -192,8 +265,11 @@ impl Engine {
         let num = clip.scale_num.max(1) as f64;
         let den = clip.scale_den.max(1) as f64;
         let frac = (track.scale_acc as f64 + self.clock.tick_fraction() * num) / den;
-        let rel = (track.pos_tick as f64 - clip.loop_start_ticks() as f64 + frac).rem_euclid(len as f64);
-        Some(rel * den / num)
+        let start = clip.loop_start_ticks() as f64;
+        let rel = (track.pos_tick as f64 - start + frac).rem_euclid(len as f64);
+        let offset = start - rec.start_ticks as f64;
+        let k = den / num;
+        Some(LoopPos { slot, pos: (rel + offset) * k, win_start: offset * k, win_len: len as f64 * k })
     }
 }
 
@@ -209,8 +285,13 @@ mod tests {
         let mut e = Engine::new(RATE, 12000);
         let mut out = Vec::new();
         apply_batch(&mut e, &format!("tog 2 0 60 100;clen 2 {len_steps};cscl 2 {num} {den}"), &mut out);
-        e.freeze_lock.set(2, Some(0));
+        lock(&mut e, 2);
         e
+    }
+
+    fn lock(e: &mut Engine, t: usize) {
+        let w = e.clip_windows(t);
+        e.freeze_lock.set_track(t, Some(w));
     }
 
     fn assert_follows_clock(e: &mut Engine, len_clock: f64) {
@@ -219,7 +300,7 @@ mod tests {
         for n in 1..=4000u32 {
             e.advance_block(FRAMES, &mut out);
             let want = ((n * FRAMES) as f64 / fpt).rem_euclid(len_clock);
-            let got = e.loop_position(2).unwrap();
+            let got = e.loop_position(2).unwrap().pos;
             let d = (got - want).rem_euclid(len_clock);
             assert!(d.min(len_clock - d) < 1e-6, "block {n}: {got} vs {want}");
         }
@@ -260,7 +341,7 @@ mod tests {
          * read as None without the slot check. */
         e.tracks[2].clips[1] = e.tracks[2].clips[0].clone();
         e.tracks[2].playing_slot = Some(1);
-        assert_eq!(e.loop_position(2), None, "a scene moved the track to another clip");
+        assert_eq!(e.loop_position(2), None, "a clip recorded after the freeze has no loop");
     }
 
     #[test]
@@ -272,7 +353,7 @@ mod tests {
             "tog 2 4 62 100", "addp 2 0 3 64 100", "del 2 0 15 -1", "evel 2 0 15 -1 5",
             "elen 2 0 15 -1 5", "enudge 2 0 15 -1 5", "etrn 2 0 15 -1 5", "slen 2 0 15 -1 12",
             "eprob 2 0 15 -1 50", "econd 2 0 15 -1 1 2", "einv 2 0 15 -1 1", "ltog 2 8 64 100",
-            "clen 2 32", "cscl 2 1 4", "ctr 2 5", "cq 2 50", "dbl 2", "loop 2 0 8",
+            "clen 2 32", "cscl 2 1 4", "ctr 2 5", "cq 2 50", "dbl 2", "loop 2 16 16",
             "pst 2 0", "clipdel 2", "clipdelat 2 0", "clipdup 2", "clippaste 2 0",
             "aiclip 2 0 16 1 1 0 -", "aiload 2 0 0", "aset 2 0 0 64", "asetr 2 0 0 3 64",
             "aclr 2 0", "aclrs 2 0 0", "aclrstep 2 0",
@@ -322,7 +403,7 @@ mod tests {
         apply_batch(&mut e, "play", &mut out);
         e.advance_block(FRAMES * 400, &mut out);
         assert_eq!(e.clip_fingerprint(2, 0), Some(f), "playback moved it");
-        e.freeze_lock.set(2, None);
+        e.freeze_lock.set_track(2, None);
         apply_batch(&mut e, "tog 2 4 64 100", &mut out);
         assert_ne!(e.clip_fingerprint(2, 0), Some(f));
     }
@@ -346,9 +427,62 @@ mod tests {
         let snap = e.undo_snapshot();
         apply_batch(&mut e, "tog 2 4 64 100;tog 1 4 64 100", &mut out);
         let frozen = format!("{:?}", e.tracks[2].clips);
-        e.freeze_lock.set(2, Some(0));
+        lock(&mut e, 2);
         assert!(e.undo_restore(&snap));
         assert_eq!(format!("{:?}", e.tracks[2].clips), frozen, "undo changed the frozen clip");
         assert!(!e.tracks[1].active().step_has_notes(4), "the other track was undone");
+    }
+
+    #[test]
+    fn every_slot_of_a_frozen_track_refuses_edits() {
+        let mut e = locked(16, 1, 1);
+        let mut out = Vec::new();
+        apply_batch(&mut e, "clipsel 2 5;tog 2 0 60 100", &mut out);
+        assert!(!e.tracks[2].clips[5].exists(), "a new clip on a frozen track is an edit");
+        assert!(e.freeze_lock.status().contains("frzr=1:2"));
+    }
+
+    #[test]
+    fn a_window_may_shrink_inside_the_recording_never_grow_past_it() {
+        // Two bars recorded: steps [0, 32).
+        let mut e = locked(32, 1, 1);
+        let mut out = Vec::new();
+        apply_batch(&mut e, "loop 2 16 16", &mut out);
+        assert_eq!((e.tracks[2].clips[0].loop_start_steps, e.tracks[2].clips[0].length_steps), (16, 16), "a cut inside");
+        apply_batch(&mut e, "clen 2 32", &mut out);
+        assert_eq!(e.tracks[2].clips[0].length_steps, 16, "grown past the recorded end");
+        assert!(e.freeze_lock.status().contains("frzr=1:2"));
+        apply_batch(&mut e, "loop 2 0 32", &mut out);
+        assert_eq!((e.tracks[2].clips[0].loop_start_steps, e.tracks[2].clips[0].length_steps), (0, 32), "back to the whole recording");
+        apply_batch(&mut e, "clen 2 20", &mut out);
+        assert_eq!(e.tracks[2].clips[0].length_steps, 20, "a shorter length fits");
+        apply_batch(&mut e, "loop 2 0 48", &mut out);
+        assert_eq!(e.tracks[2].clips[0].length_steps, 20, "past the recording");
+    }
+
+    #[test]
+    fn loop_position_is_measured_from_the_recorded_start() {
+        let tps = crate::TICKS_PER_STEP as f64;
+        for (num, den) in [(1u8, 1u8), (1, 2)] {
+            let mut e = locked(32, num, den);
+            let mut out = Vec::new();
+            apply_batch(&mut e, "loop 2 16 16;play", &mut out);
+            let k = den as f64 / num as f64;
+            for _ in 0..3000 {
+                e.advance_block(FRAMES, &mut out);
+                let p = e.loop_position(2).unwrap();
+                assert_eq!((p.slot, p.win_start, p.win_len), (0, 16.0 * tps * k, 16.0 * tps * k));
+                assert!(p.pos >= p.win_start && p.pos < p.win_start + p.win_len, "{p:?}");
+            }
+        }
+    }
+
+    #[test]
+    fn the_fingerprint_ignores_the_window() {
+        let mut e = locked(32, 1, 1);
+        let f = e.clip_fingerprint(2, 0);
+        let mut out = Vec::new();
+        apply_batch(&mut e, "loop 2 16 16", &mut out);
+        assert_eq!(e.clip_fingerprint(2, 0), f);
     }
 }

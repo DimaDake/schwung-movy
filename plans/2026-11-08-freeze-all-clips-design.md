@@ -1,6 +1,6 @@
 # Freeze v2: every clip, a track menu, a waveform — design
 
-Status: design, agreed in chat 2026-11-08. Builds on PR #30 (merged as
+Status: design, APPROVED by the user 2026-11-08. Builds on PR #30 (merged as
 `286b4337`, ENGINE 0.118.0). Plan to follow in this folder.
 
 ## Why
@@ -20,7 +20,8 @@ track. v2 freezes every clip of the track.
 2. **A track menu on Shift + track button**, in the look of Settings
    (`flags-view.ts`: jog moves, jog click opens a row, Back closes, the bottom
    line explains the row). One row: `FREEZE T3`, or `UNFREEZE T3` on a frozen
-   track. The Shift + double-tap gesture is removed.
+   track. The Shift + double-tap gesture is removed. The menu opens for the
+   pressed track WITHOUT switching to it (user): freeze T5 while on T2.
 3. **Pads animate only while a freeze records.** A frozen track's pads are
    black.
 4. **A waveform on a frozen track's screen:** the playing clip's loop, ONLY its
@@ -73,8 +74,9 @@ track. v2 freezes every clip of the track.
   half-frozen track has no consistent meaning.)*
 - **Refused before starting**, with a message, nothing recorded: a muted
   track, a recording/armed track, a track with no clips, any clip over 60 s,
-  or the whole track's loops taking all loops past 128 MB. *(Limits are v1's;
-  checked for the sum of the track's clips up front.)*
+  or the whole track's loops taking all loops past **200 MB** (user: raised
+  from v1's 128 MB — 16 tracks x 8 four-bar clips is ~180 MB). *(Checked for
+  the sum of the track's clips up front.)*
 - Each loop covers the clip's **loop window** at freeze time, in clock ticks
   (v1's maths, `freeze_len_ticks`).
 
@@ -97,6 +99,9 @@ track. v2 freezes every clip of the track.
 - **Pads black.** Step LEDs as today.
 - **Big toast:** knob touch, or jog press, on a frozen track off the MIX slot →
   a big centred toast `T3 IS FROZEN` / `SHIFT + TRACK TO UNFREEZE`, ~1.5 s.
+  Every other refused press on it (step, pad note, Clip page knob, Loop-mode
+  grow, `frzr=` from the engine) shows the SAME big toast (user), replacing
+  v1's small "UNFREEZE T3 FIRST".
 - **CPU page:** the F mark stays.
 
 ### Unfreeze

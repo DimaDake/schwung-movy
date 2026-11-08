@@ -122,7 +122,15 @@ struct Track {
     /// playhead is lent to a capture). Set once per block, before render.
     pos: Option<LoopPos>,
     heard_at: Option<LoopAt>,
+    /// The block a freeze ended in: the playhead is still lent to the last
+    /// clip until lib.rs gives it back after the mix, so this block plays the
+    /// heard loop from where it was. Cleared by the next `set_frame`.
+    ending: Option<(usize, LoopAt)>,
     gain: f32,
+}
+
+fn at_of(p: LoopPos) -> LoopAt {
+    LoopAt { pos: p.pos, win_start: p.win_start, win_len: p.win_len }
 }
 
 impl Track {
@@ -174,6 +182,7 @@ impl FreezeBank {
         for (t, k) in self.tracks.iter_mut().enumerate() {
             k.pos = pos(t);
             k.heard_at = if k.job.is_some() { heard_at(t) } else { None };
+            k.ending = None;
         }
         self.muted = muted;
         self.bpm_x100 = bpm_x100;
@@ -354,6 +363,9 @@ impl FreezeBank {
                 Some(Outcome::ClipDone { slot: clip.slot, next: n.slot })
             }
             None => {
+                if let (Some(h), Some(a)) = (job.heard, k.heard_at) {
+                    k.ending = Some((h, a));
+                }
                 k.job = None;
                 Some(Outcome::Captured)
             }
@@ -375,10 +387,14 @@ impl FreezeBank {
             out.fill(0);
             return true;
         }
-        let (slot, at) = match (&k.job, k.pos) {
-            (Some(j), _) => (j.heard, k.heard_at),
-            (None, Some(p)) => (Some(p.slot), Some(LoopAt { pos: p.pos, win_start: p.win_start, win_len: p.win_len })),
-            (None, None) => (None, None),
+        /* The heard loop's position is lib.rs's anchor — absent in the very
+         * block the heard loop lands in, when the real playhead is still on
+         * the heard clip and says where it is. */
+        let (slot, at) = match (&k.job, k.pos, k.ending) {
+            (_, _, Some((h, a))) => (Some(h), Some(a)),
+            (Some(j), p, None) => (j.heard, k.heard_at.or(p.filter(|p| Some(p.slot) == j.heard).map(at_of))),
+            (None, Some(p), None) => (Some(p.slot), Some(at_of(p))),
+            (None, None, None) => (None, None),
         };
         match slot.and_then(|s| k.loops.get_mut(s)?.as_mut()) {
             Some(p) => p.render(out, at, bpm),

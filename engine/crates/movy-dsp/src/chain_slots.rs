@@ -1258,7 +1258,6 @@ impl ChainSlots {
             }
         }
         host::log(&format!("freeze: track {} snapshot {} us", t + 1, t_snap.elapsed().as_micros()));
-        self.freeze_chain_prints[t] = crate::freeze_files::chain_print(&snap);
         self.freeze.set_snapshot(t, snap);
         self.retire_chain(t);
         self.freeze_dirty = true;
@@ -1294,6 +1293,17 @@ impl ChainSlots {
     pub fn take_freeze_files(&mut self) -> Option<(String, Vec<Wav>)> {
         if !std::mem::take(&mut self.freeze_dirty) {
             return None;
+        }
+        /* Each frozen chain's print over what the save writes and an open
+         * reads back (chain_state: an idle LFO is saved as ""), never over the
+         * raw snapshot: the two differ, and every frozen track would reopen
+         * live. Once per freeze or thaw, like a save's serialize. */
+        let doc = crate::chain_state::serialize(self);
+        for t in 0..MOVY_CHAINS {
+            if self.freeze.frozen(t) {
+                self.freeze_chain_prints[t] =
+                    crate::freeze_files::chain_print(&crate::chain_state::slot_params(&doc, t));
+            }
         }
         let wavs = self.freeze_new_wav.take().map_or_else(Vec::new, |t| {
             self.freeze.frozen_loops(t).into_iter().map(|(slot, m, s, _)| (t, slot, s, m.sample_rate())).collect()
@@ -2741,7 +2751,12 @@ mod tests {
         let e = crate::freeze_files::parse_manifest(&m);
         assert_eq!(e.len(), 1);
         assert_eq!((e[0].track, e[0].clips[0].frames, e[0].modules.as_str()), (6, map.frames(), "synth=obxd,fx1=mverb"));
-        assert_eq!(e[0].chain_print, crate::freeze_files::chain_print(slots.freeze.snapshot(6)));
+        /* Reviewed on device: the print taken from the live snapshot disagreed
+         * with the one an open reads back from chains.json, so every frozen
+         * track opened live after a reopen. It must be what a save writes. */
+        let doc = crate::chain_state::serialize(&mut slots);
+        assert_eq!(e[0].chain_print, crate::freeze_files::chain_print(&crate::chain_state::slot_params(&doc, 6)),
+                   "the manifest's print is the saved document's");
         let (t, slot, samples, rate) = wavs[0].clone();
         assert_eq!((wavs.len(), t, slot, samples.len(), rate), (1, 6, 0, map.frames() * 2, 44_100));
         assert!(samples.iter().all(|&s| s == -77));

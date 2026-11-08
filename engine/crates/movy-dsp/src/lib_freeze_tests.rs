@@ -186,6 +186,10 @@ fn back_mid_way_restores_the_heard_clip_in_phase_and_frees_every_loop() {
     both(&mut inst, &mut reference, 333, &mut audio);
     assert_eq!(inst.engine.tracks[2].playing_slot, Some(1), "slot 1 is being recorded");
     inst.set_param("frzx", "2");
+    /* Reviewed: the playhead came back only after the next block, which
+     * played the unheard clip through the now unsilenced chain. */
+    assert!(!inst.engine.freeze_lock.swapped(2), "given back at the command, before any block");
+    assert_eq!(inst.engine.tracks[2].playing_slot, Some(0));
     both(&mut inst, &mut reference, 1, &mut audio);
     assert_eq!(frzc(&mut inst), "-");
     assert_eq!(frz_mask(&mut inst), 0);
@@ -242,4 +246,110 @@ fn frzpk_answers_the_recorded_window_and_peaks_from_the_saver() {
     assert_eq!((f[0], f[1], f[2].len()), ("0", "16", crate::freeze_files::PEAK_COLS * 2));
     let level = u8::from_str_radix(&f[2][100..102], 16).unwrap();
     assert_eq!(level as u32, 2000 * 255 / 32_767, "slot 1's level");
+}
+
+/* A synth whose saved state moves on its own (found on device with Plaits):
+ * every read of `synth:state` is a new blob. */
+std::thread_local! {
+    static STATE_READS: core::cell::Cell<u32> = const { core::cell::Cell::new(0) };
+}
+
+unsafe extern "C" fn moving_state(_i: *mut c_void, key: *const core::ffi::c_char, buf: *mut core::ffi::c_char, len: c_int) -> c_int {
+    let k = unsafe { std::ffi::CStr::from_ptr(key) }.to_string_lossy();
+    /* Idle LFOs answer their defaults (reviewed: chains.json writes an unused
+     * LFO as "", so a print over the raw snapshot never matched an open's). */
+    let v = if k == "synth:state" {
+        format!("blob-{}", STATE_READS.with(|c| { c.set(c.get() + 1); c.get() }))
+    } else if k.starts_with("lfo") && k.ends_with(":enabled") {
+        "0".to_string()
+    } else if k.starts_with("lfo") && !k.contains(":target") {
+        "1".to_string()
+    } else {
+        return -1;
+    };
+    let b = v.as_bytes();
+    if (len as usize) <= b.len() {
+        return -1;
+    }
+    unsafe {
+        std::ptr::copy_nonoverlapping(b.as_ptr(), buf as *mut u8, b.len());
+        *buf.add(b.len()) = 0;
+    }
+    b.len() as c_int
+}
+
+/// Render and drain the saver until it has nothing left, saving now.
+fn save_now(inst: &mut Instance, audio: &mut [i16]) {
+    for _ in 0..20 {
+        inst.save_at = 0;
+        inst.render(audio);
+        inst.saver.as_ref().unwrap().drain_for_test();
+    }
+}
+
+/// Reviewed on device: after a reopen every frozen track opened live ("its
+/// sound changed"). A freeze did not mark the Set dirty, so chains.json kept
+/// the preset blob of the last save while the manifest fingerprinted the
+/// snapshot taken at the freeze — different for a synth whose state moves.
+#[test]
+fn a_frozen_track_reopens_frozen_even_when_its_synths_state_moved() {
+    let dir = super::tests_support::saver_tmp("reopen-frozen");
+    crate::set_store::SetStore::new(&dir).write("s1", "movy1\n", 3, "").unwrap();
+    let api: &'static ffi::plugin_api_v2_t = Box::leak(Box::new(ffi::plugin_api_v2_t {
+        api_version: 0, create_instance: None, destroy_instance: None, on_midi: Some(fake_note),
+        set_param: None, get_param: Some(moving_state), get_error: None, render_block: Some(fake_render),
+    }));
+    let mut audio = [0i16; 256];
+    let mut inst = Instance::new();
+    inst.set_param("setsdir", &dir);
+    inst.set_param("set", "open s1");
+    settle(&mut inst, &mut audio);
+    inst.chains.fake_chain_for_test(2, chain_host::ChainInstance::for_test(api), "fake");
+    inst.set_param("cmd", "tog 2 0 10 100");
+    save_now(&mut inst, &mut audio);   // chains.json with blob-N
+    inst.set_param("frz", "2");
+    while frz_mask(&mut inst) & (1 << 2) == 0 {
+        inst.render(&mut audio);
+    }
+    save_now(&mut inst, &mut audio);
+
+    let mut again = Instance::new();
+    again.set_param("setsdir", &dir);
+    again.set_param("set", "open s1");
+    settle(&mut again, &mut audio);
+    again.render(&mut audio);
+    assert_eq!(frz_mask(&mut again) & (1 << 2), 1 << 2, "T3 reopened live");
+}
+
+/// Reviewed: a launch (a scene, the song) during the HEARD capture moved the
+/// clip being recorded at the next bar and cancelled the whole freeze. It
+/// waits for the freeze now, like a launch during the unheard captures.
+#[test]
+fn a_launch_during_the_heard_capture_waits_for_the_freeze() {
+    let mut inst = three_clips();
+    let mut audio = [0i16; 256];
+    inst.set_param("cmd", "play");
+    for _ in 0..20 {
+        inst.render(&mut audio);
+    }
+    inst.set_param("frz", "2");
+    for _ in 0..10 {
+        inst.render(&mut audio);
+    }
+    inst.set_param("cmd", "launch 2 1");
+    for _ in 0..800 {
+        inst.render(&mut audio);   // past the bar the launch was due on
+    }
+    assert!(frzc(&mut inst).starts_with("2:"), "the freeze is still running: {}", frzc(&mut inst));
+    let mut blocks = 0;
+    while frz_mask(&mut inst) & (1 << 2) == 0 {
+        inst.render(&mut audio);
+        blocks += 1;
+        assert!(blocks < 20_000, "never froze: {}", frzc(&mut inst));
+    }
+    assert!(!inst.engine.freeze_lock.swapped(2), "the playhead is the track's again");
+    for _ in 0..800 {
+        inst.render(&mut audio);
+    }
+    assert_eq!(inst.engine.tracks[2].playing_slot, Some(1), "the launch landed after the freeze");
 }

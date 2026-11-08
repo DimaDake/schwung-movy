@@ -236,3 +236,45 @@ fn a_buffer_arriving_for_a_cancelled_capture_is_dropped() {
     assert!(!b.capturing(2), "the late buffer did not revive it");
     assert_eq!(b.bytes(), 0);
 }
+
+/// Run a freezing track until its next outcome with the real playhead on
+/// `slot` and NO heard position (lib.rs only anchors after the event), then
+/// play that same block.
+fn outcome_block(b: &mut FreezeBank, t: usize, slot: usize, level: i16, heard_at: Option<LoopAt>) -> (Outcome, Vec<i16>) {
+    let block = vec![level; BLOCK * 2];
+    for n in 1..=5_000usize {
+        let frame = (n * BLOCK) as f64;
+        b.set_frame(|_| Some(at(frame, slot)), |_| heard_at, 0, 12_000);
+        if let Some(o) = b.tap(t, Some(&block), BLOCK) {
+            let mut out = vec![7i16; BLOCK * 2];
+            b.play(t, &mut out);
+            return (o, out);
+        }
+    }
+    panic!("no outcome");
+}
+
+/// Reviewed: the block the heard clip's loop is done in had no heard position
+/// yet (the anchor is taken after the mix), so it played silence — a dropout
+/// at the moment the live clip turns into its loop.
+#[test]
+fn the_block_the_heard_loop_lands_in_plays_it() {
+    let mut b = FreezeBank::new(16);
+    b.begin_track(2, Some(1), &[clip(1), clip(3)]).unwrap();
+    let (o, out) = outcome_block(&mut b, 2, 1, 500, None);
+    assert_eq!(o, Outcome::ClipDone { slot: 1, next: 3 });
+    assert!(out.iter().all(|&s| s == 500), "the heard loop, from the real playhead: {:?}", &out[..4]);
+}
+
+/// Reviewed: the block the last clip lands in has the playhead still lent to
+/// that clip, so it played the LAST clip's loop for one block, not the heard.
+#[test]
+fn the_block_the_freeze_ends_in_plays_the_heard_loop() {
+    let mut b = FreezeBank::new(16);
+    b.begin_track(2, Some(1), &[clip(1), clip(3)]).unwrap();
+    outcome_block(&mut b, 2, 1, 500, None);
+    let heard = Some(LoopAt { pos: 10.0, win_start: 0.0, win_len: TICKS_PER_BAR as f64 });
+    let (o, out) = outcome_block(&mut b, 2, 3, 300, heard);
+    assert_eq!(o, Outcome::Captured);
+    assert!(out.iter().all(|&s| s == 500), "the heard loop until the playhead is back: {:?}", &out[..4]);
+}

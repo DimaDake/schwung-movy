@@ -548,7 +548,12 @@ impl Instance {
             }
             "frzx" => {
                 if let Ok(t) = val.trim().parse::<usize>() {
-                    self.chains.freeze_cancel(t);
+                    /* The playhead goes back NOW: a block with the job gone
+                     * and the playhead still lent would play the unheard clip
+                     * through the chain, no longer silenced. */
+                    if self.chains.freeze_cancel(t) {
+                        self.service_freeze_events();
+                    }
                 }
             }
             "chains" if self.open_pending => self.held_chains = Some(val.to_string()),
@@ -993,6 +998,12 @@ impl Instance {
             }
         }
         if let Some((manifest, wavs)) = self.chains.take_freeze_files() {
+            /* The chain's saved settings must be the snapshot the manifest
+             * fingerprints (freeze_files.rs `chain_print`): a synth whose state
+             * moves on its own left chains.json with the last save's blob, and
+             * the next open found "another sound" and opened the track live.
+             * A freeze or thaw is an edit of the Set. */
+            self.engine.dirty = true;
             let us = t_frz.elapsed().as_micros();
             if us >= 1000 {
                 host::log(&format!("freeze: files took {us} us on the audio thread"));
@@ -1072,6 +1083,11 @@ impl Instance {
         }
         self.chains.freeze_begin(t, heard, &clips, prints)?;
         self.freeze_anchor[t] = None;
+        /* Playing, the track's launches wait for the freeze from the start: a
+         * scene or the song moving the heard clip would cancel it. */
+        if heard.is_some() {
+            self.engine.freeze_lock.set_swapped(t, true);
+        }
         self.sync_freeze_lock();
         if heard.is_none() {
             if !self.engine.play_alone_slot(t, clips[0].slot) {
@@ -1129,6 +1145,8 @@ impl Instance {
                         let rel = a.rel_at(self.engine.clock_ticks_f64());
                         self.engine.freeze_swap_out(t, Some(a.slot), rel.floor() as u64, &mut self.out);
                     }
+                    /* Never left set: launches would wait for good. */
+                    self.engine.freeze_lock.set_swapped(t, false);
                 }
             }
         }

@@ -148,7 +148,7 @@ pub(crate) fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.120.0";
+const ENGINE_VERSION: &str = "0.120.1";
 
 /* Blocks between autosaves. The callback runs at ~344 Hz, so this is ~2 s —
  * flash on this device is not free and the sequencer is dirty constantly while
@@ -157,6 +157,9 @@ const SAVE_BLOCKS: u64 = 688;
 /// ~1 s: how long an open's frozen read waits for the previous Set's loops
 /// to be freed before it reads anyway (`frozen_due`).
 const FROZEN_WAIT_BLOCKS: u32 = 344;
+/// The recording waveform's refresh cap, ~20 Hz: each refresh costs the UI a
+/// frame-boundary get (`frzpk_`), and the screen draws 128 columns.
+const WAVE_BLOCKS: u32 = 17;
 
 /// A track's chain. **`ch<N>` IS track N** — one host, no offset. Tracks 0..3
 /// were schwung shadow slots until the one-time migration in
@@ -263,7 +266,9 @@ struct Instance {
     /// (freeze_files.rs), and a counter the UI watches (`frzp`).
     freeze_peaks: Vec<[Option<Vec<u8>>; CLIPS_PER_TRACK]>,
     freeze_peaks_seq: u32,
-    freeze_wave_sig: Option<(usize, u8, u8)>,
+    freeze_wave_sig: Option<(usize, u8, u16)>,
+    /// The block `frzp` last moved for a recording waveform (`WAVE_BLOCKS`).
+    freeze_wave_at: u64,
     /// Next block at which an autosave may run. Rate limits flash writes.
     save_at: u64,
 }
@@ -320,6 +325,7 @@ impl Instance {
             freeze_peaks: (0..chain_slots::MOVY_CHAINS).map(|_| Default::default()).collect(),
             freeze_peaks_seq: 0,
             freeze_wave_sig: None,
+            freeze_wave_at: 0,
             set_applied: 0,
             save_at: 0,
             probe_gen: 0,
@@ -1272,11 +1278,14 @@ impl Instance {
         self.chains.prof.lap(Stage::Load, &mut lap);
         self.chains.render(out_audio);
         self.service_freeze_events();
-        /* The screen redraws a recording waveform when `frzp` moves: every
-         * 5 % of a clip, and at each clip done. */
-        let sig = self.chains.freeze_progress().map(|(t, d, p)| (t, d, p / 5));
-        if sig != self.freeze_wave_sig {
+        /* The screen redraws a recording waveform when `frzp` moves: when the
+         * write position reaches another of its 128 columns, at most every
+         * WAVE_BLOCKS, and at once when a clip (or the job) starts or ends. */
+        let sig = self.chains.freeze_progress().map(|(t, d, at)| (t, d, (at as u32 * 128 / 1000) as u16));
+        let clip_moved = sig.map(|(t, d, _)| (t, d)) != self.freeze_wave_sig.map(|(t, d, _)| (t, d));
+        if clip_moved || (sig != self.freeze_wave_sig && self.blocks >= self.freeze_wave_at + WAVE_BLOCKS as u64) {
             self.freeze_wave_sig = sig;
+            self.freeze_wave_at = self.blocks;
             self.freeze_peaks_seq = self.freeze_peaks_seq.wrapping_add(1);
         }
         if let Some(t) = self.freeze_silent {

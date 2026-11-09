@@ -433,6 +433,35 @@ fn the_waveform_is_served_while_it_records_and_once_done() {
             "the whole loop: {done}");
 }
 
+/// The recording waveform refreshes at the rate cap (`WAVE_BLOCKS`), not in
+/// 5 % jumps that left a long clip's wave columns behind its playhead, and
+/// never faster: each refresh is a frame-boundary get on the UI thread.
+#[test]
+fn the_recording_waveform_refreshes_often_but_capped() {
+    let mut inst = three_clips();
+    let mut audio = [0i16; 256];
+    inst.set_param("cmd", "play");
+    inst.set_param("frz", "2");
+    let seq = |i: &mut Instance| i.get_param("status").unwrap().split(' ').find_map(|kv| kv.strip_prefix("frzp=").map(str::to_string));
+    inst.render(&mut audio);
+    let (mut last, mut since, mut bumps, mut blocks, mut min_gap) = (seq(&mut inst), 0u32, 0u32, 0u32, u32::MAX);
+    while frzc(&mut inst).starts_with("2:0/") {
+        inst.render(&mut audio);
+        let s = seq(&mut inst);
+        blocks += 1;
+        since += 1;
+        if s != last && frzc(&mut inst).starts_with("2:0/") {
+            min_gap = min_gap.min(since);
+            bumps += 1;
+            since = 0;
+        }
+        last = s;
+    }
+    assert!(blocks > 40 * super::WAVE_BLOCKS, "a clip long enough to tell: {blocks} blocks");
+    assert!(bumps * super::WAVE_BLOCKS * 2 >= blocks, "{bumps} refreshes over {blocks} blocks");
+    assert!(min_gap >= super::WAVE_BLOCKS, "two refreshes {min_gap} blocks apart");
+}
+
 fn saved_manifest(dir: &str, uuid: &str) -> Vec<crate::freeze_files::Entry> {
     std::fs::read_to_string(format!("{dir}/{uuid}/{}", crate::freeze_files::MANIFEST))
         .map(|m| crate::freeze_files::parse_manifest(&m))

@@ -1183,8 +1183,9 @@ impl ChainSlots {
     }
 
     /// The first freezing track's progress, for lib.rs's `frzp` pacing.
-    pub fn freeze_progress(&self) -> Option<(usize, u8, u8)> {
-        (0..MOVY_CHAINS).find_map(|t| self.freeze.progress(t).map(|(d, _, p, _, _)| (t, d, p)))
+    /// The capturing track, clips done, and where in its loop it writes (‰).
+    pub fn freeze_progress(&self) -> Option<(usize, u8, u16)> {
+        (0..MOVY_CHAINS).find_map(|t| self.freeze.progress(t).map(|(d, _, _, _, at)| (t, d, at)))
     }
 
     /// Drop track `t`'s freeze. `true` if one was running.

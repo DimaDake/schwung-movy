@@ -239,6 +239,22 @@ export async function run() {
         ok('Play is swallowed while it is open', !ops().some((o) => o === 'play'));
         midi([0xB0, globalThis.MoveBack, 127]); midi([0xB0, globalThis.MoveBack, 0]);
         ok('Back closes it', !menu.trackMenuActive());
+
+        /* Unfreeze from another track: the track coming back is the one you
+         * land on, like a freeze. Playing, the first click only arms. */
+        selectTrack(0);
+        midi([0xB0, globalThis.MoveShift, 127]);
+        midi([0xB0, 41, 127]); midi([0xB0, 41, 0]);   // CC 41: the group's third track
+        midi([0xB0, globalThis.MoveShift, 0]);
+        eq('the menu is open for frozen T3', menu.trackMenuTrack(), 2);
+        midi([0xB0, globalThis.MoveMainButton, 127]); midi([0xB0, globalThis.MoveMainButton, 0]);
+        if (menu.trackMenuActive()) {
+            eq('an armed unfreeze keeps the track', appState.activeTrack.index, 0);
+            midi([0xB0, globalThis.MoveMainButton, 127]); midi([0xB0, globalThis.MoveMainButton, 0]);
+        }
+        ok('the click unfreezes', !menu.trackMenuActive());
+        eq('an unfreeze selects its track', appState.activeTrack.index, 2);
+        selectTrack(2);
         /* The tick above spent this frame's LED budget: the suites after
          * start from a cold frame. */
         (await import('../../dist/esm/seq/led-cache.js')).ledFrameReset();

@@ -4,7 +4,6 @@
 
 import { appState, VIEW_CHAIN } from '../app/state.js';
 import { selectTrack } from '../track/focus.js';
-import { isFrozen } from './freeze.js';
 import { closeTrackMenu, trackMenuActive, trackMenuClick, trackMenuTrack } from './track-menu.js';
 
 /** `true` = consumed. */
@@ -15,11 +14,11 @@ export function trackMenuMidi(data: number[]): boolean {
     if (type === 0xB0 && d1 === MoveBack && d2 > 0) { closeTrackMenu(); return true; }
     if (type === 0xB0 && d1 === MoveMainButton && d2 > 0) {
         const t = trackMenuTrack();
-        const freezing = !isFrozen(t);
         trackMenuClick(appState.trackModels[t]?.[1]?.getModuleName() ?? '');
-        /* A freeze focuses its track: the screen shows its waveform growing
-         * while it records, and the track it lands on is the frozen one. */
-        if (freezing && !trackMenuActive()) {
+        /* Freeze or unfreeze, the click lands on its track: a freeze shows its
+         * waveform growing while it records, an unfreeze its synth coming
+         * back. An armed click (menu still open) has done nothing yet. */
+        if (!trackMenuActive()) {
             selectTrack(t);
             appState.currentView = VIEW_CHAIN;
         }

@@ -200,8 +200,8 @@ a slow tempo gets there quickly). All frozen loops together are kept under
 - **Its pads are dark** (they play nothing), and the
   [CPU meter](system.md#the-cpu-meter) marks it with an **F**.
 
-**To unfreeze**, **Shift** + the track's button, then click **UNFREEZE T3**. The
-synth and effects come back with the settings they had when frozen. Loading them
+**To unfreeze**, **Shift** + the track's button, then click **UNFREEZE T3**. Movy
+switches to that track, and its synth and effects come back with the settings they had when frozen. Loading them
 pauses the audio for a moment, so, as in Live, unfreezing stops the transport;
 while it plays, the first click asks **CONFIRM?** and the second unfreezes.
 

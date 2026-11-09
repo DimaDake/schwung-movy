@@ -128,9 +128,20 @@ export async function run() {
         let vm = buildFrozenViewVM(3, 1, 6);
         eq('the whole recording: quiet then loud', [vm.cols[0], vm.cols[WAVE_COLS - 1]].join(','), '16,240');
         eq('stopped: no playhead', frozenPlayX(3), -1);
+        globalThis.host_module_get_param = (k) => k === 'frzpk_3_0' ? '0 16 ' + '00'.repeat(256) : null;
+        fz.freezeStatusField('frzp', '9');
+        vm = buildFrozenViewVM(3, 1, 6);
+        ok('a silent frozen clip is a line across it', vm.cols.every((c) => c === 0)
+            && vmMod.waveSpans(vm, 5).length === 1);
+        globalThis.host_module_get_param = (k) => {
+            asked.push(k);
+            return k === 'frzpk_3_0' ? '0 16 ' + '10'.repeat(128) + 'f0'.repeat(128) : null;
+        };
+        asked.length = 0;
+        fz.freezeStatusField('frzp', '1');
         st.loopStart = 8; st.lenSteps = 8;
         vm = buildFrozenViewVM(3, 1, 6);
-        ok('a Loop-mode cut shows only the part that plays', vm.cols.slice(0, 64).every((c) => c === 0));
+        ok('a Loop-mode cut shows only the part that plays', vm.cols.slice(0, 64).every((c) => c === -1));
         ok('where the strip has it', vm.cols.slice(64).every((c) => c === 240));
         st.playing = true; st.posTick = (8 + 4) * 24;
         eq('the playhead IS the strip\'s', frozenPlayX(3), stripPlayheadX());
@@ -149,7 +160,13 @@ export async function run() {
         fz.freezeStatusField('frzc', '3:1/3:30:2:250');
         fz.freezeStatusField('frzp', '3');
         vm = buildFreezingViewVM(3, 1, 6);
-        ok('the recorded quarter is drawn, the rest not yet', vm.cols[10] === 255 && vm.cols[100] === 0);
+        ok('the recorded quarter is drawn, the rest not yet', vm.cols[10] === 255 && vm.cols[100] === -1);
+        eq('nothing yet: no line', vmMod.waveSpans(vm, 100).length, 0);
+        fz.freezeStatusField('frzc', '3:1/3:30:2:500');
+        vm = buildFreezingViewVM(3, 1, 6);
+        eq('recorded silence is a flat line', JSON.stringify(vmMod.waveSpans(vm, 40)),
+            JSON.stringify([[(vmMod.WAVE_TOP + vmMod.WAVE_BOT) >> 1, 1]]));
+        fz.freezeStatusField('frzc', '3:1/3:30:2:250');
         eq('it says FREEZING', vm.recording, true);
         eq('the playhead is where the capture writes', freezingPlayX(), 32);
         fz.freezeStatusField('frzc', '-');

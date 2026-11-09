@@ -735,7 +735,8 @@ function applyView(preset) {
          * or a jog press brings up. */
         /* A Loop-mode cut leaves the first half of the bar unplayed (the strip
          * has the same geometry). The playhead is the strip's, an inverted
-         * column through the wave. While freezing, the recorded part grows. */
+         * column through the wave. While freezing, the recorded part grows.
+         * Recorded silence is a flat line, so the recorded stretch reads whole. */
         case 'frozen_view':
         case 'frozen_view_cut':
         case 'freezing_view':
@@ -743,7 +744,8 @@ function applyView(preset) {
             const cut = preset === 'frozen_view_cut';
             const rec = preset === 'freezing_view';
             const cols = Array.from({ length: 128 }, (_, x) => {
-                if ((cut && x < 64) || (rec && x >= 80)) return 0;
+                if ((cut && x < 64) || (rec && x >= 80)) return -1;   // not recorded: blank
+                if (!rec && x >= 112) return 0;                       // a silent tail: a flat line
                 const ph = (x * 4 / 128) % 1;
                 return Math.round(40 + 200 * Math.exp(-ph * 6) * (1 - 0.15 * Math.floor(x * 4 / 128)));
             });

@@ -20,13 +20,16 @@ export const WAVE_TOP = 11;      // under the header and the slot bar
 export const WAVE_BOT = 57;      // over the toast / strip band
 const MID = (WAVE_TOP + WAVE_BOT) >> 1;
 const HALF = (WAVE_BOT - WAVE_TOP) >> 1;
+/* Not recorded (outside the window, or not reached yet): blank. 0 is recorded
+ * silence, which draws a flat line so the recorded stretch reads as one. */
+const NONE = -1;
 
 export type FrozenViewVM = {
     label: string;
     name: string;
     slot: number;
     slotCount: number;
-    /** 0..255 per screen column (0 = nothing drawn there). */
+    /** 0..255 per screen column; NONE where nothing was recorded. */
     cols: number[];
     empty: boolean;
     recording: boolean;
@@ -51,7 +54,7 @@ function selectedSlot(track: number): { slot: number; exists: boolean } {
 export function buildFrozenViewVM(track: number, chainIdx: number, slotCount: number): FrozenViewVM {
     const { slot, exists } = selectedSlot(track);
     const wave = exists && seqState.lenSteps > 0 ? frozenWave(track, slot) : null;
-    const cols = new Array(WAVE_COLS).fill(0);
+    const cols = new Array(WAVE_COLS).fill(NONE);
     if (wave) {
         const { fromBar, segW } = stripWindow();
         const x0 = (loopStartBar() - fromBar) * segW;
@@ -75,9 +78,10 @@ export function buildFrozenViewVM(track: number, chainIdx: number, slotCount: nu
 export function buildFreezingViewVM(track: number, chainIdx: number, slotCount: number): FrozenViewVM {
     const c = freezeCaptureAt();
     const wave = c && c.track === track ? frozenWave(track, c.slot) : null;
-    const cols = new Array(WAVE_COLS).fill(0);
+    const cols = new Array(WAVE_COLS).fill(NONE);
     if (wave) {
-        for (let x = 0; x < WAVE_COLS; x++) {
+        const reached = freezingPlayX();
+        for (let x = 0; x < reached; x++) {
             const s0 = wave.recStart + (x / WAVE_COLS) * wave.recLen;
             cols[x] = peakOver(wave, s0, s0 + wave.recLen / WAVE_COLS);
         }
@@ -88,8 +92,9 @@ export function buildFreezingViewVM(track: number, chainIdx: number, slotCount: 
 
 /** The lit run of column `x`: the wave, centred. */
 export function waveSpans(vm: FrozenViewVM, x: number): [number, number][] {
-    const v = vm.cols[x] ?? 0;
-    if (v <= 0) return [];
+    const v = vm.cols[x] ?? NONE;
+    if (v < 0) return [];
+    if (v === 0) return [[MID, 1]];
     const h = Math.max(1, Math.round((v / 255) * HALF));
     return [[MID - h, 2 * h]];
 }

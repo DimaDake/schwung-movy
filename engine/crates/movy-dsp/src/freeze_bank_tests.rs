@@ -197,6 +197,23 @@ fn a_loop_past_the_cap_is_refused() {
     assert!(b.windows(0).is_none());
 }
 
+/// The cap is a ceiling, not a promise: with less RAM actually free, a job
+/// must fit in what is, less a reserve for chain loads. Loops already held
+/// are in the kernel's figure, so only what a job has yet to allocate counts.
+#[test]
+fn begin_refuses_a_job_past_the_free_ram() {
+    let mut b = FreezeBank::new(16);
+    let big = ClipJob { map: LoopMap::new(TICKS_PER_BAR * 55, 24_000, SR).unwrap(), ..clip(0) };
+    let eight: Vec<ClipJob> = (0..8).map(|s| ClipJob { slot: s, ..big }).collect();
+    let job: usize = eight.iter().map(|c| c.map.bytes()).sum();
+    b.mem.fake_avail(MEM_RESERVE + job - 1);
+    assert_eq!(b.begin_track(0, None, &eight), Err("mem"), "one byte short");
+    b.mem.fake_avail(MEM_RESERVE + job);
+    assert!(b.begin_track(0, None, &eight).is_ok());
+    b.mem.fake_avail(MEM_RESERVE + 2 * job - 1);
+    assert_eq!(b.begin_track(1, None, &eight), Err("mem"), "the first job's unallocated clips are still to come out of it");
+}
+
 #[test]
 fn begin_refuses_over_200_mb_before_any_buffer() {
     assert_eq!(MEM_BUDGET, 200 << 20);

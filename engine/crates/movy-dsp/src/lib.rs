@@ -154,6 +154,9 @@ const ENGINE_VERSION: &str = "0.120.0";
  * flash on this device is not free and the sequencer is dirty constantly while
  * a user is working. */
 const SAVE_BLOCKS: u64 = 688;
+/// ~1 s: how long an open's frozen read waits for the previous Set's loops
+/// to be freed before it reads anyway (`frozen_due`).
+const FROZEN_WAIT_BLOCKS: u32 = 344;
 
 /// A track's chain. **`ch<N>` IS track N** — one host, no offset. Tracks 0..3
 /// were schwung shadow slots until the one-time migration in
@@ -222,6 +225,16 @@ struct Instance {
     /// sends the chains' saved state once the loads drain (set-settle.ts), and
     /// a 0 then would deliver it before a single chain exists.
     held_chains: Option<String>,
+    /// The open's second half: the Set (`held_uuid` when asked) whose manifest
+    /// names frozen tracks, and the chains document it opened with. Its loops
+    /// are not read with the Set: the engine still held the previous Set's
+    /// then, and both sat in locked RAM at once. The landing holds those
+    /// tracks' loads (chain_slots `freeze_hold`); once the previous loops are
+    /// freed the saver is asked (`ReadFrozen`), and the answer is installed or
+    /// the held chains load.
+    frozen_due: Option<(String, String)>,
+    frozen_asked: bool,
+    frozen_wait: u32,
     /// How many Set payloads this engine has APPLIED — not requested, not read
     /// off disk: applied, on this thread, by `service_set`.
     ///
@@ -298,6 +311,9 @@ impl Instance {
             set_gen: 0,
             open_pending: false,
             held_chains: None,
+            frozen_due: None,
+            frozen_asked: false,
+            frozen_wait: 0,
             set_bad: String::new(),
             freeze_silent: None,
             freeze_anchor: [None; chain_slots::MOVY_CHAINS],
@@ -619,6 +635,9 @@ impl Instance {
                         set_saver::Job::Rename { from, to } => {
                             if self.held_uuid == *from {
                                 self.held_uuid = to.clone();
+                            }
+                            if let Some((due, _)) = self.frozen_due.as_mut().filter(|(u, _)| u == from) {
+                                *due = to.clone();
                             }
                             self.set_uuid = to.clone();
                             carry = self.save_in_hand(to.clone(), false);
@@ -976,33 +995,16 @@ impl Instance {
             if !chain_state::restore(&mut self.chains, &chains) && !chains.is_empty() {
                 host::log("set: malformed chains.json ignored");
             }
-            /* The Set's frozen tracks (freeze_files.rs), read with these bytes:
-             * installed right after the restore queued their chains, so those
-             * loads are taken back before a single one runs. */
+            /* The Set's frozen tracks (freeze_files.rs): their loads, queued by
+             * the restore just now, are held before a single one runs, and the
+             * loops come in a later block (`frozen_due`). */
             self.freeze_peaks.iter_mut().for_each(|p| *p = Default::default());
             self.freeze_peaks_seq = self.freeze_peaks_seq.wrapping_add(1);
-            if let Some((_, frozen)) = saver.take_frozen() {
-                for f in frozen {
-                    let t = f.track;
-                    let peaks: Vec<(usize, Vec<u8>)> = f.clips.iter().map(|c| (c.slot, c.peaks.clone())).collect();
-                    let windows = self.engine.clip_windows(t);
-                    let mut clips = [None; CLIPS_PER_TRACK];
-                    for (slot, w) in windows.iter().enumerate() {
-                        clips[slot] = w.and_then(|w| Some((self.engine.clip_fingerprint(t, slot)?, w)));
-                    }
-                    if self.chains.freeze_install(f, &chains, clips) {
-                        for (slot, p) in peaks {
-                            if let Some(e) = self.freeze_peaks.get_mut(t).and_then(|r| r.get_mut(slot)) {
-                                *e = Some(p);
-                            }
-                        }
-                    }
-                }
-                for t in 0..seq_core::track::NUM_TRACKS.min(chain_slots::MOVY_CHAINS) {
-                    let w = self.chains.freeze_windows(t);
-                    self.engine.freeze_lock.set_track(t, w);
-                }
-            }
+            let due = saver.take_frozen_due().filter(|(_, mask)| *mask != 0);
+            self.chains.freeze_hold(due.as_ref().map_or(0, |(_, mask)| *mask));
+            self.frozen_due = due.map(|(uuid, _)| (uuid, chains));
+            self.frozen_asked = false;
+            self.frozen_wait = 0;
             self.set_gen = gen;
             self.open_pending = false;
             self.held_uuid = self.set_uuid.clone();
@@ -1018,6 +1020,57 @@ impl Instance {
             self.last_saved = Some((seq_core::persist::serialize(&self.engine),
                                     chain_state::serialize(&mut self.chains)));
             self.save_at = self.blocks + SAVE_BLOCKS;
+        }
+
+        if let Some((uuid, chains)) = &self.frozen_due {
+            if !self.frozen_asked {
+                /* The previous Set's loops went to the freeze helper when this
+                 * one landed; asked once they are freed, or after a second
+                 * regardless (a helper that never answers must not cost the
+                 * Set its frozen tracks). */
+                self.frozen_wait += 1;
+                if self.chains.freeze_frees_done() || self.frozen_wait >= FROZEN_WAIT_BLOCKS {
+                    saver.submit(set_saver::Job::ReadFrozen { uuid: uuid.clone() });
+                    self.frozen_asked = true;
+                }
+            } else if let Some((read, frozen)) = saver.take_frozen() {
+                /* An answer for another Set is a stale one, from an open since
+                 * replaced; this one's is still to come. */
+                let mine = read == *uuid && read == self.held_uuid;
+                for f in frozen {
+                    if !mine {
+                        self.chains.freeze_discard(f);
+                        continue;
+                    }
+                    let t = f.track;
+                    let peaks: Vec<(usize, Vec<u8>)> = f.clips.iter().map(|c| (c.slot, c.peaks.clone())).collect();
+                    let windows = self.engine.clip_windows(t);
+                    let mut clips = [None; CLIPS_PER_TRACK];
+                    for (slot, w) in windows.iter().enumerate() {
+                        clips[slot] = w.and_then(|w| Some((self.engine.clip_fingerprint(t, slot)?, w)));
+                    }
+                    if self.chains.freeze_install(f, chains, clips) {
+                        for (slot, p) in peaks {
+                            if let Some(e) = self.freeze_peaks.get_mut(t).and_then(|r| r.get_mut(slot)) {
+                                *e = Some(p);
+                            }
+                        }
+                        self.freeze_peaks_seq = self.freeze_peaks_seq.wrapping_add(1);
+                    }
+                }
+                if mine {
+                    self.chains.freeze_unhold();
+                    for t in 0..seq_core::track::NUM_TRACKS.min(chain_slots::MOVY_CHAINS) {
+                        let w = self.chains.freeze_windows(t);
+                        self.engine.freeze_lock.set_track(t, w);
+                    }
+                    self.frozen_due = None;
+                }
+            }
+        } else if let Some((_, frozen)) = saver.take_frozen() {
+            for f in frozen {
+                self.chains.freeze_discard(f); // for an open since replaced by one with none
+            }
         }
 
         for (uuid, t, slot, p) in saver.take_peaks() {

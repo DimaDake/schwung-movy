@@ -1,5 +1,6 @@
 #define _GNU_SOURCE
 #include <dirent.h>
+#include <malloc.h>
 #include <sched.h>
 #include <spawn.h>
 #include <stdio.h>
@@ -35,6 +36,13 @@ static rlim_t address_space(void) {
  * As ableton the limit is too low, so the helper raises it first, and lifts
  * the address-space cap with it (rt.h says why) before any chain forks. */
 void rt_init(void) {
+    /* Set, not left to glibc: its threshold ratchets up to the size of every
+     * mmapped block freed, and a frozen loop is megabytes. Past the first thaw
+     * loops came from the helper threads' arenas, which keep what is freed, so
+     * under mlockall every loop ever held stayed locked RAM. Setting it also
+     * turns the ratchet off: every block this big is its own mapping, and
+     * freeing it hands the RAM back. */
+    mallopt(M_MMAP_THRESHOLD, MH_MMAP_THRESHOLD);
     snprintf(g_helper, sizeof g_helper, "%s/bin/heal", g_mh_module_dir);
     g_locked = mlockall(MCL_CURRENT | MCL_FUTURE) == 0;
     if (rt_helper_wanted(g_locked, address_space()) && helper_usable()) run_helper();

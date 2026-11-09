@@ -15,6 +15,10 @@ static inline int rt_helper_wanted(int locked, rlim_t address_space) {
     return !locked || address_space != RLIM_INFINITY;
 }
 
+/* Allocations this big or bigger are their own mmap (rt_init): a 4-bar loop
+ * is ~1.4 MB, and a block this size costs one mapping, nothing per page. */
+#define MH_MMAP_THRESHOLD (1 << 20)
+
 void rt_init(void);
 /* UI thread, every tick; does real work about once a second, because the
  * engine spawns its render workers lazily (on the first chain configure). */

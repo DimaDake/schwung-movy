@@ -280,6 +280,14 @@ pub fn copy(src_dir: &Path, dst_dir: &Path) {
     let _ = atomic_write_bytes(&dst_dir.join(MANIFEST), manifest.as_bytes());
 }
 
+/// The tracks a Set's manifest names, as a mask: what an open holds the
+/// chains of until `read` says which of them really come back frozen.
+pub fn tracks(set_dir: &Path) -> u32 {
+    fs::read_to_string(set_dir.join(MANIFEST)).map_or(0, |m| {
+        parse_manifest(&m).iter().filter(|e| e.track < 32).fold(0, |a, e| a | 1 << e.track)
+    })
+}
+
 /// Every frozen track of a Set whose loops all read back exactly as the
 /// manifest describes them. A track with any clip that does not — a missing
 /// or foreign WAV, a frame count that disagrees, a map that cannot be rebuilt

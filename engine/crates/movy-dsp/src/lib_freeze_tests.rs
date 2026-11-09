@@ -4,12 +4,13 @@
 use super::*;
 use core::ffi::{c_int, c_void};
 
-/// Render until the open the saver is working on is in the engine.
+/// Render until the open the saver is working on is in the engine, its
+/// frozen loops (read in a second step) included.
 fn settle(inst: &mut Instance, audio: &mut [i16]) {
     for _ in 0..200 {
         inst.saver.as_ref().unwrap().drain_for_test();
         inst.render(audio);
-        if !inst.open_pending {
+        if !inst.open_pending && inst.frozen_due.is_none() {
             return;
         }
         std::thread::sleep(std::time::Duration::from_millis(2));
@@ -319,6 +320,53 @@ fn a_frozen_track_reopens_frozen_even_when_its_synths_state_moved() {
     settle(&mut again, &mut audio);
     again.render(&mut audio);
     assert_eq!(frz_mask(&mut again) & (1 << 2), 1 << 2, "T3 reopened live");
+}
+
+/// Reviewed: an open read every frozen WAV with the Set, while the engine
+/// still held the previous Set's loops — two Sets' loops in locked RAM at
+/// once. The loops now come in a second step, after the open lands; a track
+/// whose loops do not read back opens live.
+#[test]
+fn an_open_reads_its_frozen_loops_after_it_lands() {
+    let dir = super::tests_support::saver_tmp("two-step-open");
+    crate::set_store::SetStore::new(&dir).write("s1", "movy1\n", 3, "").unwrap();
+    let api: &'static ffi::plugin_api_v2_t = Box::leak(Box::new(ffi::plugin_api_v2_t {
+        api_version: 0, create_instance: None, destroy_instance: None, on_midi: Some(fake_note),
+        set_param: None, get_param: Some(moving_state), get_error: None, render_block: Some(fake_render),
+    }));
+    let mut audio = [0i16; 256];
+    let mut inst = Instance::new();
+    inst.set_param("setsdir", &dir);
+    inst.set_param("set", "open s1");
+    settle(&mut inst, &mut audio);
+    inst.chains.fake_chain_for_test(2, chain_host::ChainInstance::for_test(api), "fake");
+    inst.set_param("cmd", "tog 2 0 10 100");
+    save_now(&mut inst, &mut audio);
+    inst.set_param("frz", "2");
+    while frz_mask(&mut inst) & (1 << 2) == 0 {
+        inst.render(&mut audio);
+    }
+    save_now(&mut inst, &mut audio);
+
+    let mut again = Instance::new();
+    again.set_param("setsdir", &dir);
+    again.set_param("set", "open s1");
+    while again.open_pending {
+        again.saver.as_ref().unwrap().drain_for_test();
+        again.render(&mut audio);
+    }
+    assert!(again.frozen_due.is_some(), "landed, its frozen loops still to come");
+    assert_eq!(frz_mask(&mut again) & (1 << 2), 0, "not frozen before they are read");
+    settle(&mut again, &mut audio);
+    assert_eq!(frz_mask(&mut again) & (1 << 2), 1 << 2, "frozen once they are in");
+
+    std::fs::remove_file(format!("{dir}/s1/freeze/t2-s0.wav")).unwrap();
+    let mut third = Instance::new();
+    third.set_param("setsdir", &dir);
+    third.set_param("set", "open s1");
+    settle(&mut third, &mut audio);
+    assert_eq!(frz_mask(&mut third) & (1 << 2), 0, "a loop that does not read back opens the track live");
+    assert!(third.chains.loaded_report().contains("2:"), "with its chain: {}", third.chains.loaded_report());
 }
 
 /// Reviewed: a launch (a scene, the song) during the HEARD capture moved the

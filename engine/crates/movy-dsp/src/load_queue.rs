@@ -90,6 +90,25 @@ impl LoadQueue {
         self.pending.iter().any(|r| r.slot == slot)
     }
 
+    /// Take every load queued for `slot` out into `out`, in order: an open
+    /// holding a frozen track's chain until its loops are read
+    /// (chain_slots.rs `freeze_hold`).
+    pub fn take_slot(&mut self, slot: usize, out: &mut Vec<LoadRequest>) {
+        let mut i = 0;
+        while i < self.pending.len() {
+            if self.pending[i].slot == slot {
+                out.push(self.pending.remove(i));
+            } else {
+                i += 1;
+            }
+        }
+    }
+
+    /// Whether a load is queued for `slot`+`component`.
+    pub fn has(&self, slot: usize, component: &str) -> bool {
+        self.pending.iter().any(|r| r.slot == slot && r.component == component)
+    }
+
     /// Drop every load queued for `slot` (a Set opening with that track
     /// frozen: its chain must not load). Returns how many were dropped.
     pub fn remove_slot(&mut self, slot: usize) -> usize {

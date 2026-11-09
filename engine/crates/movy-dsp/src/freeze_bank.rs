@@ -24,7 +24,8 @@
 //! clip is recorded with the output silenced.
 //!
 //! **Memory.** A loop is capped at `MAX_LOOP_SECONDS` and all of them together
-//! at `MEM_BUDGET`, checked for the whole job up front. Buffers are allocated
+//! at `MEM_BUDGET`, and a job must also fit in the RAM actually free less
+//! `MEM_RESERVE`, both checked for the whole job up front. Buffers are allocated
 //! and freed on freeze_mem.rs's helper, one clip at a time, never here.
 //!
 //! **Mute.** A muted frozen track fades out over `FADE_OUT_SECONDS` — a muted
@@ -42,6 +43,10 @@ pub const MAX_LOOP_SECONDS: f64 = 60.0;
 /// Every loop together: 16 tracks of eight 4-bar clips is ~180 MB, and a Move
 /// has ~370 MB free with a full Set loaded (user, 2026-11-08).
 pub const MEM_BUDGET: usize = 200 << 20;
+/// Free RAM a freeze leaves alone: chain loads come out of the same RAM, and
+/// every loop is locked (mlockall), so a Set that froze into the last of it
+/// would have nothing left to load a synth with.
+pub const MEM_RESERVE: usize = 96 << 20;
 const FADE_OUT_SECONDS: f32 = 0.25;
 const FADE_IN_SECONDS: f32 = 0.005;
 /// The longest block `play` crossfades a loop change in (stereo samples).
@@ -154,10 +159,12 @@ impl Track {
 
     fn bytes(&self) -> usize {
         let loops: usize = self.loops.iter().flatten().map(|p| p.frozen().map().bytes()).sum();
-        let todo: usize = self.job.as_ref().map_or(0, |j| {
-            j.todo[j.next..].iter().flatten().map(|c| c.map.bytes()).sum()
-        });
-        loops + todo
+        loops + self.todo_bytes()
+    }
+
+    /// What the job has still to allocate (the clip under way counted too).
+    fn todo_bytes(&self) -> usize {
+        self.job.as_ref().map_or(0, |j| j.todo[j.next..].iter().flatten().map(|c| c.map.bytes()).sum())
     }
 }
 
@@ -234,6 +241,17 @@ impl FreezeBank {
         };
     }
 
+    /// Every loop let go of so far is freed (freeze_mem.rs `frees_done`).
+    pub fn frees_done(&self) -> bool {
+        self.mem.frees_done()
+    }
+
+    /// Free `buf` off the audio thread: a loop read for an open that will not
+    /// play it.
+    pub fn discard(&mut self, buf: Vec<i16>) {
+        self.mem.retire(Gone::Buf(buf));
+    }
+
     /// What every loop holds, plus every clip a job has still to record.
     pub fn bytes(&self) -> usize {
         self.tracks.iter().map(Track::bytes).sum()
@@ -242,7 +260,9 @@ impl FreezeBank {
     /// Start freezing track `t`: every clip of `clips`, `heard` (the clip
     /// playing now, if any) first. Refuses (with the status code) a busy
     /// track, any clip over `MAX_LOOP_SECONDS`, and a job that would take the
-    /// loops past `MEM_BUDGET` — all before a single buffer is asked for.
+    /// loops past `MEM_BUDGET` or the free RAM past `MEM_RESERVE` — all before
+    /// a single buffer is asked for. The free RAM already counts the loops
+    /// held, so against it only what jobs have yet to allocate is added.
     pub fn begin_track(&mut self, t: usize, heard: Option<usize>, clips: &[ClipJob]) -> Result<(), &'static str> {
         let Some(k) = self.tracks.get(t) else { return Err("nochain") };
         if k.job.is_some() || k.has_loops() {
@@ -254,7 +274,9 @@ impl FreezeBank {
         if clips.iter().any(|c| c.map.seconds() > MAX_LOOP_SECONDS) {
             return Err("long");
         }
-        if self.bytes() + clips.iter().map(|c| c.map.bytes()).sum::<usize>() > MEM_BUDGET {
+        let job: usize = clips.iter().map(|c| c.map.bytes()).sum();
+        let todo: usize = self.tracks.iter().map(Track::todo_bytes).sum();
+        if self.bytes() + job > MEM_BUDGET || todo + job > self.mem.avail().saturating_sub(MEM_RESERVE) {
             return Err("mem");
         }
         let mut todo = [None; CLIPS_PER_TRACK];

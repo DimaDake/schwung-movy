@@ -277,6 +277,9 @@ pub struct ChainSlots {
     /// `clip_fingerprint`), and of the chain's settings, for the manifest.
     freeze_prints: [[Option<u64>; CLIPS_PER_TRACK]; MOVY_CHAINS],
     freeze_chain_prints: [u64; MOVY_CHAINS],
+    /// An open's loads for the tracks its manifest names frozen, held until
+    /// the loops are read (`freeze_hold`).
+    freeze_held: Vec<LoadRequest>,
     /// Per track, this block's freeze event for lib.rs (`take_freeze_event`).
     freeze_events: [Option<Outcome>; MOVY_CHAINS],
     /// Where a frozen track's chain instance is destroyed: off the audio
@@ -347,6 +350,7 @@ impl ChainSlots {
             freeze_new_wav: 0,
             freeze_prints: [[None; CLIPS_PER_TRACK]; MOVY_CHAINS],
             freeze_chain_prints: [0; MOVY_CHAINS],
+            freeze_held: Vec::new(),
             freeze_events: [None; MOVY_CHAINS],
             reaper: crate::chain_reaper::Reaper::new(),
         }
@@ -851,8 +855,10 @@ impl ChainSlots {
         )
     }
 
+    /// Held loads count: the UI delivers the chains' saved state once this
+    /// drains, and a held load still takes its state (`set_state`).
     pub fn pending_loads(&self) -> usize {
-        self.queue.len()
+        self.queue.len() + self.freeze_held.len()
     }
 
     /// Release at most ONE queued load. Call once per audio callback: this is
@@ -1081,6 +1087,10 @@ impl ChainSlots {
         if self.queue.attach_state(slot, component, state) {
             return;
         }
+        if let Some(r) = self.freeze_held.iter_mut().find(|r| r.slot == slot && r.component == component) {
+            r.state = Some(state.to_string());
+            return;
+        }
         if let Some(inst) = self.slots[slot].as_mut() {
             inst.set_param(&format!("{}:state", component), state);
         }
@@ -1103,6 +1113,14 @@ impl ChainSlots {
          * taken while it is frozen still writes its preset and LFOs. */
         if let Some(v) = self.freeze.snapshot_get(slot, key) {
             return Some(v);
+        }
+        /* Held for an open's frozen read: the state the load will carry, so a
+         * save in between still writes the preset. */
+        if let Some(comp) = key.strip_suffix(":state") {
+            if let Some(v) = self.freeze_held.iter().find(|r| r.slot == slot && r.component == comp)
+                .and_then(|r| r.state.clone()) {
+                return Some(v);
+            }
         }
         self.slots.get_mut(slot)?.as_mut()?.get_param(key)
     }
@@ -1323,6 +1341,42 @@ impl ChainSlots {
         Some((self.freeze_manifest(), wavs))
     }
 
+    /// An open's tracks named frozen by its manifest (`mask`) keep their
+    /// chains' loads aside until the loops are read (lib.rs `frozen_due`):
+    /// a frozen track's synth must not load only to be retired, and the loops
+    /// are read only once the previous Set's are freed. Replaces any earlier
+    /// hold: the open that made it queued everything again.
+    pub fn freeze_hold(&mut self, mask: u32) {
+        self.freeze_held.clear();
+        for t in (0..MOVY_CHAINS).filter(|t| mask & (1 << t) != 0) {
+            self.queue.take_slot(t, &mut self.freeze_held);
+        }
+    }
+
+    /// The loops are in, or are not coming: a track that came back frozen
+    /// drops its held loads, any other loads its chain as the open would have.
+    /// A load queued meanwhile for the same component is newer and wins.
+    pub fn freeze_unhold(&mut self) {
+        for r in std::mem::take(&mut self.freeze_held) {
+            if !self.freeze.silences_chain(r.slot) && !self.queue.has(r.slot, &r.component) {
+                self.queue.push(r);
+            }
+        }
+    }
+
+    /// Every loop let go of so far is freed (freeze_mem.rs `frees_done`).
+    pub fn freeze_frees_done(&self) -> bool {
+        self.freeze.frees_done()
+    }
+
+    /// Loops read for an open that will not play them, freed off the audio
+    /// thread like any other.
+    pub fn freeze_discard(&mut self, f: FrozenLoad) {
+        for c in f.clips {
+            self.freeze.discard(c.samples);
+        }
+    }
+
     /// A Set opening with track `f.track` frozen: right after `restore`
     /// queued its chain, take the loads back and play the saved loops instead
     /// — but only when the chain still names exactly the modules it was
@@ -1352,6 +1406,7 @@ impl ChainSlots {
         };
         if let Some(why) = why {
             host::log(&format!("freeze: track {} opens live ({why})", t + 1));
+            self.freeze_discard(f);
             return false;
         }
         let mut prints = [None; CLIPS_PER_TRACK];
@@ -2823,6 +2878,38 @@ mod tests {
         assert!(slots.freeze_thaw(2));
         let r = slots.queue.take_one().unwrap();
         assert_eq!((r.module.as_str(), r.state.as_deref()), ("obxd", Some("BLOB")));
+    }
+
+    /// An open's frozen tracks hold their loads until the loops are read
+    /// (lib.rs `frozen_due`): nothing loads meanwhile, yet the UI still sees
+    /// them pending, a preset sent for one rides it, and a save writes it.
+    #[test]
+    fn a_held_load_waits_for_the_frozen_read_and_keeps_its_preset() {
+        let doc = crate::chain_state::pack(&["2".into(), "synth".into(), "obxd".into(), "BLOB".into(), String::new(), String::new(),
+                                              "4".into(), "synth".into(), "plaits".into(), String::new(), String::new(), String::new()]);
+        let mut slots = ChainSlots::new();
+        assert!(crate::chain_state::restore(&mut slots, &doc));
+        let pending = slots.pending_loads();
+        slots.freeze_hold(1 << 2);
+        assert!(!slots.queue.has_slot(2) && slots.queue.has_slot(4), "only the manifest's track is held");
+        assert_eq!(slots.pending_loads(), pending, "held loads still count for the UI (chpend)");
+        assert_eq!(slots.get_param(2, "synth:state").as_deref(), Some("BLOB"), "a save meanwhile writes the preset");
+        slots.set_state(2, "synth", "NEWER");
+        assert_eq!(slots.get_param(2, "synth:state").as_deref(), Some("NEWER"), "a preset sent meanwhile rides the held load");
+
+        // The read did not bring the track back frozen: its chain loads, preset and all.
+        slots.freeze_unhold();
+        assert!(slots.queue.has_slot(2));
+        let r = std::iter::from_fn(|| slots.queue.take_one()).find(|r| r.slot == 2).unwrap();
+        assert_eq!((r.module.as_str(), r.state.as_deref()), ("obxd", Some("NEWER")));
+
+        // A load the UI asked for meanwhile is newer than the held one.
+        assert!(crate::chain_state::restore(&mut slots, &doc));
+        slots.freeze_hold(1 << 2);
+        slots.request_load(2, "synth", "surge");
+        slots.freeze_unhold();
+        let mods: Vec<String> = std::iter::from_fn(|| slots.queue.take_one()).filter(|r| r.slot == 2).map(|r| r.module).collect();
+        assert_eq!(mods, vec!["surge".to_string()]);
     }
 
     #[test]

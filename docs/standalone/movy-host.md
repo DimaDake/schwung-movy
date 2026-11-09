@@ -180,6 +180,15 @@ stayed on "Booting DSP...". The cap never bounded RAM (it is per process). The
 log says `rt: … address space unlimited`, or `capped at … MB` when the helper
 could not lift it.
 
+`rt_init` also pins glibc's mmap threshold at 1 MB (`MH_MMAP_THRESHOLD`).
+Left alone, glibc raises it to the size of each mmapped block freed, and a
+frozen loop is megabytes. After the first thaw, loops then came from the freeze
+helper's and the saver's arenas, which keep what is freed, so under `mlockall`
+every loop ever held stayed locked RAM. Measured on the box: +5.4 MB of RSS per
+reopen of a Set with 5.6 MB of loops (`test-device` scenario `freeze-mem`).
+Pinned, every block that size is its own mapping, and freeing it hands the RAM
+back.
+
 ## Core placement (WP11)
 
 Core 3 is the audio core: `movy-audio` is pinned there and renders lane 0;

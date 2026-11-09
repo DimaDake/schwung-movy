@@ -14,17 +14,25 @@
 //! chain_reaper.rs: every queue holds its capacity from the start, the
 //! hand-overs are `try_lock` (a miss retries next block), and the wake is an
 //! `unpark`. Until `start`, and in host tests, both happen in place.
+//!
+//! The helper also reads the system's free RAM about once a second, for the
+//! freeze bank's budget (`avail`): `/proc/meminfo` is a file read, which the
+//! audio thread may not do either.
 
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 /// Requests in flight at once: one per track is all a bank can ask for.
 const SLOTS: usize = crate::chain_slots::MOVY_CHAINS;
 /// Loops waiting to be freed. Past it a loop is dropped where it is (the
 /// old behaviour), never queued with an allocation.
 const FREES: usize = SLOTS * 4;
+/// How often the helper reads `/proc/meminfo`.
+const AVAIL_EVERY: Duration = Duration::from_secs(1);
+/// `avail` before a first read, without a helper, or off Linux: no limit.
+pub const AVAIL_UNKNOWN: usize = usize::MAX;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Ask {
@@ -44,6 +52,10 @@ struct Shared {
     ready: Mutex<Vec<(Ask, Vec<i16>)>>,
     frees: Mutex<Vec<Gone>>,
     stop: AtomicBool,
+    /// MemAvailable in bytes, or `AVAIL_UNKNOWN`.
+    avail: AtomicUsize,
+    /// Buffers handed to the helper and not yet freed (`frees_done`).
+    freeing: AtomicUsize,
 }
 
 pub struct FreezeMem {
@@ -69,6 +81,8 @@ impl FreezeMem {
             ready: Mutex::new(Vec::with_capacity(SLOTS)),
             frees: Mutex::new(Vec::with_capacity(FREES)),
             stop: AtomicBool::new(false),
+            avail: AtomicUsize::new(AVAIL_UNKNOWN),
+            freeing: AtomicUsize::new(0),
         });
         FreezeMem {
             shared,
@@ -91,12 +105,21 @@ impl FreezeMem {
                 crate::threads::leave_audio_core();
                 let mut asks: Vec<Ask> = Vec::with_capacity(SLOTS);
                 let mut frees: Vec<Gone> = Vec::with_capacity(FREES);
+                let mut read_at: Option<Instant> = None;
                 loop {
                     let stop = shared.stop.load(Ordering::Acquire);
+                    if read_at.is_none_or(|at| at.elapsed() >= AVAIL_EVERY) {
+                        read_at = Some(Instant::now());
+                        let n = std::fs::read_to_string("/proc/meminfo").ok()
+                            .and_then(|m| mem_available(&m)).unwrap_or(AVAIL_UNKNOWN);
+                        shared.avail.store(n, Ordering::Relaxed);
+                    }
                     if let Ok(mut q) = shared.frees.lock() {
                         std::mem::swap(&mut *q, &mut frees);
                     }
+                    let n = frees.len();
                     frees.clear(); // the frees, here
+                    shared.freeing.fetch_sub(n, Ordering::Release);
                     if let Ok(mut q) = shared.asks.lock() {
                         std::mem::swap(&mut *q, &mut asks);
                     }
@@ -113,6 +136,24 @@ impl FreezeMem {
                 }
             })
             .ok();
+    }
+
+    /// The system's free RAM as of the helper's last read (bytes), or
+    /// `AVAIL_UNKNOWN`. Audio thread: one atomic load.
+    pub fn avail(&self) -> usize {
+        self.shared.avail.load(Ordering::Relaxed)
+    }
+
+    /// Every buffer retired so far is freed: the RAM is the kernel's again.
+    /// Audio thread. An open reads its loops only after this (lib.rs
+    /// `frozen_due`), so two Sets' loops are never in RAM at once.
+    pub fn frees_done(&self) -> bool {
+        self.frees.is_empty() && self.shared.freeing.load(Ordering::Acquire) == 0
+    }
+
+    #[cfg(test)]
+    pub fn fake_avail(&self, n: usize) {
+        self.shared.avail.store(n, Ordering::Relaxed);
     }
 
     /// Ask for a zeroed buffer of `samples`. Audio thread. `false` when the
@@ -178,6 +219,9 @@ impl FreezeMem {
                 let room = FREES - q.len().min(FREES);
                 let n = self.frees.len().min(room);
                 q.extend(self.frees.drain(..n));
+                /* Under the lock the helper swaps with, so it can never
+                 * subtract these before they are counted. */
+                self.shared.freeing.fetch_add(n, Ordering::Release);
                 woke = true;
             }
         }
@@ -187,6 +231,13 @@ impl FreezeMem {
             }
         }
     }
+}
+
+/// MemAvailable from `/proc/meminfo`, in bytes: what the kernel says can be
+/// had without swapping (there is no swap here), page cache included.
+fn mem_available(meminfo: &str) -> Option<usize> {
+    let kb = meminfo.lines().find_map(|l| l.strip_prefix("MemAvailable:"))?;
+    kb.trim().trim_end_matches("kB").trim().parse::<usize>().ok()?.checked_mul(1024)
 }
 
 impl Drop for FreezeMem {
@@ -202,6 +253,14 @@ impl Drop for FreezeMem {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn mem_available_is_read_in_bytes() {
+        let m = "MemTotal:        1893376 kB\nMemFree:          411320 kB\nMemAvailable:    1391204 kB\n";
+        assert_eq!(mem_available(m), Some(1_391_204 * 1024));
+        assert_eq!(mem_available("MemTotal: 1 kB\n"), None, "an old kernel has no line");
+        assert_eq!(FreezeMem::new().avail(), AVAIL_UNKNOWN, "no helper, no limit");
+    }
 
     #[test]
     fn without_a_helper_a_request_is_answered_at_the_next_poll() {

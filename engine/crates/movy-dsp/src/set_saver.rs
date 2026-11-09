@@ -57,6 +57,11 @@ pub enum Job {
     /// names. The samples are shared with the audio thread's player, so the
     /// handover cost no copy.
     Freeze { uuid: String, manifest: String, wavs: Vec<crate::freeze_files::Wav> },
+    /// The second half of an open: the frozen loops of the Set just applied.
+    /// Not read with the Set, because the engine still held the previous
+    /// Set's loops then and both were in (locked) RAM at once; the audio thread
+    /// asks once those are freed (lib.rs `frozen_due`).
+    ReadFrozen { uuid: String },
     /// movy's own library (set_lib_jobs.rs): on this thread so a duplicate or
     /// a delete can never race an autosave of the same Set.
     Lib(crate::set_lib_jobs::LibCmd),
@@ -117,8 +122,11 @@ struct Shared {
     lib: String,
     /// A migration in progress as `done/total`; "" when none is running.
     migp: String,
-    /// The frozen tracks of the Set in `loaded`, read with it (freeze_files.rs)
-    /// and taken by the audio thread right after it applies those bytes.
+    /// The frozen tracks the Set in `loaded` names (a mask from its manifest),
+    /// handed over with it: the audio thread holds their chains' loads until
+    /// `ReadFrozen` answers in `frozen`.
+    frozen_due: Option<(String, u32)>,
+    /// A `ReadFrozen`'s answer, taken by the audio thread.
     frozen: Option<(String, Vec<crate::freeze_files::FrozenLoad>)>,
     /// Waveform overviews of loops just written, `(uuid, track, slot,
     /// peaks)`: computed here, off the audio thread, and taken by it.
@@ -255,8 +263,7 @@ fn do_open(store: &SetStore, shared: &Arc<Mutex<Shared>>, uuid: &str, seed: Opti
 
     let had_files = store.has_state(uuid);
     let best = store.read_best(uuid);
-    /* Read before the lock, like everything else here: megabytes of WAV. */
-    let frozen = crate::freeze_files::read(&store.set_dir(uuid));
+    let due = crate::freeze_files::tracks(&store.set_dir(uuid));
     let mut sh = shared.lock().unwrap();
     sh.uuid = uuid.to_string();
     match best {
@@ -265,7 +272,7 @@ fn do_open(store: &SetStore, shared: &Arc<Mutex<Shared>>, uuid: &str, seed: Opti
             sh.phase = Phase::Ready;
             sh.reason.clear();
             sh.loaded = Some((p.payload, store.read_chains(uuid).unwrap_or_default(), p.gen));
-            sh.frozen = Some((uuid.to_string(), frozen));
+            sh.frozen_due = Some((uuid.to_string(), due));
         }
         /* Files that exist but do not parse are NOT an empty Set. Reading them
          * as one is how a Set gets blanked; the UI's recovery is scoped to a
@@ -537,6 +544,11 @@ fn worker(root: String, shared: Arc<Mutex<Shared>>, rx: std::sync::mpsc::Receive
                 sh.peaks.extend(peaks.into_iter().map(|(t, s, p)| (uuid.clone(), t, s, p)));
                 sh.dirty = sh.dirty.saturating_sub(1);
             }
+            Msg::Work(Job::ReadFrozen { uuid }) => {
+                /* Before the lock, like everything else here: megabytes of WAV. */
+                let frozen = crate::freeze_files::read(&store.set_dir(&uuid));
+                shared.lock().unwrap().frozen = Some((uuid, frozen));
+            }
             Msg::Work(Job::Flush) => {}
         }
     }
@@ -558,6 +570,7 @@ impl Saver {
             migp: String::new(),
             gc: "idle".to_string(),
             lib: String::new(),
+            frozen_due: None,
             frozen: None,
             peaks: Vec::new(),
         }));
@@ -652,11 +665,17 @@ impl Saver {
         (sh.loaded.take(), sh.failed_open.take())
     }
 
-    /// The frozen tracks of the Set just handed over, taken once. The audio
-    /// thread asks right after it applies `loaded`; `do_open` sets both under
-    /// one lock, so the two cannot be seen apart.
+    /// Which tracks of the Set just handed over are frozen on disk, taken
+    /// once. The audio thread asks right after it applies `loaded`; `do_open`
+    /// sets both under one lock, so the two cannot be seen apart.
+    pub fn take_frozen_due(&self) -> Option<(String, u32)> {
+        self.shared.lock().unwrap().frozen_due.take()
+    }
+
+    /// A `ReadFrozen`'s loops, taken once. `try_lock`: asked every block
+    /// while one is due, it never waits on the saver.
     pub fn take_frozen(&self) -> Option<(String, Vec<crate::freeze_files::FrozenLoad>)> {
-        self.shared.lock().unwrap().frozen.take()
+        self.shared.try_lock().ok().and_then(|mut sh| sh.frozen.take())
     }
 
     /// Peaks the saver computed since the last call. `try_lock`: asked every
@@ -748,7 +767,11 @@ mod tests {
         s2.submit(Job::Open { uuid: "u1".into(), seed: None });
         s2.drain_for_test();
         assert!(s2.take_loaded().is_some());
-        let (uuid, frozen) = s2.take_frozen().expect("the frozen tracks come with the Set");
+        assert_eq!(s2.take_frozen_due(), Some(("u1".into(), 1 << 3)), "the open names the frozen tracks");
+        assert!(s2.take_frozen().is_none(), "and reads none of their loops: the engine still holds the last Set's");
+        s2.submit(Job::ReadFrozen { uuid: "u1".into() });
+        s2.drain_for_test();
+        let (uuid, frozen) = s2.take_frozen().expect("the frozen tracks, asked for");
         assert_eq!((uuid.as_str(), frozen.len()), ("u1", 1));
         assert_eq!((frozen[0].track, frozen[0].clips[0].map, &frozen[0].clips[0].samples), (3, map, &samples));
 
@@ -1263,6 +1286,7 @@ mod tests {
 
         let s2 = Saver::new(&root);
         s2.submit(Job::Open { uuid: "named".into(), seed: None });
+        s2.submit(Job::ReadFrozen { uuid: "named".into() });
         s2.drain_for_test();
         assert!(s2.take_loaded().is_some());
         assert_eq!(s2.take_frozen().map_or(0, |(_, f)| f.len()), 1, "the named Set lost its frozen track");

@@ -167,7 +167,10 @@ Movy says no, and why, to a track that is **muted** (it would record silence) or
 recording, to a track that plays nothing while the transport runs (launch a clip
 first), and to a clip longer than **60 seconds** (a long clip at a slow speed and
 a slow tempo gets there quickly). All frozen loops together are kept under
-200 MB of memory; past that, unfreeze a track first.
+200 MB of memory, and a freeze also needs that much actually free, with room
+left over for loading sounds: a Set with many heavy synths (several Virus
+chains) may say no sooner. Unfreeze a track, or freeze one of the heavy ones
+first: a frozen track gives its synth's memory back.
 
 **A frozen track:**
 

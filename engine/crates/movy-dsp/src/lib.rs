@@ -17,6 +17,7 @@ mod chain_digest;
 mod chain_idle;
 mod midi_out;
 mod chain_host;
+mod chain_load_check;
 mod chain_slots;
 mod chain_pin;
 mod chain_colo;
@@ -794,6 +795,9 @@ impl Instance {
                  * next open reached this thread still says which Set it means. */
                 s.push_str(&format!(" sbad={}", if self.set_bad.is_empty() { "-" } else { &self.set_bad }));
                 s.push_str(&self.chains.freeze_status());
+                /* A module that refused its load (Amino's fifth instance) leaves
+                 * the track silent; this is the only place the UI can learn why. */
+                s.push_str(&self.chains.load_status());
                 s.push_str(&self.engine.freeze_lock.status());
                 s.push_str(&format!(" frzp={}", self.freeze_peaks_seq));
                 Some(s)

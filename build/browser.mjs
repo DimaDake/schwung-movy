@@ -295,6 +295,7 @@ await esbuild.build({
         resolve(root, 'src/seq/freeze-pads.ts'),
         resolve(root, 'src/seq/freeze-busy.ts'),
         resolve(root, 'src/seq/freeze-toast.ts'),
+        resolve(root, 'src/seq/load-errors.ts'),
         resolve(root, 'src/seq/freeze-wave.ts'),
         resolve(root, 'src/seq/frozen-view-vm.ts'),
         resolve(root, 'src/seq/track-menu.ts'),

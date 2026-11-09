@@ -12,6 +12,7 @@
 use crate::block_prof::{BlockProf, Stage};
 use crate::chain_cost::CostMeter;
 use crate::chain_doc;
+use crate::chain_load_check::{self, LoadErrors};
 use crate::chain_digest::{ChainDigest, STIMULUS};
 use crate::chain_host::{ChainHost, ChainInstance};
 use crate::chain_idle::{IdleGate, Work};
@@ -268,6 +269,8 @@ pub struct ChainSlots {
     freeze: FreezeBank,
     /// The last freeze event, for the UI: (sequence, track, code).
     freeze_last: (u32, usize, &'static str),
+    /// The last load the module refused (`chain_load_check`).
+    load_errors: LoadErrors,
     /// A freeze or thaw the Set's files have not heard about yet, and the
     /// tracks whose loops still have to be written (`take_freeze_files`), as
     /// a bit mask: two tracks may finish their freeze in the same block.
@@ -346,6 +349,7 @@ impl ChainSlots {
             master: MasterChain::new(),
             freeze: FreezeBank::new(MOVY_CHAINS),
             freeze_last: (0, 0, "-"),
+            load_errors: LoadErrors::new(),
             freeze_dirty: false,
             freeze_new_wav: 0,
             freeze_prints: [[None; CLIPS_PER_TRACK]; MOVY_CHAINS],
@@ -883,7 +887,10 @@ impl ChainSlots {
             // never gets here, which is what keeps empty chains free.
             match hostref.create_instance(&self.module_dir) {
                 Some(inst) => self.slots[req.slot] = Some(inst),
-                None => return,
+                None => {
+                    self.load_errors.record(req.slot, &req.component, &req.module);
+                    return;
+                }
             }
         }
         self.pin.on_load(req.slot, &req.component, &req.module);
@@ -896,6 +903,7 @@ impl ChainSlots {
                 inst.set_param(&format!("{}:state", req.component), state);
             }
         }
+        self.check_load(req.slot, &req.component, &req.module);
         /* Load events are rare (never the hot path) and this is the only
          * externally observable evidence that a chain load happened: schwung's
          * remote-UI socket can WRITE an engine param but has no read verb, so a
@@ -1456,6 +1464,26 @@ impl ChainSlots {
         self.freeze_events[t] = Some(o);
         self.freeze_last = (self.freeze_last.0.wrapping_add(1), t, code);
         host::log(&format!("freeze: track {} {}", t + 1, code));
+    }
+
+    /// Read back what a load left in the position and record a refusal. Kept
+    /// out of `service_loads` so a test can reach it without a chain host. The
+    /// Set keeps the module (`desired` is untouched): a refusal can be passing
+    /// — a module mid-update, a pool another track frees — and the next open
+    /// retries it, where dropping it would lose the user's choice for good.
+    pub(crate) fn check_load(&mut self, slot: usize, component: &str, module: &str) {
+        let Some(key) = chain_load_check::readback_key(component) else { return };
+        let Some(inst) = self.slots.get_mut(slot).and_then(|s| s.as_mut()) else { return };
+        let got = inst.get_param(&key);
+        if chain_load_check::refused(module, got.as_deref()) {
+            host::log(&format!("chain {slot}: {component} = {module} REFUSED (reads back {:?})", got));
+            self.load_errors.record(slot, component, module);
+        }
+    }
+
+    /// `lde=<seq>:<slot>:<component>:<module>`, the last refused load.
+    pub fn load_status(&self) -> String {
+        self.load_errors.status()
     }
 
     /// The status line's freeze fields: frozen-or-thawing mask (hex), the
@@ -2701,6 +2729,49 @@ mod tests {
         }
         unsafe { core::ptr::copy_nonoverlapping(bytes.as_ptr() as *const c_char, buf, bytes.len()) };
         bytes.len() as c_int
+    }
+
+    /* Amino keeps four instances in a static pool, so the fifth track's load
+     * fails inside schwung's chain host, which leaves the position empty and
+     * says nothing. The read-back is the only evidence; without this the UI
+     * showed a silent track and no reason. */
+    unsafe extern "C" fn fake_empty_get_param(
+        _inst: *mut c_void, _key: *const c_char, _buf: *mut c_char, _buf_len: c_int,
+    ) -> c_int {
+        0
+    }
+
+    unsafe extern "C" fn fake_amino_get_param(
+        _inst: *mut c_void, key: *const c_char, buf: *mut c_char, buf_len: c_int,
+    ) -> c_int {
+        let k = unsafe { CStr::from_ptr(key) }.to_str().unwrap_or("");
+        let v = if k == "synth_module" { "amino" } else { "" };
+        if v.len() as c_int >= buf_len {
+            return -1;
+        }
+        unsafe { core::ptr::copy_nonoverlapping(v.as_ptr() as *const c_char, buf, v.len()) };
+        v.len() as c_int
+    }
+
+    fn api_reading(get: unsafe extern "C" fn(*mut c_void, *const c_char, *mut c_char, c_int) -> c_int)
+        -> &'static plugin_api_v2_t {
+        Box::leak(Box::new(plugin_api_v2_t {
+            api_version: 0, create_instance: None, destroy_instance: None, on_midi: None,
+            set_param: None, get_param: Some(get), get_error: None, render_block: None,
+        }))
+    }
+
+    #[test]
+    fn a_refused_load_reaches_the_status() {
+        let mut slots = ChainSlots::new();
+        slots.install_for_test(3, ChainInstance::for_test(api_reading(fake_amino_get_param)));
+        slots.install_for_test(4, ChainInstance::for_test(api_reading(fake_empty_get_param)));
+        slots.check_load(3, "synth", "amino");
+        assert_eq!(slots.load_status(), " lde=0:0:-:-", "a load that took is not news");
+        slots.check_load(4, "synth", "amino");
+        assert_eq!(slots.load_status(), " lde=1:4:synth:amino");
+        slots.check_load(4, "synth", "");
+        assert_eq!(slots.load_status(), " lde=1:4:synth:amino", "a clear cannot be refused");
     }
 
     std::thread_local! {

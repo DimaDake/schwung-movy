@@ -384,3 +384,76 @@ fn the_waveform_is_served_while_it_records_and_once_done() {
     assert!(done.split(' ').nth(2).unwrap().chars().collect::<Vec<_>>().chunks(2).all(|c| c == ['0', '7']),
             "the whole loop: {done}");
 }
+
+fn saved_manifest(dir: &str, uuid: &str) -> Vec<crate::freeze_files::Entry> {
+    std::fs::read_to_string(format!("{dir}/{uuid}/{}", crate::freeze_files::MANIFEST))
+        .map(|m| crate::freeze_files::parse_manifest(&m))
+        .unwrap_or_default()
+}
+
+/// Reviewed: a freeze that finished while an open of another Set was in
+/// flight was saved under the Set being opened (`set_uuid` already names
+/// it), so its manifest and WAVs replaced that Set's own frozen loops.
+#[test]
+fn a_freeze_finishing_while_another_set_opens_is_saved_to_its_own_set() {
+    let dir = super::tests_support::saver_tmp("freeze-during-open");
+    let store = crate::set_store::SetStore::new(&dir);
+    store.write("s1", "movy1\n", 3, "").unwrap();
+    store.write("s2", "movy1\n", 3, "").unwrap();
+    let mut inst = three_clips();
+    inst.set_param("setsdir", &dir);
+    let mut audio = [0i16; 256];
+    inst.set_param("set", "open s1");
+    settle(&mut inst, &mut audio);
+    inst.set_param("cmd", "tog 2 0 10 100");
+    inst.set_param("frz", "2");
+    while frz_mask(&mut inst) & (1 << 2) == 0 {
+        inst.render(&mut audio);
+    }
+    // Frozen in that block; its files go out with the next one.
+    inst.set_param("set", "open s2");
+    assert!(inst.open_pending);
+    assert!(inst.save_freeze_files(), "the freeze's files were still to save");
+    settle(&mut inst, &mut audio);
+    inst.saver.as_ref().unwrap().drain_for_test();
+    assert!(saved_manifest(&dir, "s2").is_empty(), "s1's freeze was written into s2");
+    assert_eq!(saved_manifest(&dir, "s1").iter().map(|e| e.track).collect::<Vec<_>>(), vec![2],
+               "s1 lost its freeze");
+}
+
+/// Reviewed: one `freeze_new_wav` slot, so of two tracks frozen in the same
+/// block only the second track's loop was ever written — while every later
+/// manifest named both, and the first reopened live.
+#[test]
+fn two_tracks_frozen_in_the_same_block_both_save_their_loops() {
+    let api: &'static ffi::plugin_api_v2_t = Box::leak(Box::new(ffi::plugin_api_v2_t {
+        api_version: 0, create_instance: None, destroy_instance: None, on_midi: Some(fake_note),
+        set_param: None, get_param: None, get_error: None, render_block: Some(fake_render),
+    }));
+    let dir = super::tests_support::saver_tmp("freeze-two-tracks");
+    crate::set_store::SetStore::new(&dir).write("s1", "movy1\n", 3, "").unwrap();
+    let mut audio = [0i16; 256];
+    let mut inst = Instance::new();
+    inst.set_param("setsdir", &dir);
+    inst.set_param("set", "open s1");
+    settle(&mut inst, &mut audio);
+    inst.chains.fake_chain_for_test(2, chain_host::ChainInstance::for_test(api), "fake");
+    inst.chains.fake_chain_for_test(3, chain_host::ChainInstance::for_test(api), "fake");
+    inst.set_param("cmd", "tog 2 0 10 100;tog 3 0 40 100;play");
+    for _ in 0..50 {
+        inst.render(&mut audio);
+    }
+    inst.set_param("frz", "2");
+    inst.set_param("frz", "3");
+    assert!(!frze(&mut inst).ends_with(":3:busy") && !frze(&mut inst).contains(":3:no"), "{}", frze(&mut inst));
+    let both = (1 << 2) | (1 << 3);
+    let mut blocks = 0;
+    while frz_mask(&mut inst) & both != both {
+        inst.render(&mut audio);
+        blocks += 1;
+        assert!(blocks < 20_000, "never froze: {}", frzc(&mut inst));
+    }
+    save_now(&mut inst, &mut audio);
+    let wavs = std::fs::read_dir(format!("{dir}/s1/freeze")).map_or(0, |d| d.count());
+    assert_eq!(wavs, 2, "one loop of two was written");
+}

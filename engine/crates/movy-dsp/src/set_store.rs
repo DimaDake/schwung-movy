@@ -171,6 +171,10 @@ impl SetStore {
                   self.shadow_path(uuid, 1), self.shadow_path(uuid, 2)] {
             let _ = fs::remove_file(p);
         }
+        /* Frozen loops are state too: left behind, every open of the blank
+         * Set read them only to open live, and a seed into it skipped the
+         * source's loops because a manifest was already there. */
+        crate::freeze_files::remove(&self.set_dir(uuid));
     }
 
     /// Copy-on-inherit: Move's Copy/Paste makes "X Copy" with no movy state of
@@ -368,5 +372,21 @@ mod tests {
         let s = tmp("seedmiss");
         assert!(!s.seed("dst", "nope"));
         assert!(!s.set_dir("dst").exists());
+    }
+
+    /* Reviewed: a blanked Set kept its freeze files. Every later open read
+     * the orphaned WAVs only to open live, and a seed into it skipped the
+     * source's loops because a manifest was already there. */
+    #[test]
+    fn blanking_a_set_removes_its_frozen_loops() {
+        let s = tmp("blank-freeze");
+        s.write("u", GOOD, 1, CHAINS).unwrap();
+        let d = s.set_dir("u");
+        fs::create_dir_all(d.join("freeze")).unwrap();
+        fs::write(d.join(crate::freeze_files::MANIFEST), "x").unwrap();
+        fs::write(d.join("freeze").join("t3s0.wav"), "x").unwrap();
+        s.blank_files("u");
+        assert!(!d.join(crate::freeze_files::MANIFEST).exists(), "the manifest stayed");
+        assert!(!d.join("freeze").exists(), "the WAVs stayed");
     }
 }

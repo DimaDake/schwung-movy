@@ -164,10 +164,12 @@ impl FreezeMem {
         let mut woke = false;
         if !self.asks.is_empty() {
             if let Ok(mut q) = self.shared.asks.try_lock() {
-                // within capacity: both sides hold SLOTS and one ask per track
+                /* Within capacity: both sides hold SLOTS. What does not fit
+                 * waits here for the next flush, as a free does: `request`
+                 * has already said yes to it. */
                 let room = SLOTS - q.len().min(SLOTS);
-                q.extend(self.asks.drain(..).take(room));
-                self.asks.clear();
+                let n = self.asks.len().min(room);
+                q.extend(self.asks.drain(..n));
                 woke = true;
             }
         }
@@ -227,5 +229,29 @@ mod tests {
         m.retire(Gone::Buf(vec![0; 8]));
         m.retire(Gone::Shared(Arc::new(vec![0; 8])));
         assert!(m.frees.len() <= 2);
+    }
+
+    /// Reviewed: asks past the shared queue's room were dropped while
+    /// `request` had answered true, so that track waited at 0% forever.
+    #[test]
+    fn an_ask_that_does_not_fit_yet_waits_for_the_next_flush() {
+        let mut m = FreezeMem::new();
+        m.worker = Some(std::thread::spawn(|| {})); // a helper that is busy elsewhere
+        {
+            let mut q = m.shared.asks.lock().unwrap();
+            for t in 0..SLOTS - 1 {
+                q.push(Ask { track: t, ticket: 0, samples: 1 });
+            }
+        }
+        // Not through `request`: its flush runs after each push.
+        m.asks.push(Ask { track: 14, ticket: 1, samples: 1 });
+        m.asks.push(Ask { track: 15, ticket: 2, samples: 1 });
+        m.flush();
+        assert_eq!(m.shared.asks.lock().unwrap().len(), SLOTS);
+        assert_eq!(m.asks, vec![Ask { track: 15, ticket: 2, samples: 1 }], "the ask that did not fit was dropped");
+        m.shared.asks.lock().unwrap().clear();
+        m.flush();
+        assert!(m.asks.is_empty());
+        assert_eq!(m.shared.asks.lock().unwrap()[0].ticket, 2);
     }
 }

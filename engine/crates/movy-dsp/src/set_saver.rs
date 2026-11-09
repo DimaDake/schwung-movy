@@ -331,6 +331,13 @@ fn worker(root: String, shared: Arc<Mutex<Shared>>, rx: std::sync::mpsc::Receive
                 if !store.has_state(&to) {
                     store.seed(&to, &from);
                 }
+                /* The frozen loops move too, seeded or not: lib.rs saves the
+                 * work in hand under `to` before this job, so the seed above
+                 * is skipped and the directory removed below held the only
+                 * copy of the WAVs. A no-op when `to` already has a manifest. */
+                if from != to {
+                    crate::freeze_files::copy(&store.set_dir(&from), &store.set_dir(&to));
+                }
                 /* The pad's directory is now a stale copy of this Set, and
                  * leaving it is how a device grows a `__pending-*` tree nothing
                  * will ever read. Removed HERE and not by the UI because the
@@ -1226,5 +1233,38 @@ mod tests {
         s2.submit(parse_cmd(&format!("gc keep=other sets={base}/MoveSets"), "").unwrap());
         s2.drain_for_test();
         assert!(std::path::Path::new(&format!("{root}/{id}/seq-state.json")).exists());
+    }
+
+    /* Reviewed: naming a new Set deleted its frozen loops. lib.rs saves the
+     * work in hand under the new id before the rename, so the rename found
+     * state there, skipped the seed (the only thing that copies freeze files)
+     * and removed the pending directory with the WAVs in it. */
+    #[test]
+    fn a_rename_carries_the_frozen_loops_when_the_new_id_already_has_state() {
+        use crate::freeze::LoopMap;
+        use crate::freeze_files::{encode_manifest, ClipEntry, Entry};
+        let root = tmp("freeze-rename");
+        let map = LoopMap::new(seq_core::TICKS_PER_BAR, 12_000, 44_100).unwrap();
+        let samples: Vec<i16> = vec![7; map.frames() * 2];
+        let win = seq_core::engine::RecWindow { start_ticks: 0, len_ticks: seq_core::TICKS_PER_BAR };
+        let manifest = encode_manifest(&[Entry { track: 3, bpm_x100: 12_000, rate: 44_100, chain_print: 7,
+            modules: "synth=obxd".into(),
+            clips: vec![ClipEntry { slot: 0, len_ticks: map.len_ticks(), frames: map.frames(), win, print: 1 }] }]);
+        let payload = "movy1\ncl 0 0 16 0 x\n";
+
+        let s = Saver::new(&root);
+        s.submit(Job::Open { uuid: "__pending-1".into(), seed: None });
+        s.submit(Job::Save { uuid: "__pending-1".into(), payload: payload.into(), gen: 1, chains: "0\n".into() });
+        s.submit(Job::Freeze { uuid: "__pending-1".into(), manifest, wavs: vec![(3, 0, Arc::new(samples), 44_100)] });
+        // lib.rs's rename: the work in hand under the new id, then the job.
+        s.submit(Job::Save { uuid: "named".into(), payload: payload.into(), gen: 2, chains: "0\n".into() });
+        s.submit(Job::Rename { from: "__pending-1".into(), to: "named".into() });
+        s.drain_for_test();
+
+        let s2 = Saver::new(&root);
+        s2.submit(Job::Open { uuid: "named".into(), seed: None });
+        s2.drain_for_test();
+        assert!(s2.take_loaded().is_some());
+        assert_eq!(s2.take_frozen().map_or(0, |(_, f)| f.len()), 1, "the named Set lost its frozen track");
     }
 }

@@ -202,6 +202,11 @@ struct Instance {
     /// `persist-store.ts` made the same comparison with `lastGoodPayload`.
     last_saved: Option<(String, String)>,
     set_uuid: String,
+    /// The Set whose bytes the engine holds: `set_uuid` until an open lands,
+    /// then that one. A freeze's files belong to the Set it was recorded in;
+    /// saved under `set_uuid` mid-open they overwrote the incoming Set's own
+    /// frozen loops.
+    held_uuid: String,
     set_gen: u32,
     /// An open (or blank) was asked for and its bytes are not in the engine
     /// yet. `set_uuid` already names the new Set, so an autosave now would
@@ -289,6 +294,7 @@ impl Instance {
             saver: None,
             last_saved: None,
             set_uuid: String::new(),
+            held_uuid: String::new(),
             set_gen: 0,
             open_pending: false,
             held_chains: None,
@@ -610,7 +616,10 @@ impl Instance {
                          * blank is the blank. Saved under the new id here, which
                          * makes the job's own seed the fallback for an engine
                          * holding nothing — a re-`dlopen`ed one. */
-                        set_saver::Job::Rename { to, .. } => {
+                        set_saver::Job::Rename { from, to } => {
+                            if self.held_uuid == *from {
+                                self.held_uuid = to.clone();
+                            }
                             self.set_uuid = to.clone();
                             carry = self.save_in_hand(to.clone(), false);
                         }
@@ -923,6 +932,28 @@ impl Instance {
         Some(set_saver::Job::Save { uuid, payload, gen: self.set_gen, chains })
     }
 
+    /// A freeze or thaw since the last block: the Set's freeze files follow
+    /// (the WAV of a track just frozen, then the manifest). `true` when there
+    /// were files to save.
+    fn save_freeze_files(&mut self) -> bool {
+        let t_frz = std::time::Instant::now();
+        let Some((manifest, wavs)) = self.chains.take_freeze_files() else { return false };
+        /* The chain's saved settings must be the snapshot the manifest
+         * fingerprints (freeze_files.rs `chain_print`): a synth whose state
+         * moves on its own left chains.json with the last save's blob, and
+         * the next open found "another sound" and opened the track live.
+         * A freeze or thaw is an edit of the Set. */
+        self.engine.dirty = true;
+        let us = t_frz.elapsed().as_micros();
+        if us >= 1000 {
+            host::log(&format!("freeze: files took {us} us on the audio thread"));
+        }
+        if let (false, Some(saver)) = (self.held_uuid.is_empty(), &self.saver) {
+            saver.submit(set_saver::Job::Freeze { uuid: self.held_uuid.clone(), manifest, wavs });
+        }
+        true
+    }
+
     fn service_set(&mut self) {
         let Some(saver) = &self.saver else { return };
 
@@ -974,6 +1005,7 @@ impl Instance {
             }
             self.set_gen = gen;
             self.open_pending = false;
+            self.held_uuid = self.set_uuid.clone();
             /* The payload is IN the engine as of this line, so the labels it
              * carried are answerable now and not before. Bumped even when
              * `persist::load` refused the bytes: the previous Set then still
@@ -988,32 +1020,16 @@ impl Instance {
             self.save_at = self.blocks + SAVE_BLOCKS;
         }
 
-        /* A freeze or thaw since the last block: the Set's freeze files follow
-         * (the WAV of a track just frozen, then the manifest). */
-        let t_frz = std::time::Instant::now();
         for (uuid, t, slot, p) in saver.take_peaks() {
-            if uuid == self.set_uuid {
+            if uuid == self.held_uuid {
                 if let Some(e) = self.freeze_peaks.get_mut(t).and_then(|r| r.get_mut(slot)) {
                     *e = Some(p);
                     self.freeze_peaks_seq = self.freeze_peaks_seq.wrapping_add(1);
                 }
             }
         }
-        if let Some((manifest, wavs)) = self.chains.take_freeze_files() {
-            /* The chain's saved settings must be the snapshot the manifest
-             * fingerprints (freeze_files.rs `chain_print`): a synth whose state
-             * moves on its own left chains.json with the last save's blob, and
-             * the next open found "another sound" and opened the track live.
-             * A freeze or thaw is an edit of the Set. */
-            self.engine.dirty = true;
-            let us = t_frz.elapsed().as_micros();
-            if us >= 1000 {
-                host::log(&format!("freeze: files took {us} us on the audio thread"));
-            }
-            if !self.set_uuid.is_empty() {
-                saver.submit(set_saver::Job::Freeze { uuid: self.set_uuid.clone(), manifest, wavs });
-            }
-        }
+        self.save_freeze_files();
+        let Some(saver) = &self.saver else { return };
 
         /* The engine's own dirty flag decides when to save. Nothing reads state
          * out of the engine to find out, which matters because that read used

@@ -269,9 +269,10 @@ pub struct ChainSlots {
     /// The last freeze event, for the UI: (sequence, track, code).
     freeze_last: (u32, usize, &'static str),
     /// A freeze or thaw the Set's files have not heard about yet, and the
-    /// track whose loop still has to be written (`take_freeze_files`).
+    /// tracks whose loops still have to be written (`take_freeze_files`), as
+    /// a bit mask: two tracks may finish their freeze in the same block.
     freeze_dirty: bool,
-    freeze_new_wav: Option<usize>,
+    freeze_new_wav: u32,
     /// The fingerprint of the clip each loop was recorded from (seq-core
     /// `clip_fingerprint`), and of the chain's settings, for the manifest.
     freeze_prints: [[Option<u64>; CLIPS_PER_TRACK]; MOVY_CHAINS],
@@ -343,7 +344,7 @@ impl ChainSlots {
             freeze: FreezeBank::new(MOVY_CHAINS),
             freeze_last: (0, 0, "-"),
             freeze_dirty: false,
-            freeze_new_wav: None,
+            freeze_new_wav: 0,
             freeze_prints: [[None; CLIPS_PER_TRACK]; MOVY_CHAINS],
             freeze_chain_prints: [0; MOVY_CHAINS],
             freeze_events: [None; MOVY_CHAINS],
@@ -1271,7 +1272,7 @@ impl ChainSlots {
         self.freeze.set_snapshot(t, snap);
         self.retire_chain(t);
         self.freeze_dirty = true;
-        self.freeze_new_wav = Some(t);
+        self.freeze_new_wav |= 1 << t;
         self.note_freeze(t, Outcome::Captured);
     }
 
@@ -1315,9 +1316,10 @@ impl ChainSlots {
                     crate::freeze_files::chain_print(&crate::chain_state::slot_params(&doc, t));
             }
         }
-        let wavs = self.freeze_new_wav.take().map_or_else(Vec::new, |t| {
-            self.freeze.frozen_loops(t).into_iter().map(|(slot, m, s, _)| (t, slot, s, m.sample_rate())).collect()
-        });
+        let new = std::mem::take(&mut self.freeze_new_wav);
+        let wavs = (0..MOVY_CHAINS).filter(|t| new & (1 << t) != 0).flat_map(|t| {
+            self.freeze.frozen_loops(t).into_iter().map(move |(slot, m, s, _)| (t, slot, s, m.sample_rate()))
+        }).collect();
         Some((self.freeze_manifest(), wavs))
     }
 

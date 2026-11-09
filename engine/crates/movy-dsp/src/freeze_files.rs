@@ -260,6 +260,12 @@ pub fn write(set_dir: &Path, manifest: &str, wavs: &[Wav]) -> Result<Vec<(usize,
 /// a rename or a duplicate). Nothing when the source has no manifest, or the
 /// destination already has one of its own. The WAVs go before the manifest,
 /// for the same reason `write` orders them so.
+/// A Set's freeze files gone: its manifest, then its loops.
+pub fn remove(set_dir: &Path) {
+    let _ = fs::remove_file(set_dir.join(MANIFEST));
+    let _ = fs::remove_dir_all(set_dir.join(DIR));
+}
+
 pub fn copy(src_dir: &Path, dst_dir: &Path) {
     let Ok(manifest) = fs::read_to_string(src_dir.join(MANIFEST)) else { return };
     if dst_dir.join(MANIFEST).exists() || ensure_dir(&dst_dir.join(DIR)).is_err() {

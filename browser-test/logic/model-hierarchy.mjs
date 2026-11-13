@@ -59,6 +59,19 @@ _log('\nTest: navigation-only levels expand recursively');
     eq('nav_levels: Mod/Pitch has 3 params', pageParams(m, 2).length, 3);
 }
 
+/* ── a null knob slot (quark) ─────────────────────────────────────────────── */
+
+_log('\nTest: a null in a level\'s knobs/params is an empty slot, not a crash');
+
+{
+    let m = null;
+    try { m = bootModel(MOCK_SYNTHS.null_knob); } catch (e) { fail(`null_knob: boot threw ${e}`); }
+    if (m) {
+        const got = labels(m);
+        for (const l of ['A', 'B', 'C']) eq(`null_knob: ${l} is a param`, got.includes(l), true);
+    }
+}
+
 /* ── moog: generic children-delegation hierarchy → 12 banks ─────────────── */
 
 _log('\nTest: moog hierarchy via children delegation (generic path)');

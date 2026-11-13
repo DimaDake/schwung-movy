@@ -119,12 +119,12 @@ export function loadHierarchy(s: ModelState): void {
         for (const lvl of Object.values(allLevels)) {
             if (lvl.params) {
                 for (const p of lvl.params) {
-                    if (typeof p === 'object' && p.key) paramDefs[p.key] = p;
+                    if (p && typeof p === 'object' && p.key) paramDefs[p.key] = p;
                 }
             }
             if (lvl.knobs) {
                 for (const k of lvl.knobs) {
-                    if (typeof k === 'object' && k.key) knobInline[k.key] = k;
+                    if (k && typeof k === 'object' && k.key) knobInline[k.key] = k;
                 }
             }
         }

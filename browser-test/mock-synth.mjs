@@ -1018,6 +1018,26 @@ export const MOCK_SYNTHS = {
         "synth:fm_lfo": "0.0", "synth:fm_env": "0.0", "synth:fm_vel": "0.0",
     },
 
+    /* quark 0.5.0's shape: a level whose knobs leave a slot empty with a
+     * literal null (its Melody page, knob 4). */
+    null_knob: {
+        "synth:name": "NullKnob",
+        "synth:ui_hierarchy": JSON.stringify({
+            levels: {
+                root: {
+                    knobs: ["nk_a", "nk_b", null, "nk_c"],
+                    params: ["nk_a", "nk_b", null, "nk_c"],
+                },
+            },
+        }),
+        "synth:chain_params": JSON.stringify([
+            { key: "nk_a", name: "A", type: "float", min: 0, max: 1 },
+            { key: "nk_b", name: "B", type: "float", min: 0, max: 1 },
+            { key: "nk_c", name: "C", type: "float", min: 0, max: 1 },
+        ]),
+        "synth:nk_a": "0.5", "synth:nk_b": "0.5", "synth:nk_c": "0.5",
+    },
+
     moog: {
         "synth:name":          "RaffoSynth",
         "synth:preset_count":  "14",

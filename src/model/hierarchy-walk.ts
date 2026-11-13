@@ -11,8 +11,8 @@ export interface WalkLevel {
     children?: string;
 }
 
-function toKey(k: string | WalkParam): string | null {
-    return typeof k === 'string' ? k : (k.key ?? null);
+function toKey(k: string | WalkParam | null): string | null {
+    return typeof k === 'string' ? k : (k?.key ?? null);
 }
 
 export function knobKeys(lvl: WalkLevel | undefined): string[] {
@@ -24,7 +24,7 @@ export function knobKeys(lvl: WalkLevel | undefined): string[] {
  * what movy renders after the knob row. */
 export function paramKeys(lvl: WalkLevel | undefined): string[] {
     return (lvl?.params ?? [])
-        .map(p => (typeof p === 'string' ? p : p.key ?? null))
+        .map(p => (typeof p === 'string' ? p : p?.key ?? null))
         .filter((k): k is string => k !== null);
 }
 
@@ -39,10 +39,10 @@ export function paramKeys(lvl: WalkLevel | undefined): string[] {
 export function levelOwnDefs(lvl: WalkLevel | undefined): Record<string, RawMeta> {
     const defs: Record<string, RawMeta> = {};
     for (const k of (lvl?.knobs ?? [])) {
-        if (typeof k === 'object' && k.key) defs[k.key] = k;
+        if (k && typeof k === 'object' && k.key) defs[k.key] = k;
     }
     for (const p of (lvl?.params ?? [])) {
-        if (typeof p === 'object' && p.key) defs[p.key] = p;
+        if (p && typeof p === 'object' && p.key) defs[p.key] = p;
     }
     return defs;
 }
@@ -88,7 +88,7 @@ export function buildLevelPages(
     const navLabel: Record<string, string> = {};
     for (const lvl of Object.values(allLevels)) {
         for (const p of (lvl.params ?? [])) {
-            if (typeof p === 'object' && p.level && p.label) navLabel[p.level] = p.label;
+            if (p && typeof p === 'object' && p.level && p.label) navLabel[p.level] = p.label;
         }
     }
     const nameOf = (key: string, lvl: WalkLevel): string =>
@@ -131,14 +131,14 @@ export function buildLevelPages(
          * (dexed's Operators, forge's Voice). */
         const childPrefix = transparent ? prefix : levelNameToPrefix(name);
         for (const p of (lvl.params ?? [])) {
-            if (typeof p === 'object' && p.level) visit(p.level, childPrefix, false);
+            if (p && typeof p === 'object' && p.level) visit(p.level, childPrefix, false);
         }
         const child = childOf(lvl);
         if (child) visit(child, prefix, true);
     }
 
     for (const p of (rootLevel.params ?? [])) {
-        if (typeof p === 'object' && p.level) visit(p.level, null, false);
+        if (p && typeof p === 'object' && p.level) visit(p.level, null, false);
     }
     const rootChild = childOf(rootLevel);
     if (rootChild) visit(rootChild, null, true);

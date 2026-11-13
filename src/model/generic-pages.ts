@@ -135,7 +135,7 @@ export function buildGenericPages(
     const allKnobKeys = new Set<string>();
     for (const lvl of Object.values(allLevels)) {
         for (const k of (lvl.knobs ?? [])) {
-            const key = typeof k === 'string' ? k : k.key;
+            const key = typeof k === 'string' ? k : k?.key;
             if (key) allKnobKeys.add(key);
         }
     }

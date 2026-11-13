@@ -62,6 +62,12 @@ export function roleOfText(text: string | null | undefined): RoleHit | null {
     return roleOfWords(tokens(text)) ?? (dir !== text ? roleOfWords(tokens(dir)) : null);
 }
 
+/** Whether a text says the pad holds nothing: Maschine kits fill an unused
+ *  cell with "EMPTY.wav", which plays silence. */
+export function saysEmpty(text: string | null | undefined): boolean {
+    return !!text && tokens(text).some((w) => w === 'EMPTY' || w === 'SILENCE' || w === 'SILENT');
+}
+
 function roleOfWords(words: string[]): RoleHit | null {
     for (const [role, rank, whole, inner] of RULES) {
         if (words.some((w) => whole.includes(w) || inner.some((s) => w.includes(s)))) return { role, rank };

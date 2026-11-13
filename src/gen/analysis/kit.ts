@@ -15,7 +15,7 @@
 
 import type { Note } from '../types.js';
 import { TPS } from '../types.js';
-import { MEMBRANE, roleOfText, type RoleHit } from './drum-lexicon.js';
+import { MEMBRANE, roleOfText, saysEmpty, type RoleHit } from './drum-lexicon.js';
 
 export type PadRole = 'kick' | 'snare' | 'hat' | 'open' | 'tom' | 'cym' | 'perc';
 
@@ -54,8 +54,13 @@ function fromText(p: number, h: KitHints, roles: boolean): RoleHit | null {
 const hitsAt = (notes: Note[], p: number, steps: number[]) =>
     notes.filter((n) => n.pitch === p && steps.includes(Math.round(n.tick / TPS) % 16)).length;
 
-export function kitOf(pads: number[], hints: KitHints | null, notes: Note[]): Kit {
+export function kitOf(all: number[], hints: KitHints | null, notes: Note[]): Kit {
     const h = hints ?? {};
+    /* A pad that says it is empty is no voice to write: PERC filled such cells
+     * with hits nobody hears. One the clip already plays stays, so no option
+     * drops a note the user put there; a kit that is all empty keeps every pad. */
+    const sounding = all.filter((p) => notes.some((n) => n.pitch === p) || !(saysEmpty(h.names?.[p]) || saysEmpty(h.labels?.[p])));
+    const pads = sounding.length ? sounding : all;
     /* A role every pad shares tells them apart no better than none (CW-78
      * calls all fourteen voices "drum"). */
     const said = pads.map((p) => h.roles?.[p]).filter((r) => r);

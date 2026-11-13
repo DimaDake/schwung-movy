@@ -141,6 +141,27 @@ _log('\nTest: drum voices — what the rack says beats where the pattern plays')
     eq('an anonymous rack: the four-on-the-floor pad is the kick', G.padFor(off, 'kick', []), 71);
 }
 
+_log('\nTest: drum voices — a Maschine kit\'s EMPTY cells are no pads');
+{
+    /* MrDrums with Neon Drive "NuDisco": cells 5, 8 and 12 hold EMPTY.wav. */
+    const cells = ['Kick NuDisco 1', 'Bongo NuDisco', 'Snare NuDisco', 'Clap NuDisco', 'EMPTY', 'Kick NuDisco 2', 'ClosedHH NuDisco 1', 'EMPTY',
+        'ClosedHH NuDisco 2', 'Ride NuDisco', 'OpenHH NuDisco', 'EMPTY', 'Bass NuDisco', 'Crash NuDisco', 'SFX NuDisco', 'Shaker NuDisco'];
+    const labels = byPad(36, cells.map((c) => `/data/UserData/UserLibrary/Samples/Neon Drive Library/${c}.wav`));
+    const empty = [40, 43, 47];
+    const kit = G.kitOf(range(36, 16), { labels }, []);
+    eq('the empty cells are left out of the kit', empty.filter((p) => kit.pads.includes(p)).join(','), '');
+    const played = G.kitOf(range(36, 16), { labels }, [{ pitch: 43, tick: 0, dur: 10, vel: 100 }]);
+    eq('...unless the clip already plays one', played.pads.includes(43), true);
+    const tr = { index: 0, name: 'Drums', module: 'mrdrums', drum: true, padNames: null, padRoles: null, padLabels: labels, pads: range(36, 16), clips: [] };
+    let silent = 0;
+    for (let nonce = 1; nonce <= 6; nonce++) {
+        const { picks, extras } = G.generateAll({ level: 'BALANCED', tracks: [tr], scale: [1, 1], drum: true, kit: range(36, 16), root: 'A', mode: 'minor',
+            task: 'create', target: { track: 0, slot: 0 }, source: null, len: 64, nonce });
+        for (const p of [...picks, ...extras]) silent += p.notes.filter((n) => empty.includes(n.pitch)).length;
+    }
+    eq('no New Clip drum option writes an empty cell', silent, 0);
+}
+
 _log('\nTest: drum voices — padHints reads each pad\'s own keys from the real contracts');
 {
     const prev = appState.trackModels[0];

@@ -122,19 +122,27 @@ export function createPageIo(port: PageParamSource, qualify: (k: string) => stri
      * EVERY tick. Unanswered, that is a live blocking engine GET per tick which
      * can never succeed. Measured in `logic/page-automation.mjs`: 39 asks
      * across 40 ticks, against 0.
+     *
+     * A WIDGET'S `live` EXTRA KEY ASKS THE SAME WAY (Schwung #668: a meter, a
+     * playhead — the Ducker's `duck_level`), and nothing drives it: no lane, no
+     * LFO. Its driven value IS its plain value, so it gets the plain read too —
+     * through the cache, at the fill's cadence. Measured in
+     * `logic/page-live-extras.mjs`: 40 asks across 40 ticks, against 0. An LFO
+     * target still falls through, for the reason above.
      */
     const SUF_BASE = ':base', SUF_EFF = ':effective';
     const decorated = (k: string): string | null => {
         const auto = automation ? automation() : null;
+        if (k.endsWith(SUF_EFF)) {
+            const bare = k.slice(0, -SUF_EFF.length);
+            if (auto && auto.isAutomated(qualify(bare))) return read(bare);
+            return isModulated(bare) ? null : read(bare);
+        }
         if (!auto) return null;
         if (k.endsWith(SUF_BASE)) {
             const bare = k.slice(0, -SUF_BASE.length);
             const b = auto.baseOf(qualify(bare));
             return b === null ? null : String(b);
-        }
-        if (k.endsWith(SUF_EFF)) {
-            const bare = k.slice(0, -SUF_EFF.length);
-            return auto.isAutomated(qualify(bare)) ? read(bare) : null;
         }
         return null;
     };

@@ -88,6 +88,9 @@ export interface SchwungPage {
     /** Which drawn cells wear a modulation / lane mark, as a bitmask — so a
      *  mark flipping with no value change still asks for the frame back. */
     marks(): number;
+    /** The live values a widget draws that sit on no knob (Schwung #668), so
+     *  a meter moving with nothing else moving still asks for the frame back. */
+    liveSig(): string;
     /** The preset names and position on screen, which change with no value
      *  moving (`schwung-page-preset.ts`). */
     presetSig(): string;
@@ -255,6 +258,7 @@ export function createSchwungPage(
             return lv;
         },
         marks: page.marks,
+        liveSig: page.liveSig,
         presetSig: () => presetSignature(ctl, lib),
         animating,
         /* `enumPeek()` is also the reader that RETIRES an expired peek

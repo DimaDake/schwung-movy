@@ -66,6 +66,15 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **A module's live meter keeps up.** The Ducker's duck meter (and any widget
+  a module marks live) is read and redrawn about every 33 ms instead of a few
+  times a second, so it follows each duck. Schwung's page code is now v1.9.2,
+  which also makes a knob turn continue from the value a module changed on its
+  own, rather than writing the old value back.
+
+- **Quark no longer crashes Movy.** A page that leaves a knob slot empty now
+  loads as an empty slot.
+
 - **A chord part no longer sinks.** With HARMONY on ROOTS or INVERSION, or
   RANGE opened, a long pad or comp led each chord from the root dropped under
   the one before and slid down bar by bar, to notes near E0.

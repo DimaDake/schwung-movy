@@ -48,6 +48,7 @@ export interface PageRender {
     knobParamInfo(slot: number): any | null;
     knobLevels(): (number | null)[];
     marks(): number;
+    liveSig(): string;
     render(title: string, auto?: AutomationView, touched?: number): void;
 }
 
@@ -243,6 +244,23 @@ export function createPageRender(ctl: any, deps: {
                 if (ctl.isAutomatedCached && ctl.isAutomatedCached(k)) m |= 1 << (8 + slot);
             }
             return m;
+        },
+
+        /*
+         * THE LIVE VALUES ON NO KNOB, as one string — a widget's `live` extra
+         * key (Schwung #668: the Ducker's meter, a playhead), which the
+         * controller refreshes into `modValues` every tick. `knobLevels` sees
+         * only the drawn knobs, so without this a meter fed fresh readings was
+         * still drawn only when something else asked for a frame. Knob keys
+         * are left out: they are `knobLevels`' already, under its own cap.
+         */
+        liveSig() {
+            const live = ctl.state ? ctl.state.modValues : null;
+            if (!live) return '';
+            const keys = keysOf();
+            let sig = '';
+            for (const k in live) if (keys.indexOf(k) < 0) sig += k + '=' + live[k] + ';';
+            return sig;
         },
 
         render(title: string, auto?: AutomationView, _touched = -1) {

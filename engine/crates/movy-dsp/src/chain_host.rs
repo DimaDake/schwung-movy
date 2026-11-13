@@ -32,10 +32,38 @@ extern "C" {
     fn dlopen(filename: *const c_char, flag: c_int) -> *mut c_void;
     fn dlsym(handle: *mut c_void, symbol: *const c_char) -> *mut c_void;
     fn dlerror() -> *mut c_char;
+    fn dlclose(handle: *mut c_void) -> c_int;
 }
 
 const RTLD_NOW: c_int = 2;
 const RTLD_LOCAL: c_int = 0;
+const RTLD_LAZY: c_int = 1;
+#[cfg(target_os = "linux")]
+const RTLD_NOLOAD: c_int = 4;
+#[cfg(not(target_os = "linux"))]
+const RTLD_NOLOAD: c_int = 0x10;
+
+/// The chain host's audio FX positions (`MAX_AUDIO_FX`, chain_internal.h).
+const MAX_AUDIO_FX: usize = 8;
+
+/// Whether an audio FX the chain host has ALREADY loaded exports
+/// `move_audio_fx_on_midi` — the chain host's own test for an FX that hears
+/// MIDI (chain_fx_load.c), e.g. the Ducker. `RTLD_NOLOAD` finds the copy the
+/// chain host opened, at the path it opened it by, and never loads one: a
+/// module the chain host refused is simply not there, and answers no.
+pub fn fx_hears_midi(module_dir: &str, module: &str) -> bool {
+    let Ok(path) = CString::new(format!("{module_dir}/../audio_fx/{module}/{module}.so")) else { return false };
+    let sym = c"move_audio_fx_on_midi";
+    unsafe {
+        let h = dlopen(path.as_ptr(), RTLD_LAZY | RTLD_NOLOAD);
+        if h.is_null() {
+            return false;
+        }
+        let found = !dlsym(h, sym.as_ptr()).is_null();
+        dlclose(h);
+        found
+    }
+}
 
 /// The API version movy is compiled against. Asserted before ANY other field of
 /// the returned struct is touched — it is the first member of `plugin_api_v2`
@@ -205,7 +233,7 @@ impl ChainHost {
             host::log(&format!("chain create_instance failed for {}", module_dir));
             return None;
         }
-        Some(ChainInstance { inst, api: self.api, fx: self.fx, scratch: vec![0u8; PARAM_BUF] })
+        Some(ChainInstance { inst, api: self.api, fx: self.fx, scratch: vec![0u8; PARAM_BUF], ears: false })
     }
 }
 
@@ -236,9 +264,26 @@ pub struct ChainInstance {
     /// from the shim's param handler on the AUDIO thread, where a per-call
     /// allocation of this size would be a real-time hazard.
     scratch: Vec<u8>,
+    /// Whether an audio FX in this chain hears MIDI (`fx_hears_midi`), so a
+    /// sidechain note is worth handing it. Settled at load, never per note.
+    ears: bool,
 }
 
 impl ChainInstance {
+    /// Re-read which audio FX this chain holds and whether any of them hears
+    /// MIDI. Called after every module load into the instance — a load is
+    /// the only thing that changes the answer, and it already blocks.
+    pub fn refresh_ears(&mut self, module_dir: &str) {
+        self.ears = (1..=MAX_AUDIO_FX).any(|n| {
+            self.get_param(&format!("fx{n}_module"))
+                .is_some_and(|m| !m.is_empty() && fx_hears_midi(module_dir, &m))
+        });
+    }
+
+    pub fn hears_fx_midi(&self) -> bool {
+        self.ears
+    }
+
     /// Set a param on the chain. **Loading keys (`synth:module`, `fx*:module`,
     /// `load_file`) do blocking file I/O inside this call** — that is why they
     /// are released one per audio callback (see `load_queue`).
@@ -420,11 +465,15 @@ impl ChainInstance {
     /// for — the thing `lfo_report`'s bug actually was — without a device or a
     /// real `.so`. `inst` stays null: the fake `get_param` never dereferences it.
     pub(crate) fn for_test(api: &'static plugin_api_v2_t) -> Self {
-        Self { inst: core::ptr::null_mut(), api, fx: ChainFxApi::default(), scratch: vec![0u8; 256] }
+        Self { inst: core::ptr::null_mut(), api, fx: ChainFxApi::default(), scratch: vec![0u8; 256], ears: false }
     }
 
     /// A tag the fake vtable can tell instances apart by; never dereferenced.
     pub(crate) fn set_inst_for_test(&mut self, inst: *mut core::ffi::c_void) {
         self.inst = inst;
+    }
+
+    pub(crate) fn set_ears_for_test(&mut self, ears: bool) {
+        self.ears = ears;
     }
 }

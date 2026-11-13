@@ -13,6 +13,8 @@ pub const MOVE_FRAMES_PER_BLOCK: c_int = 128;
 /// MIDI source identifiers (subset we care about).
 pub const MOVE_MIDI_SOURCE_INTERNAL: c_int = 0;
 pub const MOVE_MIDI_SOURCE_EXTERNAL: c_int = 2;
+/// Audio FX only: the chain host skips its synth and MIDI FX (sidechain).
+pub const MOVE_MIDI_SOURCE_FX_BROADCAST: c_int = 4;
 
 #[repr(C)]
 pub struct host_api_v1_t {

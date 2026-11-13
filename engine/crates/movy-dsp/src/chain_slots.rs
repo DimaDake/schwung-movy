@@ -17,7 +17,7 @@ use crate::chain_digest::{ChainDigest, STIMULUS};
 use crate::chain_host::{ChainHost, ChainInstance};
 use crate::chain_idle::{IdleGate, Work};
 use crate::chain_pin::PinPolicy;
-use crate::ffi::{MOVE_MIDI_SOURCE_EXTERNAL, MOVE_MIDI_SOURCE_INTERNAL};
+use crate::ffi::{MOVE_MIDI_SOURCE_EXTERNAL, MOVE_MIDI_SOURCE_FX_BROADCAST, MOVE_MIDI_SOURCE_INTERNAL};
 use crate::host;
 use crate::load_queue::{LoadQueue, LoadRequest};
 use crate::master_chain::{fx_position, key_allowed, MasterChain, IMPORT_MARK, MASTER_FX};
@@ -904,6 +904,9 @@ impl ChainSlots {
             }
         }
         self.check_load(req.slot, &req.component, &req.module);
+        if let Some(inst) = self.slots[req.slot].as_mut() {
+            inst.refresh_ears(&self.module_dir);
+        }
         /* Load events are rare (never the hot path) and this is the only
          * externally observable evidence that a chain load happened: schwung's
          * remote-UI socket can WRITE an engine param but has no read verb, so a
@@ -973,6 +976,7 @@ impl ChainSlots {
             inst.set_external_fx_mode(true);
             let continuous = inst.fx_requires_continuous();
             self.sends.set_continuous(bus, continuous);
+            inst.refresh_ears(&self.module_dir);
         }
         self.generation = self.generation.wrapping_add(1);
         let set_ms = t_set.elapsed().as_millis();
@@ -1004,6 +1008,7 @@ impl ChainSlots {
                 inst.set_param(&format!("{}:state", req.component), state);
             }
             inst.set_external_fx_mode(true);
+            inst.refresh_ears(&self.module_dir);
         }
         self.master.note_loaded(pos, &req.module);
         /* Params and LFO targets written while this load was queued were held
@@ -1664,6 +1669,30 @@ impl ChainSlots {
         self.idle.wake(slot);
         if let Some(inst) = self.slots[slot].as_mut() {
             inst.on_midi(msg, source);
+        }
+        self.sidechain(slot, msg);
+    }
+
+    /// A track's note, on the track's own channel (track 1 = channel 1), to
+    /// every chain — tracks, send buses, master — holding an audio FX that
+    /// hears MIDI: the Ducker's sidechain. schwung's shim does the same for
+    /// its slots and Master FX (`shadow_midi.c`, `FX_BROADCAST`); without it
+    /// a Ducker heard only its own track's notes, always on channel 1.
+    ///
+    /// Only chains with ears: the chain host runs its LFO retrigger on a
+    /// broadcast note before handing it to the FX, so a note sent to every
+    /// chain would restart other tracks' LFOs. Not a wake either — a chain
+    /// asleep is silent, and silence ducked is silence.
+    fn sidechain(&mut self, track: usize, msg: &[u8]) {
+        if msg.len() < 3 || !matches!(msg[0] & 0xF0, 0x80 | 0x90) {
+            return;
+        }
+        let m = [(msg[0] & 0xF0) | track as u8, msg[1], msg[2]];
+        let chains = self.slots.iter_mut().chain(self.send_slots.iter_mut()).flatten();
+        for inst in chains.chain(self.master.inst.as_mut()) {
+            if inst.hears_fx_midi() {
+                inst.on_midi(&m, MOVE_MIDI_SOURCE_FX_BROADCAST);
+            }
         }
     }
 
@@ -3103,6 +3132,64 @@ mod tests {
             let bytes: Vec<u8> = seen.iter().filter(|(t, _)| *t == tag).map(|(_, b)| *b).collect();
             assert_eq!(bytes, vec![0xF8, 0xFA, 0xFC], "chain {tag:#x} heard the whole transport");
         }
+    }
+
+    /* Every three-byte on_midi a fake chain receives, as (tag, msg, source). */
+    static SC_SEEN: std::sync::Mutex<Vec<(usize, [u8; 3], c_int)>> = std::sync::Mutex::new(Vec::new());
+
+    unsafe extern "C" fn fake_sc_on_midi(inst: *mut c_void, msg: *const u8, len: c_int, src: c_int) {
+        if len == 3 {
+            let m = unsafe { std::slice::from_raw_parts(msg, 3) };
+            SC_SEEN.lock().unwrap().push((inst as usize, [m[0], m[1], m[2]], src));
+        }
+    }
+
+    /* A Ducker heard only its own track's notes, on channel 1, so it could
+     * never duck the bass to the kick. Remove the broadcast and the ducking
+     * chains below hear nothing from track 0. */
+    #[test]
+    fn a_tracks_notes_reach_every_ducker_on_the_tracks_channel() {
+        let api: &'static plugin_api_v2_t = Box::leak(Box::new(plugin_api_v2_t {
+            api_version: 2,
+            create_instance: None,
+            destroy_instance: None,
+            on_midi: Some(fake_sc_on_midi),
+            set_param: None,
+            get_param: None,
+            get_error: None,
+            render_block: None,
+        }));
+        let eared = |tag: usize| {
+            let mut c = rt_chain(api, tag);
+            c.set_ears_for_test(true);
+            c
+        };
+        let mut slots = ChainSlots::new();
+        slots.slots[0] = Some(rt_chain(api, 0x100));
+        slots.slots[5] = Some(eared(0x600));
+        slots.slots[7] = Some(rt_chain(api, 0x800));
+        slots.send_slots[0] = Some(eared(0x900));
+        slots.master.inst = Some(eared(0xA00));
+
+        SC_SEEN.lock().unwrap().clear();
+        slots.on_midi(0, &[0x90, 36, 100], MOVE_MIDI_SOURCE_INTERNAL);
+        slots.on_midi(0, &[0x80, 36, 0], MOVE_MIDI_SOURCE_INTERNAL);
+        slots.on_midi(0, &[0xB0, 1, 64], MOVE_MIDI_SOURCE_INTERNAL);
+        slots.on_midi(15, &[0x90, 40, 90], MOVE_MIDI_SOURCE_INTERNAL);
+
+        let seen = SC_SEEN.lock().unwrap().clone();
+        let heard = |tag: usize| -> Vec<([u8; 3], c_int)> {
+            seen.iter().filter(|(t, ..)| *t == tag).map(|(_, m, s)| (*m, *s)).collect()
+        };
+        let b = MOVE_MIDI_SOURCE_FX_BROADCAST;
+        for tag in [0x600, 0x900, 0xA00] {
+            assert_eq!(heard(tag), vec![([0x90, 36, 100], b), ([0x80, 36, 0], b), ([0x9F, 40, 90], b)],
+                "chain {tag:#x}: notes only, on the source track's channel");
+        }
+        assert_eq!(heard(0x800), vec![], "a chain without ears hears nothing (its LFOs would retrigger)");
+        assert_eq!(heard(0x100).len(), 3, "the track's own chain still gets its own MIDI, untouched");
+        assert!(heard(0x100).iter().all(|(_, s)| *s == MOVE_MIDI_SOURCE_INTERNAL));
+        assert!(!slots.idle.deep_asleep(0));
     }
 
     /// The whole point, stated as a property: nothing that skipped its render

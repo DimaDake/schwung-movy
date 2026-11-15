@@ -25,7 +25,7 @@ natively.
 2. **Start/Stop Sync, both ways** (owner's decision): movy Play/Stop starts and
    stops the session; a session start/stop starts and stops movy, on the beat
    grid. (Live honours it only with its own "Start Stop Sync" on.)
-3. **Link Audio out**: 20 channels — `Movy 1` … `Movy 16` (one per track),
+3. **Link Audio out**: 20 channels — `Movy 01` … `Movy 16` (one per track; zero-padded so Live, which sorts inputs as text, lists them in order),
    `Movy Send 1` … `Movy Send 3` (the send buses' returns, post-FX, as summed
    into the output; owner added 2026-11-15) and `Movy Master`. Names are FIXED (owner's decision) so Live's input routing
    survives a synth swap.

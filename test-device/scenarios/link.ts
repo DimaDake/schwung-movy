@@ -83,7 +83,7 @@ scenario('link', async (t) => {
             { expected: 'bpm=13300', actual: `bpm=${bpm}` });
 
         await dev.selectTrack(0);
-        await ssh(`rm -f /tmp/probe.out; nohup ${PROBE} --subscribe 'Movy 1' --wait 4 >/tmp/probe.out 2>&1 &`);
+        await ssh(`rm -f /tmp/probe.out; nohup ${PROBE} --subscribe 'Movy 01' --wait 4 >/tmp/probe.out 2>&1 &`);
         await t.tx.frames(700);                 // ~2 s: subscribed, streaming silence
         await t.tx.uiMidi(keyOn);
         await t.tx.frames(300);

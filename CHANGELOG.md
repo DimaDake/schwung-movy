@@ -18,7 +18,7 @@ far. Earlier work is summarised in the timeline below for context.
 - **Ableton Link.** Turn on **Settings → LINK** (Shift + Step 2, jog click; off
   by default, kept for this Move): Movy joins the Link session over WiFi or USB-C, follows and
   sets the tempo, shares Play/Stop with Start Stop Sync (on the next bar), and
-  publishes 20 Link Audio channels — Movy 1-16 (post-fader), Movy Send 1-3 and
+  publishes 20 Link Audio channels — Movy 01-16 (post-fader), Movy Send 1-3 and
   Movy Master (before the master volume) — as inputs Live can record. The
   Set page tempo shows LNK while following. A new helper, `movy-link`
   (GPL, `THIRD_PARTY_LICENSES.md`), runs beside movy-host. ENGINE 0.121.0.

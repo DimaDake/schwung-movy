@@ -97,7 +97,7 @@ are connected.
   the session's tempo.
 - **Play/Stop:** pressing Play on either side starts both on the next bar; Stop
   stops both.
-- **Audio into Live:** set an audio track's input to **Movy 1** … **Movy 16**
+- **Audio into Live:** set an audio track's input to **Movy 01** … **Movy 16**
   (one per track, after its volume, pan and mute), **Movy Send 1** … **Movy Send 3**
   (the send effects' returns) or **Movy Master** (everything, before Movy's
   master volume). Record as usual: the recording lands on Live's grid.

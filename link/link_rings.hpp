@@ -8,6 +8,7 @@
 
 #include <atomic>
 #include <cstdint>
+#include <string>
 
 extern "C" {
 #include "movy_link_shm.h"
@@ -100,6 +101,17 @@ inline void publish(movy_link_shm_t *s, const Snapshot &v) {
     s->tempo_ack_seq = v.tempo_ack_seq;
     s->play_ack_seq = v.play_ack_seq;
     st(s->snap_seq, q + 2, REL);   // even: done
+}
+
+/**
+ * The Link Audio name of channel [ch]. Track numbers are zero-padded because
+ * Live (and any peer listing by name) sorts channels as TEXT: "Movy 11" landed
+ * between "Movy 1" and "Movy 2". Sorted, the names are in channel order.
+ */
+inline std::string channel_name(int ch) {
+    if (ch < MOVY_LINK_CH_SEND0) return std::string(ch < 9 ? "Movy 0" : "Movy ") + std::to_string(ch + 1);
+    if (ch < MOVY_LINK_CH_MASTER) return "Movy Send " + std::to_string(ch - MOVY_LINK_CH_SEND0 + 1);
+    return "Movy Master";
 }
 
 }  // namespace mlink

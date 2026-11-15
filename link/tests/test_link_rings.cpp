@@ -1,3 +1,5 @@
+#include <string>
+#include <algorithm>
 // movy-link's logic that needs no Link SDK: ring draining, liveness,
 // requests and the snapshot seqlock. Host build: scripts/build-link.sh --host-test
 #include <cstdio>
@@ -96,6 +98,13 @@ int main() {
     mlink::publish(s.get(), snap);
     CHECK(s->snap_seq == before + 2 && (s->snap_seq & 1) == 0, "seq advanced by two");
     CHECK(s->peers == 2 && s->tempo == 128.0 && s->is_playing == 1 && s->play_change_us == 900, "values");
+
+    // Live lists inputs sorted as text: tracks and sends must each sort in order
+    // (Master sorting before the sends is fine)
+    std::vector<std::string> names;
+    for (int ch = 0; ch < MOVY_LINK_CHANNELS; ch++) names.push_back(mlink::channel_name(ch));
+    CHECK(std::is_sorted(names.begin(), names.begin() + MOVY_LINK_CH_MASTER), "tracks then sends sort in channel order");
+    CHECK(names[0] == "Movy 01" && names[15] == "Movy 16" && names[16] == "Movy Send 1" && names[19] == "Movy Master", "names");
 
     std::printf("movy-link rings: %d/%d checks passed\n", checks - fails, checks);
     return fails != 0;

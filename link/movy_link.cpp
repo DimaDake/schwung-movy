@@ -31,12 +31,6 @@
 
 using namespace std::chrono;
 
-static std::string channel_name(int ch) {
-    if (ch < MOVY_LINK_CH_SEND0) return "Movy " + std::to_string(ch + 1);
-    if (ch < MOVY_LINK_CH_MASTER) return "Movy Send " + std::to_string(ch - MOVY_LINK_CH_SEND0 + 1);
-    return "Movy Master";
-}
-
 static movy_link_shm_t *open_segment() {
     int fd = shm_open(MOVY_LINK_SHM, O_RDWR, 0);
     if (fd < 0) return nullptr;
@@ -112,7 +106,7 @@ static void serve(ableton::LinkAudio &link, movy_link_shm_t *s) {
             link.enable(true);
             link.enableLinkAudio(true);
             for (int ch = 0; ch < MOVY_LINK_CHANNELS; ch++)
-                sinks.push_back(std::make_unique<ableton::LinkAudioSink>(link, channel_name(ch), MOVY_LINK_FRAMES * 2));
+                sinks.push_back(std::make_unique<ableton::LinkAudioSink>(link, mlink::channel_name(ch), MOVY_LINK_FRAMES * 2));
             // Requests made before we were on are history, not commands.
             req.tempo_seen = tempo_ack = mlink::ld(s->tempo_req_seq, mlink::ACQ);
             req.play_seen = play_ack = mlink::ld(s->play_req_seq, mlink::ACQ);

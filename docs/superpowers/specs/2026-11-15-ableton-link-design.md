@@ -25,8 +25,9 @@ natively.
 2. **Start/Stop Sync, both ways** (owner's decision): movy Play/Stop starts and
    stops the session; a session start/stop starts and stops movy, on the beat
    grid. (Live honours it only with its own "Start Stop Sync" on.)
-3. **Link Audio out**: 17 channels — `Movy 1` … `Movy 16` (one per track) and
-   `Movy Master`. Names are FIXED (owner's decision) so Live's input routing
+3. **Link Audio out**: 20 channels — `Movy 1` … `Movy 16` (one per track),
+   `Movy Send 1` … `Movy Send 3` (the send buses' returns, post-FX, as summed
+   into the output; owner added 2026-11-15) and `Movy Master`. Names are FIXED (owner's decision) so Live's input routing
    survives a synth swap.
    - Track channels are **post-fader, post-pan, post-mute, pre-master** — the
      track as heard (owner's decision; same as the stems plan).
@@ -42,7 +43,6 @@ natively.
 ## Non-goals
 
 - Receiving Link Audio into movy (Live → movy tracks). Later, maybe.
-- Sends/returns as channels.
 - MIDI clock out, or Link while movy is not running.
 - A Mac app of any kind.
 - Low-latency monitoring through Live.
@@ -105,7 +105,7 @@ stored in `features.json` as `movy_link_enabled`.
  audio thread (core 3)                        movy-link (cores 0-2, SCHED_OTHER)
  ────────────────────                         ──────────────────────────────────
  engine render ─► post-join mix loop          ableton::LinkAudio link
-   tap(track i) if subscribed(i) ─┐            ├─ reads audio ring ─► LinkAudioSink ×17
+   tap(track i) if subscribed(i) ─┐            ├─ reads audio ring ─► LinkAudioSink ×20
  final out ─► tap(master) ────────┤            │    commit(state, beat_at(play_time))
                                   ▼            ├─ writes session snapshot (seqlock)
             /dev/shm/movy-link  (created by    ├─ writes subscribed mask
@@ -129,7 +129,7 @@ mirror, with an ABI test like `abi-parity.mjs`) and movy-link.
   beat_anchor, time_anchor_us, quantum, is_playing, play_change_us,
   session_seq}`; `subscribed_mask` (bit i = channel i has a listener);
   diagnostics (buffers sent, drops, last error).
-- Audio: 17 SPSC rings of 128-frame stereo int16 blocks (≥ 16 blocks each,
+- Audio: 20 SPSC rings of 128-frame stereo int16 blocks (≥ 16 blocks each,
   ~46 ms), each block headered with `{frame_index, play_time_us}`.
   Drop-on-full, counted; the audio thread never waits.
 
@@ -176,7 +176,7 @@ subscriber, reorder or conceal code. Loop wakes every ~1 ms (cheap, bounded
 latency; schwung's 10 ms gave bursts):
 1. `link.enable()` iff `enabled` and movy-host alive (heartbeat advanced in the
    last 2 s and `kill(host_pid, 0)` ok). Host dead → close sinks, disable, exit.
-2. Sinks: all 17 created when enabled, destroyed when disabled. For each,
+2. Sinks: all 20 created when enabled, destroyed when disabled. For each,
    `BufferHandle` valid ⇒ a subscriber exists ⇒ set the mask bit, drain that
    ring and `commit(state, beatAtTime(play_time_us, 4), 4, 128, 2, 44100)`.
    Invalid ⇒ clear the bit and discard the ring (no work).
@@ -201,7 +201,10 @@ records the number and how it was measured.
   mirror undoes `mfx:vol`): the volume knob is for monitoring and must not ride
   the recording. Track channels are unaffected by master volume too.
 - **Track channels exclude send returns** (the track's own post-fader signal);
-  returns reach Live only inside `Movy Master`.
+  the returns have their own `Movy Send n` channels (tapped in
+  `SendBuses::finish`, before the bus buffer is cleared).
+- **`Movy Master` is tapped after the master FX and BEFORE `limiter.process`**,
+  which applies the master volume and the limiter together.
 - **A muted track streams silence**; its channel never disappears.
 - **Frozen tracks stream their frozen playback** (same mix loop).
 - **Joining a session never stops movy**: only start/stop *edges* that happen
@@ -237,16 +240,16 @@ records the number and how it was measured.
 - **movy-link unit tests** (host build, Link SDK compiles on macOS): ring drain,
   mask, heartbeat death → exit, requests.
 - **ABI parity**: the SHM header between C, Rust and C++.
-- **perf**: `cargo bench` tap at 17 subscribed ≤ 5 µs/block; 0 subscribed ≈ 0.
+- **perf**: `cargo bench` tap at 20 subscribed ≤ 5 µs/block; 0 subscribed ≈ 0.
 - **Device tier (required: audio thread, network, launch doors)**: new scenario
   `link` using a probe peer ON the device (a tiny `movy-link-probe` from the
-  same SDK, run over ssh): it sees peer "Movy" and 17 channels; subscribing to
+  same SDK, run over ssh): it sees peer "Movy" and 20 channels; subscribing to
   `Movy 3` delivers audio while track 3 plays; setting tempo on the probe moves
   movy's tempo; probe start/stop drives movy transport; setting off ⇒ probe sees
   no peer. Plus scoped `smoke`, and the launch doors (`power`, boot) since
   `launch.sh` changes.
 - **Measurement** (`scripts/measure-link-cost.sh`, new): the 2026-11-15 sweep
-  (0/2/8/17 subscribed, USB and WiFi) against the real helper with the probe as
+  (0/2/8/20 subscribed, USB and WiFi) against the real helper with the probe as
   subscriber; glitch log must stay empty.
 - **Manual, once**: Live on the Mac records `Movy 1..16` aligned (calibrate the
   output-time constant), tempo and Start/Stop both ways.

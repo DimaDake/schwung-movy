@@ -50,6 +50,7 @@ mod chain_reaper;
 mod freeze_bank;
 mod freeze_mem;
 mod freeze_files;
+mod link_shm;
 use freeze::{LoopAt, LoopMap};
 use freeze_bank::{ClipJob, Outcome as FreezeOutcome};
 use seq_core::track::CLIPS_PER_TRACK;

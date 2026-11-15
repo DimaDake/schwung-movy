@@ -55,3 +55,5 @@ QJS=(-I"$SCHWUNG/libs/quickjs/quickjs-2025-04-26")
 "${CC:-cc}" -std=gnu11 -Wall -Wextra -Wno-unused-parameter "${INC[@]}" "${QJS[@]}" \
     "$DIR/tests/test_poweroff_show.c" "$DIR/poweroff_show.c" -o "$OUT/test_poweroff_show"
 "$OUT/test_poweroff_show"
+"${CC:-cc}" -std=gnu11 -Wall -Wextra -I"$DIR/../link" "$DIR/tests/test_link_shm_abi.c" -o "$OUT/test_link_shm_abi"
+"$OUT/test_link_shm_abi"

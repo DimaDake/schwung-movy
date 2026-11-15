@@ -33,6 +33,8 @@ Move's software and owns the whole device. The Move can also boot straight into 
   takes on a clip that fit the scene's chords and groove, on the device and offline.
 - **Sets and backups**: Movy's own Sets list, automatic saving, and 32 restorable versions per Set.
 - **Pad layouts** (chromatic or in key, 4ths, piano, inline) and **USB MIDI keyboards**.
+- **Ableton Link**: tempo and Play/Stop shared with Live, and every track, send and
+  the master as its own Link Audio input in Live (over WiFi or USB-C).
 
 <p>
 <img src="site/assets/screens/page_config_pad.png" width="256" alt="Parameter page">
@@ -68,4 +70,5 @@ its sequencer by Move's own, and its engine approach by
 
 ## License
 
-[MIT](LICENSE) © megadake
+[MIT](LICENSE) © megadake. `movy-link`, the Ableton Link helper, is GPL-2.0-or-later
+(it links the Link SDK): see [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).

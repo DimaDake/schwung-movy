@@ -72,3 +72,32 @@ Schwung's web mirror works with Movy. On a computer, open
 light, with your hands' presses. **Record** saves a video, **Save PNG** a still.
 Sound is included while Schwung's **Mirror Display** setting is on (Schwung
 Manager → Settings). Good for sharing a jam, or for showing a bug.
+
+## Playing with Live over Link
+
+Movy can join an Ableton Link session: it shares tempo, beat and Play/Stop with
+Live (or any Link app), and sends each track to Live as its own audio input.
+
+**Turn it on:** Schwung Manager (<http://move.local:7700>) → **Settings** →
+**Audio** → **Movy Link**. It is off until you turn it on.
+
+**Connect:** Move and the computer on the same WiFi, or Move plugged into the
+computer with its USB-C cable. In Live, turn on **Link** (and **Start Stop
+Sync** for shared Play/Stop).
+
+On the [Set page](sequencer.md#the-set-page) the tempo shows **LNK**
+while Movy follows another Link app; its header reads `LINK` and how many apps
+are connected.
+
+- **Tempo:** change it on either side; both follow. When Movy joins, it takes
+  the session's tempo.
+- **Play/Stop:** pressing Play on either side starts both on the next bar; Stop
+  stops both.
+- **Audio into Live:** set an audio track's input to **Movy 1** … **Movy 16**
+  (one per track, after its volume, pan and mute), **Movy Send 1** … **Movy Send 3**
+  (the send effects' returns) or **Movy Master** (everything, before Movy's
+  master volume). Record as usual: the recording lands on Live's grid.
+
+Listen on Move's own headphones or line out while you play. The copy in Live
+arrives a little late (more over WiFi than over USB-C), so it is for recording
+and mixing, not for monitoring. Only the inputs Live is using cost Movy any CPU.

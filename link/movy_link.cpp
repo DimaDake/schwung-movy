@@ -20,6 +20,7 @@
 #include <unistd.h>
 
 #include <cerrno>
+#include <cstring>
 #include <chrono>
 #include <cstdio>
 #include <memory>
@@ -62,13 +63,26 @@ static bool pid_alive(uint32_t pid) {
     return pid && (kill((pid_t)pid, 0) == 0 || errno == EPERM);
 }
 
+// The pid is alive AND still movy-host: leaving for Move execs MoveOriginal
+// in the same pid (mlink::Attach).
+static bool is_movy_host(uint32_t pid) {
+    if (!pid_alive(pid)) return false;
+    char path[32], comm[32] = {0};
+    std::snprintf(path, sizeof path, "/proc/%u/comm", pid);
+    FILE *f = std::fopen(path, "r");
+    if (!f) return false;
+    bool ok = std::fgets(comm, sizeof comm, f) && std::strncmp(comm, "movy-host", 9) == 0;
+    std::fclose(f);
+    return ok;
+}
+
 // The segment of a LIVE movy-host. launch.sh starts us just before movy-host,
 // so the first segment we can open may still be the previous movy-host's
 // (its sweep has not run yet): one whose pid is gone is skipped, not joined.
-static movy_link_shm_t *wait_for_host() {
+static movy_link_shm_t *wait_for_host(const mlink::Attach &attach) {
     for (int i = 0; i < 300; i++) {
         if (movy_link_shm_t *s = open_segment()) {
-            if (pid_alive(s->host_pid)) return s;
+            if (attach.should(s->host_pid, is_movy_host(s->host_pid), mlink::ld(s->heartbeat, mlink::ACQ))) return s;
             munmap(s, sizeof *s);
         }
         std::this_thread::sleep_for(milliseconds(100));
@@ -91,7 +105,7 @@ static void serve(ableton::LinkAudio &link, movy_link_shm_t *s) {
         const bool ask = loops++ % LISTEN_EVERY == 0;
         auto now = link.clock().micros();
         uint64_t now_us = (uint64_t)now.count();
-        if (!live.alive(mlink::ld(s->heartbeat, mlink::ACQ), now_us, pid_alive(s->host_pid))) {
+        if (!live.alive(mlink::ld(s->heartbeat, mlink::ACQ), now_us, is_movy_host(s->host_pid))) {
             std::printf("movy-link: movy-host %u gone\n", s->host_pid);
             break;
         }
@@ -178,14 +192,23 @@ static void serve(ableton::LinkAudio &link, movy_link_shm_t *s) {
 }
 
 int main() {
+    // MoveLauncher's mask blocks TERM (host/signals.h) and we inherit it through
+    // launch.sh, so start_link's kill could not stop an older copy: two ran,
+    // stuck. Unblocked before the SDK starts its threads, which inherit it.
+    sigset_t term;
+    sigemptyset(&term);
+    sigaddset(&term, SIGTERM); sigaddset(&term, SIGINT); sigaddset(&term, SIGHUP);
+    sigprocmask(SIG_UNBLOCK, &term, nullptr);
     leave_audio_core();
     std::setvbuf(stdout, nullptr, _IOLBF, 0);
     ableton::LinkAudio link(120.0, "Movy");
     // A restarted movy-host (the harness, a Tools reopen) makes a new
     // segment: serve that one too. No live movy-host for 30 s: done.
-    while (movy_link_shm_t *s = wait_for_host()) {
+    mlink::Attach attach;
+    while (movy_link_shm_t *s = wait_for_host(attach)) {
         std::printf("movy-link: attached to movy-host pid %u\n", s->host_pid);
         serve(link, s);
+        attach.left(s->host_pid, mlink::ld(s->heartbeat, mlink::ACQ));
         munmap(s, sizeof *s);
     }
     std::printf("movy-link: no movy-host; exiting\n");

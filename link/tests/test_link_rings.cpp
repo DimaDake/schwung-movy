@@ -106,6 +106,16 @@ int main() {
     CHECK(std::is_sorted(names.begin(), names.begin() + MOVY_LINK_CH_MASTER), "tracks then sends sort in channel order");
     CHECK(names[0] == "Movy 01" && names[15] == "Movy 16" && names[16] == "Movy Send 1" && names[19] == "Movy Master", "names");
 
+    // leaving for Move execs MoveOriginal in movy-host's pid: never re-attach to it
+    mlink::Attach att;
+    CHECK(att.should(6103, true, 500), "a live movy-host");
+    CHECK(!att.should(6103, false, 500), "the pid is MoveOriginal now");
+    CHECK(!att.should(0, true, 0), "no pid");
+    att.left(6103, 500);
+    CHECK(!att.should(6103, true, 500), "the host we left, heart still stopped");
+    CHECK(att.should(6103, true, 501), "its heart beats again");
+    CHECK(att.should(7000, true, 500), "a new movy-host");
+
     std::printf("movy-link rings: %d/%d checks passed\n", checks - fails, checks);
     return fails != 0;
 }

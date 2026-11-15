@@ -60,6 +60,24 @@ struct Liveness {
     }
 };
 
+/**
+ * Whether a segment is worth attaching to. A movy-host that leaves for Move
+ * EXECs it in the same pid, so the pid stays alive under another name and its
+ * segment keeps `enabled` set: re-attaching on the pid alone joined the session
+ * for the 2 s Liveness grace, left, and did it again forever — Movy's 20
+ * channels blinking in every peer, and a movy-link that never exited.
+ */
+struct Attach {
+    uint32_t gone_pid = 0;
+    uint64_t gone_hb = 0;
+    bool should(uint32_t pid, bool is_movy_host, uint64_t hb) const {
+        if (!pid || !is_movy_host) return false;
+        // the host we just left: only if its heart beats again
+        return !(pid == gone_pid && hb == gone_hb);
+    }
+    void left(uint32_t pid, uint64_t hb) { gone_pid = pid; gone_hb = hb; }
+};
+
 struct Requests {
     uint32_t tempo_seen = 0, play_seen = 0;
     bool tempo(movy_link_shm_t *s, double *bpm) {

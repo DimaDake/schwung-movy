@@ -20,12 +20,45 @@ pub const OUTPUT_LATENCY_US: u64 = 2 * 2902;
 /// would fight every tempo change made on movy.
 pub const STALL_BLOCKS: u32 = 345;
 
+/// One 128-frame block at 44.1 kHz, in microseconds.
+pub const BLOCK_US: f64 = 128.0 * 1e6 / 44_100.0;
+/// A jump this large between the clock and the sample count is a real stall
+/// (or the first block): stamp at the clock again rather than glide to it.
+const RESYNC_US: f64 = 20_000.0;
+/// How much of the clock's disagreement each block takes up: slow enough that
+/// render jitter vanishes, fast enough to follow clock drift (tens of ppm).
+const SLEW: f64 = 256.0;
+
+/// Block times counted in samples, held to the system clock only slowly.
+/// Stamping each block with the clock at render start passed the render's
+/// jitter on to Live, which warped around a 12.6 ms jump in a 2026-11-15 take.
+#[derive(Default)]
+pub struct Stamper {
+    t: f64,
+    primed: bool,
+}
+
+impl Stamper {
+    pub fn next(&mut self, raw_us: u64) -> u64 {
+        let raw = raw_us as f64;
+        let predicted = self.t + BLOCK_US;
+        self.t = if !self.primed || (raw - predicted).abs() > RESYNC_US {
+            self.primed = true;
+            raw
+        } else {
+            predicted + (raw - predicted) / SLEW
+        };
+        self.t as u64
+    }
+}
+
 pub struct LinkBridge {
     shm: *mut LinkShm,
     last: LinkSnapshot,
     mask: u32,
     tapped: u32,
     out_us: u64,
+    stamper: Stamper,
     blocks: u64,
     alive_seen: u32,
     stalled_for: u32,
@@ -46,7 +79,7 @@ fn a64<'a>(p: *mut u64) -> &'a AtomicU64 {
 
 impl LinkBridge {
     pub fn inert() -> Self {
-        LinkBridge { shm: core::ptr::null_mut(), last: LinkSnapshot::default(), mask: 0, tapped: 0, out_us: 0, blocks: 0,
+        LinkBridge { shm: core::ptr::null_mut(), last: LinkSnapshot::default(), mask: 0, tapped: 0, out_us: 0, stamper: Stamper::default(), blocks: 0,
                      alive_seen: 0, stalled_for: 0, enabled: false }
     }
 
@@ -82,7 +115,7 @@ impl LinkBridge {
     /// Start of a block: (snapshot, when this block plays, subscribed mask).
     pub fn begin_block(&mut self, bpm_x100: u32) -> (LinkSnapshot, u64, u32) {
         self.tapped = 0;
-        self.out_us = now_raw_us() + OUTPUT_LATENCY_US;
+        self.out_us = self.stamper.next(now_raw_us()) + OUTPUT_LATENCY_US;
         let p = self.shm;
         if p.is_null() {
             return (LinkSnapshot::default(), self.out_us, 0);

@@ -23,6 +23,16 @@ far. Earlier work is summarised in the timeline below for context.
   Set page tempo shows LNK while following. A new helper, `movy-link`
   (GPL, `THIRD_PARTY_LICENSES.md`), runs beside movy-host. ENGINE 0.121.0.
 
+### Fixed
+
+- **Clicks every 2 s while editing a Set of heavy instruments.** The autosave
+  read every instrument's preset in one audio block (1.3-3.3 ms of a 2.9 ms
+  block); it now reads a few per block.
+- **Link Audio timing.** Each block is stamped from the sample count instead of
+  the moment it rendered, so Live no longer sees jumps from render jitter.
+  Measured on the device: movy's metronome lands within about 1.5 ms of Live's
+  beat (median -0.5 ms).
+
 - **Freeze a track.** Shift + a track button opens its menu; FREEZE records
   every clip of the track into loops and unloads its synth and effects: it
   sounds the same, launches, scenes and the song still work, it keeps its MIX

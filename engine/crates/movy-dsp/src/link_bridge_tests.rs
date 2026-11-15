@@ -206,3 +206,49 @@ fn the_setting_comes_from_the_engine() {
     let (snap, _, _) = b.begin_block(12000);
     assert!(!snap.enabled && seg.s().enabled == 0);
 }
+
+#[test]
+fn stamps_advance_by_one_block_however_the_render_jitters() {
+    // The render starts up to a millisecond early or late; the audio is still
+    // 128 samples a block, and Live must see that, not the jitter (the
+    // 2026-11-15 take had a 12.6 ms stamp jump Live warped around).
+    let mut s = Stamper::default();
+    let mut raw = 1_000_000.0f64;
+    let mut last = s.next(raw as u64);
+    let mut worst = 0.0f64;
+    for k in 1..5000u64 {
+        raw += BLOCK_US;
+        let jitter = ((k * 7919) % 2001) as f64 - 1000.0; // +-1 ms
+        let t = s.next((raw + jitter) as u64);
+        if k > 300 {
+            worst = worst.max(((t - last) as f64 - BLOCK_US).abs());
+        }
+        last = t;
+    }
+    assert!(worst < 20.0, "block-to-block stamp step off by {worst:.1} us");
+}
+
+#[test]
+fn stamps_follow_a_drifting_system_clock() {
+    // The audio clock and the system clock disagree by tens of ppm.
+    let mut s = Stamper::default();
+    let mut raw = 0.0f64;
+    let mut t = 0;
+    for _ in 0..200_000 {
+        raw += BLOCK_US * (1.0 + 100e-6);
+        t = s.next(raw as u64);
+    }
+    assert!((t as f64 - raw).abs() < 500.0, "10 minutes at 100 ppm: off by {} us", t as f64 - raw);
+}
+
+#[test]
+fn a_long_stall_resyncs_the_stamps() {
+    let mut s = Stamper::default();
+    let mut raw = 0u64;
+    for _ in 0..100 {
+        raw += BLOCK_US as u64;
+        s.next(raw);
+    }
+    raw += 50_000; // the device lost 50 ms
+    assert_eq!(s.next(raw), raw, "stamped at the wall clock again");
+}

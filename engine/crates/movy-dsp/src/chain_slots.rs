@@ -4335,3 +4335,7 @@ mod tests {
         assert!(reopened.master_report().contains("held=1"), "the LFO target waits for its FX");
     }
 }
+
+#[cfg(test)]
+#[path = "serialize_job_tests.rs"]
+mod serialize_job_tests;

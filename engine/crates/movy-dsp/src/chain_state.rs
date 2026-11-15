@@ -108,48 +108,93 @@ pub fn parse_items_n(doc: &str, width: usize) -> Option<Vec<String>> {
 
 /// Everything about the chains, in one document.
 pub fn serialize(slots: &mut ChainSlots) -> String {
-    let entries = crate::chain_doc::decode(&slots.chain_set()).unwrap_or_default();
-    let mut items: Vec<String> = Vec::new();
-    let mut prev_slot: Option<usize> = None;
-    for e in entries {
-        /* A bus's preset is read through the SEND accessor, because `get_param`
-         * is `.get`-based over `slots` — MOVY_CHAINS entries — so a bus's slot
-         * indexes past the end of it and answers None. Every send serialized
-         * with an empty blob: the module came back and its knobs did not.
-         *
-         * The mixer triple and the LFOs below are still read through
-         * `get_param`, and "" is the TRUTH for them rather than the same loss —
-         * a bus has no mixer of its own and no LFOs, which is why the schema
-         * writes both fields empty for one. */
-        let state = match bus_of_slot(e.slot) {
-            Some(bus) => slots.send_get_param(bus, "state").unwrap_or_default(),
-            /* The import mark has no module behind it, so no blob either. */
-            None if e.slot == master_index() => match fx_position(&e.component) {
-                Some(_) => slots.master_get(&format!("{}:state", e.component)).unwrap_or_default(),
-                None => String::new(),
-            },
-            None => slots
-                .get_param(e.slot, &format!("{}:state", e.component))
-                .unwrap_or_default(),
-        };
-        // The mixer triple belongs to the CHAIN, so it rides that chain's first
-        // component rather than being repeated on every one of them.
-        // The mixer triple and the LFOs belong to the CHAIN, so they ride its
-        // first component rather than being repeated on every one of them.
-        let (mix, lfo) = if prev_slot == Some(e.slot) {
-            (String::new(), String::new())
-        } else {
-            prev_slot = Some(e.slot);
-            (slots.mix_csv(e.slot).unwrap_or_default(), lfo_state(slots, e.slot))
-        };
-        items.push(e.slot.to_string());
-        items.push(e.component.clone());
-        items.push(e.module.clone());
-        items.push(state);
-        items.push(mix);
-        items.push(lfo);
+    let mut job = SerializeJob::new(slots);
+    loop {
+        if let Some(doc) = job.step(slots, std::time::Duration::MAX) {
+            return doc;
+        }
     }
-    pack(&items)
+}
+
+/// `serialize`, a few entries per block (lib.rs's autosave). Every component's
+/// preset blob is a module `get_param` on the audio thread, and a Set of heavy
+/// modules read in one block took 2.4-3.3 ms of a 2.9 ms frame: an audible
+/// click every 2 s while editing (device glitch log, 2026-11-15). Modules
+/// expect those calls on the audio thread, so the reads are spread out rather
+/// than moved off it.
+pub struct SerializeJob {
+    set: String,
+    entries: Vec<crate::chain_doc::Entry>,
+    next: usize,
+    items: Vec<String>,
+    prev_slot: Option<usize>,
+}
+
+impl SerializeJob {
+    pub fn new(slots: &ChainSlots) -> Self {
+        let set = slots.chain_set();
+        let entries = crate::chain_doc::decode(&set).unwrap_or_default();
+        SerializeJob { set, entries, next: 0, items: Vec::new(), prev_slot: None }
+    }
+
+    /// Reads entries until `budget` is spent, always at least one; the whole
+    /// document once the last is read. A chain set that changed since the
+    /// read began starts it over: half a document would describe a set that
+    /// never existed.
+    pub fn step(&mut self, slots: &mut ChainSlots, budget: std::time::Duration) -> Option<String> {
+        if slots.chain_set() != self.set {
+            *self = SerializeJob::new(slots);
+        }
+        let t = std::time::Instant::now();
+        while self.next < self.entries.len() {
+            let e = &self.entries[self.next];
+            read_entry(slots, e, &mut self.prev_slot, &mut self.items);
+            self.next += 1;
+            if t.elapsed() >= budget {
+                break;
+            }
+        }
+        (self.next == self.entries.len()).then(|| pack(&self.items))
+    }
+}
+
+fn read_entry(slots: &mut ChainSlots, e: &crate::chain_doc::Entry, prev_slot: &mut Option<usize>, items: &mut Vec<String>) {
+    /* A bus's preset is read through the SEND accessor, because `get_param`
+     * is `.get`-based over `slots` — MOVY_CHAINS entries — so a bus's slot
+     * indexes past the end of it and answers None. Every send serialized
+     * with an empty blob: the module came back and its knobs did not.
+     *
+     * The mixer triple and the LFOs below are still read through
+     * `get_param`, and "" is the TRUTH for them rather than the same loss —
+     * a bus has no mixer of its own and no LFOs, which is why the schema
+     * writes both fields empty for one. */
+    let state = match bus_of_slot(e.slot) {
+        Some(bus) => slots.send_get_param(bus, "state").unwrap_or_default(),
+        /* The import mark has no module behind it, so no blob either. */
+        None if e.slot == master_index() => match fx_position(&e.component) {
+            Some(_) => slots.master_get(&format!("{}:state", e.component)).unwrap_or_default(),
+            None => String::new(),
+        },
+        None => slots
+            .get_param(e.slot, &format!("{}:state", e.component))
+            .unwrap_or_default(),
+    };
+    // The mixer triple belongs to the CHAIN, so it rides that chain's first
+    // component rather than being repeated on every one of them.
+    // The mixer triple and the LFOs belong to the CHAIN, so they ride its
+    // first component rather than being repeated on every one of them.
+    let (mix, lfo) = if *prev_slot == Some(e.slot) {
+        (String::new(), String::new())
+    } else {
+        *prev_slot = Some(e.slot);
+        (slots.mix_csv(e.slot).unwrap_or_default(), lfo_state(slots, e.slot))
+    };
+    items.push(e.slot.to_string());
+    items.push(e.component.clone());
+    items.push(e.module.clone());
+    items.push(state);
+    items.push(mix);
+    items.push(lfo);
 }
 
 /// A nested LFO document as `(lfoN:key, value)` writes, empty values skipped.

@@ -157,6 +157,9 @@ const ENGINE_VERSION: &str = "0.121.0";
  * flash on this device is not free and the sequencer is dirty constantly while
  * a user is working. */
 const SAVE_BLOCKS: u64 = 688;
+/// The autosave's share of one block for reading module states
+/// (chain_state::SerializeJob); at least one is read per block regardless.
+const SAVE_BUDGET: std::time::Duration = std::time::Duration::from_micros(300);
 /// ~1 s: how long an open's frozen read waits for the previous Set's loops
 /// to be freed before it reads anyway (`frozen_due`).
 const FROZEN_WAIT_BLOCKS: u32 = 344;
@@ -274,6 +277,8 @@ struct Instance {
     freeze_wave_at: u64,
     /// Next block at which an autosave may run. Rate limits flash writes.
     save_at: u64,
+    /// An autosave being read, a few module states per block (SAVE_BUDGET).
+    save_job: Option<chain_state::SerializeJob>,
 }
 
 /// Where a heard loop was when its track's playhead was lent to a capture
@@ -331,6 +336,7 @@ impl Instance {
             freeze_wave_at: 0,
             set_applied: 0,
             save_at: 0,
+            save_job: None,
             probe_gen: 0,
         }
     }
@@ -1107,33 +1113,48 @@ impl Instance {
         /* Not while an open is in flight: see `open_pending`. The flag stays
          * set, so the edit is saved once the Set is in — or dropped by the
          * load, which is right, since it belonged to the Set being left. */
-        if !self.open_pending && self.engine.dirty && self.blocks >= self.save_at {
-            let t_ser = std::time::Instant::now();
-            let payload = seq_core::persist::serialize(&self.engine);
-            let chains = chain_state::serialize(&mut self.chains);
-            /* Both reads run here, on the audio thread: every chain's preset
-             * blob included. Logged when it costs a block's worth or more. */
-            let us = t_ser.elapsed().as_micros();
-            if us >= 1000 {
-                host::log(&format!("save: serialize took {us} us on the audio thread"));
+        if self.open_pending {
+            // An open in flight: a half-read document of the Set being left
+            // must not be finished. Its edit is owed again (the dirty flag
+            // was cleared when the read began), in case the open fails and
+            // that Set stays.
+            if self.save_job.take().is_some() {
+                self.engine.dirty = true;
             }
+            return;
+        }
+        if self.save_job.is_none() && self.engine.dirty && self.blocks >= self.save_at {
+            /* Cleared when the read STARTS: an edit made while it runs marks
+             * the engine dirty again and is the next save's. */
             self.engine.dirty = false;
             self.save_at = self.blocks + SAVE_BLOCKS;
-            /* Identical bytes are not a save. The dirty flag says an edit was
-             * OFFERED, not that anything came of it — a knob moved and moved
-             * back, or a Set that has only just been loaded. */
-            let changed = self.last_saved.as_ref()
-                .is_none_or(|(p, c)| *p != payload || *c != chains);
-            if changed {
-                self.set_gen += 1;
-                saver.submit(set_saver::Job::Save {
-                    uuid: self.set_uuid.clone(),
-                    payload: payload.clone(),
-                    gen: self.set_gen,
-                    chains: chains.clone(),
-                });
-                self.last_saved = Some((payload, chains));
-            }
+            self.save_job = Some(chain_state::SerializeJob::new(&self.chains));
+        }
+        let Some(job) = self.save_job.as_mut() else { return };
+        let t_ser = std::time::Instant::now();
+        let Some(chains) = job.step(&mut self.chains, SAVE_BUDGET) else { return };
+        self.save_job = None;
+        let payload = seq_core::persist::serialize(&self.engine);
+        /* What is left on the audio thread: the last slice of the chain read
+         * and the sequencer state. Logged when it still costs a block's worth. */
+        let us = t_ser.elapsed().as_micros();
+        if us >= 1000 {
+            host::log(&format!("save: final serialize step took {us} us on the audio thread"));
+        }
+        /* Identical bytes are not a save. The dirty flag says an edit was
+         * OFFERED, not that anything came of it — a knob moved and moved
+         * back, or a Set that has only just been loaded. */
+        let changed = self.last_saved.as_ref()
+            .is_none_or(|(p, c)| *p != payload || *c != chains);
+        if changed {
+            self.set_gen += 1;
+            saver.submit(set_saver::Job::Save {
+                uuid: self.set_uuid.clone(),
+                payload: payload.clone(),
+                gen: self.set_gen,
+                chains: chains.clone(),
+            });
+            self.last_saved = Some((payload, chains));
         }
     }
 
@@ -1549,6 +1570,9 @@ mod tests_support {
 }
 
 #[cfg(test)]
+#[cfg(test)]
+#[path = "lib_save_tests.rs"]
+mod save_tests;
 #[cfg(test)]
 #[path = "lib_link_tests.rs"]
 mod link_tests;

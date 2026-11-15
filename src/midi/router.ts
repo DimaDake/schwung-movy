@@ -48,7 +48,8 @@ import { mixerJog, mixerKnobTouch, mixerKnobTurn } from '../seq/mixer-input.js';
 import { noteViewActive } from '../seq/note-view.js';
 import { clipPageActive, clipPageRelease } from '../seq/clip-page.js';
 import { clickVolumeTurn } from '../seq/click-volume.js';
-import { backupsRowSelected, clickRowSelected, flagsPageActive, flagsPageJog, migrateRowSelected } from '../seq/flags-page.js';
+import { backupsRowSelected, clickRowSelected, flagsPageActive, flagsPageJog, linkRowSelected, migrateRowSelected } from '../seq/flags-page.js';
+import { linkSettingToggle } from '../seq/link-setting.js';
 import { migrateRowClick } from '../seq/migrate-action.js';
 import { setsPageActive, setsPageBack, setsPageClick, setsPageJog } from '../seq/sets-page.js';
 import { textEntry, textEntryActive } from '../renderer/text-entry-lib.js';
@@ -867,6 +868,11 @@ export function onMidiMessageInternal(data: number[]): void {
              * re-entered — the same path a set switch takes, which is what
              * makes the modules reload behind the ordinary splash. */
             versionsPageClick(currentSetUuid());
+            appState.dirty = true;
+            return;
+        }
+        if (flagsPageActive() && linkRowSelected()) {
+            linkSettingToggle();
             appState.dirty = true;
             return;
         }

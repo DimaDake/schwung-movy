@@ -1,8 +1,9 @@
 /* The one segment movy-host, the engine (dsp.so) and movy-link share.
  *
  * Three writers, each owning its own fields (no field has two writers):
- *   movy-host  enabled, host_pid, magic, version (it creates the segment)
- *   engine     heartbeat, movy_bpm_x100, the *_req_* requests, ring[].write
+ *   movy-host  host_pid, magic, version (it creates the segment)
+ *   engine     enabled (Settings → LINK), heartbeat, movy_bpm_x100, the
+ *              *_req_* requests, ring[].write
  *   movy-link  the snapshot (snap_seq .. play_ack_seq), subscribed,
  *              link_alive, sent, ring[].read
  *

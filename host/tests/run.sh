@@ -57,5 +57,5 @@ QJS=(-I"$SCHWUNG/libs/quickjs/quickjs-2025-04-26")
 "$OUT/test_poweroff_show"
 "${CC:-cc}" -std=gnu11 -Wall -Wextra -I"$DIR/../link" "$DIR/tests/test_link_shm_abi.c" -o "$OUT/test_link_shm_abi"
 "$OUT/test_link_shm_abi"
-"${CC:-cc}" -std=gnu11 -Wall -Wextra -I"$DIR" -I"$DIR/../link" "$DIR/tests/test_link_host.c" "$DIR/link_host.c" "$DIR/settings_file.c" -o "$OUT/test_link_host"
+"${CC:-cc}" -std=gnu11 -Wall -Wextra -I"$DIR" -I"$DIR/../link" "$DIR/tests/test_link_host.c" "$DIR/link_host.c" -o "$OUT/test_link_host"
 "$OUT/test_link_host"

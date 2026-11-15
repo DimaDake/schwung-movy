@@ -15,8 +15,8 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Added
 
-- **Ableton Link.** Turn on Schwung Manager → Settings → Audio → **Movy Link**
-  (off by default): Movy joins the Link session over WiFi or USB-C, follows and
+- **Ableton Link.** Turn on **Settings → LINK** (Shift + Step 2, jog click; off
+  by default, kept for this Move): Movy joins the Link session over WiFi or USB-C, follows and
   sets the tempo, shares Play/Stop with Start Stop Sync (on the next bar), and
   publishes 20 Link Audio channels — Movy 1-16 (post-fader), Movy Send 1-3 and
   Movy Master (before the master volume) — as inputs Live can record. The

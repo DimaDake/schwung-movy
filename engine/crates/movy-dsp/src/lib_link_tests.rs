@@ -22,10 +22,10 @@ fn instance() -> (Instance, *mut LinkShm) {
     unsafe {
         (*p).magic = LINK_MAGIC;
         (*p).version = LINK_VERSION;
-        (*p).enabled = 1;
         (*p).subscribed = (1 << LINK_CHANNELS) - 1;
     }
     inst.chains.link = link_bridge::LinkBridge::from_raw(p);
+    inst.set_param("link", "1");
     (inst, p)
 }
 

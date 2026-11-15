@@ -384,6 +384,7 @@ await esbuild.build({
         resolve(root, 'src/seq/clip-quant.ts'),
         resolve(root, 'src/seq/prefs.ts'),
         resolve(root, 'src/seq/click-volume.ts'),
+        resolve(root, 'src/seq/link-setting.ts'),
         resolve(root, 'src/seq/quant-overlay.ts'),
         resolve(root, 'src/renderer/cpu-view.ts'),
         resolve(root, 'src/renderer/frozen-view.ts'),

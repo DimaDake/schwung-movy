@@ -9,6 +9,7 @@ import {
     flagsPageState, flagsPageActive, flagsPageJog, resetFlagsPage,
     flagsRowCount, backupsRowSelected, clickRowSelected, migrateRowSelected, actionRowSelected,
     readPrefClickDb, clickVolumeTurn, clickVolumeLabel, resetClickVolume,
+    readPrefLink, linkSettingOn, linkSettingToggle, linkSettingLabel, resetLinkSetting, linkRowSelected,
     buildFlagsPageVM, VISIBLE_ROWS, firstVisibleRow,
     wrapWords, HINT_W, HINT_LINES, fontWidth, W,
     readPrefModuleBlacklist, installMockEngine, uninstallMockEngine,
@@ -78,7 +79,9 @@ export async function run() {
     ok('which is CLICK VOLUME', clickRowSelected());
     flagsPageJog(1);
     eq('jog moves down', flagsPageState.selected, 1);
-    ok('onto BACKUPS: no GENERATORS row (no SAFE/BALANCED/WILD)', backupsRowSelected());
+    ok('onto LINK', linkRowSelected());
+    flagsPageJog(1);
+    ok('then BACKUPS: no GENERATORS row (no SAFE/BALANCED/WILD)', backupsRowSelected());
     flagsPageJog(1);
     ok('migrate_row_stays_last', migrateRowSelected() && flagsPageState.selected === flagsRowCount() - 1);
     flagsPageJog(-1);
@@ -104,8 +107,9 @@ export async function run() {
      * and undrawn — and every screenshot stayed byte-identical, because the
      * viewmodel never changed. */
     eq('one drawn row per selectable row', vm.rows.length, flagsRowCount());
-    eq('settings_has_no_generators_row', vm.rows.map((r) => r.name).join(','), 'CLICK VOLUME,BACKUPS,MIGRATE FROM MOVE');
-    eq('backups_row_drawn', vm.rows[1].value, '>');
+    eq('settings_has_no_generators_row', vm.rows.map((r) => r.name).join(','), 'CLICK VOLUME,LINK,BACKUPS,MIGRATE FROM MOVE');
+    eq('link_row_drawn_off_by_default', vm.rows[1].value, 'OFF');
+    eq('backups_row_drawn', vm.rows[2].value, '>');
     eq('exactly one row is selected', vm.rows.filter((r) => r.selected).length, 1);
     ok('CLICK VOLUME explains itself', vm.hint.length > 0);
     eq('and shows the default level', vm.rows[0].value, '0 dB');
@@ -113,10 +117,12 @@ export async function run() {
     /* The band follows the selection, or it is describing a different row than
      * the one under the inverted band. */
     flagsPageJog(1);
+    ok('the link row explains itself', /live/i.test(buildFlagsPageVM().hint), buildFlagsPageVM().hint);
+    flagsPageJog(1);
     ok('the backups row explains itself', /version/i.test(buildFlagsPageVM().hint));
     flagsPageJog(2);
     const mv = buildFlagsPageVM();
-    ok('the migrate row can be selected', mv.rows[2].selected);
+    ok('the migrate row can be selected', mv.rows[3].selected);
     ok('and the hint is its own', mv.hint.toLowerCase().includes('from move'), mv.hint);
 
     /* Scrolling: the list is short, and the window is asserted at a length it
@@ -169,6 +175,38 @@ export async function run() {
     eq('a restart restores the level into the engine', eng.params.clickdb, '11');
     uninstallMockEngine(); uninstallMockFs();
     resetClickVolume(); resetSeqEngine();
+}
+
+/* ── Link: off by default, a click toggles it, durable, reaches the engine ── */
+{
+    _log('\nLink setting');
+
+    installMockFs();
+    resetLinkSetting();
+    ok('a fresh install has Link off', !readPrefLink() && !linkSettingOn());
+    eq('and the row says OFF', linkSettingLabel(), 'OFF');
+
+    let eng = installMockEngine();
+    resetSeqEngine();
+    seqEngineTick();
+    eq('off is pushed on boot (a new engine starts with Link off anyway)', eng.params.link, '0');
+
+    linkSettingToggle();
+    eq('a click turns it on in the engine', eng.params.link, '1');
+    ok('and stores it for this Move', readPrefLink());
+    eq('the row says ON', linkSettingLabel(), 'ON');
+
+    resetLinkSetting();
+    resetSeqEngine();
+    uninstallMockEngine();
+    eng = installMockEngine();
+    seqEngineTick();
+    eq('a restart turns Link back on in the new engine', eng.params.link, '1');
+    linkSettingToggle();
+    eq('a second click turns it off', eng.params.link, '0');
+    ok('and stores that', !readPrefLink());
+    uninstallMockEngine(); uninstallMockFs();
+    resetLinkSetting(); resetSeqEngine();
 }
 
 /* ── The hint band: every row says what it does, in two lines ────────────── */

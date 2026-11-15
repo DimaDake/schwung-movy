@@ -14,7 +14,8 @@
  *   L4 a subscribed channel streams: frames arrive, and a played note is heard
  *   L5 the probe's Play starts movy; L6 its Stop stops it
  *   L7 off again: lk=0 and Movy leaves the session
- * The setting is restored to what it was, whatever happens.
+ * The engine is switched directly (`link`, what Settings → LINK sends), and put
+ * back to the user's stored choice (prefs.json) whatever happens.
  */
 import { execFile } from 'node:child_process';
 import { join } from 'node:path';
@@ -29,7 +30,7 @@ import { until } from '../wait.js';
 import type { Packet } from '../midi.js';
 
 const run = promisify(execFile);
-const FEATURES = '/data/UserData/schwung/config/features.json';
+const PREFS = '/data/UserData/schwung/modules/tools/movy/prefs.json';
 const PROBE = '/tmp/movy-link-probe';
 const CHANNELS = 20;
 
@@ -51,27 +52,22 @@ scenario('link', async (t) => {
     const waitStatus = async (what: string, pred: (s: string) => boolean, within = 6000) => {
         try { return await until(t.tx, what, status, pred, { within, every: 200 }); } catch { return status(); }
     };
-    /* features.json as python sees it: the manager writes it, so edit in place. */
-    const setLink = (on: boolean) => ssh(`python3 - <<'EOF'
-import json, os
-p = '${FEATURES}'
-try: d = json.load(open(p))
-except Exception: d = {}
-d['movy_link_enabled'] = ${on ? 'True' : 'False'}
-open(p + '.t', 'w').write(json.dumps(d, indent=2)); os.replace(p + '.t', p)
-EOF`);
+    const setLink = (on: boolean) => t.tx.engineSet('link', on ? '1' : '0');
 
     await fixture.ensure(t.tx, () => dev.open(probe), () => dev.close(probe));
     await dev.deployUi();
     await dev.open(probe);
     await run('scp', ['-q', ...SSH_OPTS, join(repoRoot(), 'dist', 'movy-link-probe'), `ableton@${t.host}:${PROBE}`]);
-    const saved = await ssh(`cat ${FEATURES} 2>/dev/null || true`);
+    const userOn = /"link"\s*:\s*true/.test(await ssh(`cat ${PREFS} 2>/dev/null || true`));
 
     try {
         await setLink(false);
         const off = await peer('--wait 2');
-        t.check('l1-off-by-default', 'with the setting off, Movy is not in the session',
-            !/^channel /m.test(off) && line(off, 'peers') === '0', { expected: 'peers 0, no Movy channels', actual: off.replace(/\n/g, ' | ') });
+        t.check('l1-off', 'with Link off, Movy is not in the session',
+            /* Channels, not the peer count: another Link app (Live on the
+             * owner's Mac) may share the session, and Movy announces channels
+             * only while it is in it. */
+            !/^channel /m.test(off), { expected: 'no Movy channels', actual: off.replace(/\n/g, ' | ') });
 
         await setLink(true);
         const st = await waitStatus('lk=1', (s) => field(s, 'lk') === '1');
@@ -115,8 +111,7 @@ EOF`);
             field(st2, 'lk') === '0' && !/^channel /m.test(gone),
             { expected: 'lk=0, no Movy channels', actual: `lk=${field(st2, 'lk')} | ${gone.replace(/\n/g, ' | ')}` });
     } finally {
-        if (saved) await ssh(`cat > ${FEATURES}.t <<'EOF'\n${saved}\nEOF\nmv ${FEATURES}.t ${FEATURES}`).catch(() => {});
-        else await setLink(false).catch(() => {});
+        await setLink(userOn).catch(() => {});
         await t.tx.engineSet('cmd', 'stop').catch(() => {});
     }
 });

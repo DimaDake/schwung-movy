@@ -19,6 +19,7 @@ import { probeBridgeTick } from './probe-bridge.js';
 import { readPrefModuleBlacklist } from './prefs.js';
 import { pushMasterVolume } from '../mixer/master-volume.js';
 import { pushClickVolume } from './click-volume.js';
+import { pushLinkSetting } from './link-setting.js';
 import { resetPadRoute, syncPadRoute } from '../track/pad-route.js';
 import { resetExtRoute, syncExtRoute } from '../track/ext-route.js';
 import { resetWatchPush, syncWatch } from './watch.js';
@@ -152,6 +153,7 @@ function boot(): void {
     paramSet('chblock', readPrefModuleBlacklist().join(','));
     pushMasterVolume(paramSet);
     pushClickVolume(paramSet);
+    pushLinkSetting(paramSet);
     /* Only the UI knows the install paths, so it hands them over once the
      * engine answers. Refreshing the private copy and dlopening the chain host
      * both happen inside this set, off the render path. */

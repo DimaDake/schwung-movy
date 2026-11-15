@@ -7,7 +7,7 @@
 //
 // Started by standalone/launch.sh before movy-host (never by movy-host: a
 // fork there stalls audio). Exits when movy-host goes away. Joins the session
-// only while schwung's "Movy Link" setting is on.
+// only while movy's Settings → LINK is on (the engine's `enabled`).
 //
 // Derived from schwung's src/host/link_subscriber.cpp publisher half.
 

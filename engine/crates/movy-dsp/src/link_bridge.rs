@@ -29,6 +29,9 @@ pub struct LinkBridge {
     blocks: u64,
     alive_seen: u32,
     stalled_for: u32,
+    /// Settings → LINK, from the UI (`link` param): the engine owns the
+    /// segment's `enabled`, movy-link only reads it.
+    enabled: bool,
 }
 
 // The segment outlives the instance and only the audio thread touches it.
@@ -44,7 +47,7 @@ fn a64<'a>(p: *mut u64) -> &'a AtomicU64 {
 impl LinkBridge {
     pub fn inert() -> Self {
         LinkBridge { shm: core::ptr::null_mut(), last: LinkSnapshot::default(), mask: 0, tapped: 0, out_us: 0, blocks: 0,
-                     alive_seen: 0, stalled_for: 0 }
+                     alive_seen: 0, stalled_for: 0, enabled: false }
     }
 
     /// The segment movy-host created, or inert.
@@ -110,7 +113,8 @@ impl LinkBridge {
                     break;
                 }
             }
-            self.last.enabled = a32(&raw mut (*p).enabled).load(Acquire) != 0;
+            a32(&raw mut (*p).enabled).store(self.enabled as u32, Release);
+            self.last.enabled = self.enabled;
             let alive = a32(&raw mut (*p).link_alive).load(Relaxed);
             if alive != self.alive_seen {
                 self.alive_seen = alive;
@@ -127,6 +131,10 @@ impl LinkBridge {
             self.last.peers = 0;
         }
         (self.last, self.out_us, self.mask)
+    }
+
+    pub fn set_enabled(&mut self, on: bool) {
+        self.enabled = on;
     }
 
     pub fn write_requests(&mut self, r: &LinkRequests) {

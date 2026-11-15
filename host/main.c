@@ -135,7 +135,7 @@ static int run(void) {
     }
     display_init();
     mirror_init("/dev/shm", MH_SCHWUNG_DIR "/config/features.json");
-    link_host_init("/dev/shm", MH_SCHWUNG_DIR "/config/features.json");
+    link_host_init("/dev/shm");
     speaker_init(MH_SCHWUNG_DIR "/config/features.json", MH_SCHWUNG_DIR "/jack_state");
     audio_start(&spi);
     char path[320];

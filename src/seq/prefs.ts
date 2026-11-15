@@ -27,7 +27,7 @@ const clampPct = (v: unknown): number =>
 
 type PrefsFile = {
     defaultQuant?: unknown; fileDirs?: unknown; moduleBlacklist?: unknown;
-    fullVelocity?: unknown; masterVolume?: unknown; clickDb?: unknown; genLevel?: unknown;
+    fullVelocity?: unknown; masterVolume?: unknown; clickDb?: unknown; genLevel?: unknown; link?: unknown;
 };
 
 function readPrefs(): PrefsFile {
@@ -104,6 +104,15 @@ export function readPrefClickDb(): number {
 
 export function writePrefClickDb(db: number): void {
     writePrefs((p) => { p.clickDb = clampClickDb(db); });
+}
+
+/* Ableton Link (Settings → LINK). Off unless the file says exactly true. */
+export function readPrefLink(): boolean {
+    return readPrefs().link === true;
+}
+
+export function writePrefLink(on: boolean): void {
+    writePrefs((p) => { p.link = on; });
 }
 
 /* Modules that must keep every instance on one render lane (chain_pin).

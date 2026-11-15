@@ -10,7 +10,8 @@
  * within ~1.3x of that.
  *
  * Needs: scripts/build-link.sh && scripts/build-link.sh --mac-probe, the
- * device tier built (test-device/dist). Restores the Movy Link setting.
+ * device tier built (test-device/dist). Puts Link back to the user's stored
+ * Settings → LINK choice.
  *
  * Usage: node scripts/measure-link-cost.mjs [move.local] [--secs 30] [--counts 0,2,8,20]
  */
@@ -30,14 +31,11 @@ const argv = process.argv.slice(2);
 const host = argv.find((a, i, xs) => !a.startsWith('--') && !(xs[i - 1] ?? '').startsWith('--')) ?? 'move.local';
 const SECS = Number(argv[argv.indexOf('--secs') + 1]) || 30;
 const COUNTS = argv.includes('--counts') ? argv[argv.indexOf('--counts') + 1].split(',').map(Number) : [0, 2, 8, 20];
-const FEATURES = '/data/UserData/schwung/config/features.json';
+const PREFS = '/data/UserData/schwung/modules/tools/movy/prefs.json';
 const field = (s, k) => s.match(new RegExp(`(?:^| )${k}=(\\S+)`))?.[1] ?? '';
 
 const ssh = async (cmd) => (await run('ssh', [...SSH_OPTS, `ableton@${host}`, cmd], { maxBuffer: 1 << 20 })).stdout.trim();
-const setLink = (on) => ssh(`python3 -c "import json,os;p='${FEATURES}'
-try: d=json.load(open(p))
-except Exception: d={}
-d['movy_link_enabled']=${on ? 'True' : 'False'};open(p+'.t','w').write(json.dumps(d,indent=2));os.replace(p+'.t',p)"`);
+const setLink = (on) => tx.engineSet('link', on ? '1' : '0');
 const macProbe = (n, secs) => new Promise((resolve) => {
     const p = spawn(join(ROOT, 'dist', 'movy-link-probe-mac'), ['--subscribe-n', String(n), '--wait', String(secs)]);
     let out = '';
@@ -48,7 +46,7 @@ const macProbe = (n, secs) => new Promise((resolve) => {
 const tx = new StandaloneTransport(host);
 const dev = new Device(tx), probe = new Probe(tx);
 fixture.setHost(host);
-const saved = await ssh(`cat ${FEATURES} 2>/dev/null || true`);
+const userOn = /"link"\s*:\s*true/.test(await ssh(`cat ${PREFS} 2>/dev/null || true`));
 const rows = [];
 try {
     await tx.connect();
@@ -74,8 +72,7 @@ try {
     }
 } finally {
     await tx.engineSetQueued('cmd', 'stop').catch(() => {});
-    if (saved) await ssh(`cat > ${FEATURES}.t <<'EOF'\n${saved}\nEOF\nmv ${FEATURES}.t ${FEATURES}`).catch(() => {});
-    else await setLink(false).catch(() => {});
+    await setLink(userOn).catch(() => {});
     await fixture.ensure(tx, () => dev.open(probe), () => dev.close(probe)).catch((e) => console.error(`fixture: ${e}`));
     await tx.close();
 }

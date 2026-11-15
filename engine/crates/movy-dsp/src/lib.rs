@@ -405,6 +405,9 @@ impl Instance {
                 }
             }
             "clickaud" => self.click.trigger(true),
+            /* `link <0|1>` — Settings → LINK. Pushed by the UI on every engine
+             * boot and on every click; the bridge hands it to movy-link. */
+            "link" => self.chains.link.set_enabled(val.trim() == "1"),
             /* `padvel <0|1>` — Full Velocity (Shift + Step 10). The engine has to
              * be told because it is the one building the note-on: for a movy
              * track the UI does not send pad notes at all, so applying it only

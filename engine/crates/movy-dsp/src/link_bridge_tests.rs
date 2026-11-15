@@ -9,7 +9,6 @@ impl Seg {
         unsafe {
             (*p).magic = LINK_MAGIC;
             (*p).version = LINK_VERSION;
-            (*p).enabled = 1;
         }
         Seg(p)
     }
@@ -36,7 +35,7 @@ fn bridge_without_helper_is_inert() {
 #[test]
 fn heartbeat_and_tempo_published() {
     let seg = Seg::new();
-    let mut b = LinkBridge::from_raw(seg.0);
+    let mut b = { let mut b = LinkBridge::from_raw(seg.0); b.set_enabled(true); b };
     b.begin_block(13300);
     b.begin_block(13300);
     assert_eq!(seg.s().heartbeat, 2);
@@ -46,7 +45,7 @@ fn heartbeat_and_tempo_published() {
 #[test]
 fn snapshot_read_and_torn_seqlock_keeps_last() {
     let seg = Seg::new();
-    let mut b = LinkBridge::from_raw(seg.0);
+    let mut b = { let mut b = LinkBridge::from_raw(seg.0); b.set_enabled(true); b };
     seg.s().peers = 2;
     seg.s().tempo = 128.0;
     seg.s().snap_seq = 2;
@@ -58,7 +57,7 @@ fn snapshot_read_and_torn_seqlock_keeps_last() {
     let (snap, _, _) = b.begin_block(12000);
     assert_eq!(snap.tempo, 128.0, "torn read discarded");
     // Setting off: no channel is ever tapped.
-    seg.s().enabled = 0;
+    b.set_enabled(false);
     seg.s().subscribed = 1;
     let (snap, _, mask) = b.begin_block(12000);
     assert!(!snap.enabled && mask == 0);
@@ -68,7 +67,7 @@ fn snapshot_read_and_torn_seqlock_keeps_last() {
 fn tap_only_subscribed() {
     let seg = Seg::new();
     seg.s().subscribed = 1 << 3;
-    let mut b = LinkBridge::from_raw(seg.0);
+    let mut b = { let mut b = LinkBridge::from_raw(seg.0); b.set_enabled(true); b };
     b.begin_block(12000);
     b.tap(0, &[7; 256]);
     b.tap(3, &[7; 256]);
@@ -83,7 +82,7 @@ fn tap_only_subscribed() {
 fn untapped_subscribed_channel_gets_silence() {
     let seg = Seg::new();
     seg.s().subscribed = 1 << CH_MASTER | 1 << 5;
-    let mut b = LinkBridge::from_raw(seg.0);
+    let mut b = { let mut b = LinkBridge::from_raw(seg.0); b.set_enabled(true); b };
     b.begin_block(12000);
     b.tap(CH_MASTER, &[9; 256]);
     b.finish_block();
@@ -96,7 +95,7 @@ fn untapped_subscribed_channel_gets_silence() {
 fn tap_full_ring_drops_and_counts() {
     let seg = Seg::new();
     seg.s().subscribed = 1;
-    let mut b = LinkBridge::from_raw(seg.0);
+    let mut b = { let mut b = LinkBridge::from_raw(seg.0); b.set_enabled(true); b };
     for _ in 0..LINK_RING + 3 {
         b.begin_block(12000);
         b.tap(0, &[1; 256]);
@@ -109,7 +108,7 @@ fn tap_full_ring_drops_and_counts() {
 fn tap_gains_equals_mix_contribution() {
     let seg = Seg::new();
     seg.s().subscribed = 1;
-    let mut b = LinkBridge::from_raw(seg.0);
+    let mut b = { let mut b = LinkBridge::from_raw(seg.0); b.set_enabled(true); b };
     b.begin_block(12000);
     let src: Vec<i16> = (0..256).map(|i| (i * 97 % 20000) as i16 - 10000).collect();
     b.tap_gains(0, &src, 0.7, 0.3);
@@ -121,7 +120,7 @@ fn tap_gains_equals_mix_contribution() {
 #[test]
 fn requests_written_seq_last() {
     let seg = Seg::new();
-    let mut b = LinkBridge::from_raw(seg.0);
+    let mut b = { let mut b = LinkBridge::from_raw(seg.0); b.set_enabled(true); b };
     b.write_requests(&LinkRequests { tempo_seq: 4, tempo_bpm_x100: 14000, play_seq: 2, playing: true, play_at_us: 77 });
     let s = seg.s();
     assert_eq!((s.tempo_req_seq, s.tempo_req_bpm_x100, s.play_req_seq, s.play_req_playing, s.play_req_at_us), (4, 14000, 2, 1, 77));
@@ -132,7 +131,7 @@ fn status_carries_link_keys() {
     let seg = Seg::new();
     seg.s().peers = 1;
     seg.s().subscribed = 0x80001;
-    let mut b = LinkBridge::from_raw(seg.0);
+    let mut b = { let mut b = LinkBridge::from_raw(seg.0); b.set_enabled(true); b };
     b.begin_block(12000);
     assert_eq!(b.status(), " lk=1 lkp=1 lks=80001");
 }
@@ -146,7 +145,7 @@ fn status_carries_link_keys() {
 fn link_tap_cost() {
     let seg = Seg::new();
     seg.s().subscribed = (1 << LINK_CHANNELS) - 1;
-    let mut b = LinkBridge::from_raw(seg.0);
+    let mut b = { let mut b = LinkBridge::from_raw(seg.0); b.set_enabled(true); b };
     let src = [123i16; 256];
     let n = 20_000;
     let t = std::time::Instant::now();
@@ -177,7 +176,7 @@ fn helper_stall_reads_as_alone() {
     seg.s().peers = 1;
     seg.s().tempo = 120.0;
     seg.s().snap_seq = 2;
-    let mut b = LinkBridge::from_raw(seg.0);
+    let mut b = { let mut b = LinkBridge::from_raw(seg.0); b.set_enabled(true); b };
     for i in 0..10 {
         seg.s().link_alive = i;
         assert_eq!(b.begin_block(12000).0.peers, 1, "alive");
@@ -190,4 +189,20 @@ fn helper_stall_reads_as_alone() {
     assert_eq!(mask, 0, "and nothing is tapped for it");
     seg.s().link_alive = 99;
     assert_eq!(b.begin_block(12000).0.peers, 1, "back as soon as it counts again");
+}
+
+#[test]
+fn the_setting_comes_from_the_engine() {
+    // Settings → LINK reaches the engine as `link`; the bridge is what tells
+    // movy-link, through the segment's `enabled`.
+    let seg = Seg::new();
+    let mut b = LinkBridge::from_raw(seg.0);
+    let (snap, _, _) = b.begin_block(12000);
+    assert!(!snap.enabled && seg.s().enabled == 0, "off until the UI says otherwise");
+    b.set_enabled(true);
+    let (snap, _, _) = b.begin_block(12000);
+    assert!(snap.enabled && seg.s().enabled == 1);
+    b.set_enabled(false);
+    let (snap, _, _) = b.begin_block(12000);
+    assert!(!snap.enabled && seg.s().enabled == 0);
 }

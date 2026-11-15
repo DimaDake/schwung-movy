@@ -17,6 +17,7 @@ import { noteReportedTrack } from './watch.js';
 import { requestLabelSync } from './label-sync.js';
 import { freezeStatusField } from './freeze.js';
 import { loadErrorField } from './load-errors.js';
+import { linkStatusField } from './link-status.js';
 
 /* -1 until the first status: the opening value is not a change, and treating
  * it as one would mark every fresh open dirty and rewrite the set for nothing. */
@@ -66,6 +67,7 @@ export function parseStatus(s: string, served = Infinity): void {
         else if (key === 'tick') seqState.engineTick = Number(val) || 0;
         else if (key === 'bpm') seqState.bpmX100 = Number(val) || seqState.bpmX100;
         else if (key === 'ext') seqState.extSync = val === '1';
+        else if (key === 'lk' || key === 'lkp') linkStatusField(key, val);
         else if (key === 'swing') seqState.swingPct = Number(val) || seqState.swingPct;
         else if (key === 'trk') {
             seqState.reportedTrack = Number(val) || 0;

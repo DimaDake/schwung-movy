@@ -131,6 +131,18 @@ _log('\nTest: swing and tempo say what their numbers ARE');
     seqState.extSync = true;
     eq('EXT beats the unit in the header', f('tempo', '120', 'header'), '120 EXT');
     eq('and still reaches the cell', f('tempo', '120', 'cell'), '120 EXT');
+
+    /* LINK: the header says Link is on and with how many peers; the cell
+     * says LNK only while it is actually following someone. Link beats EXT:
+     * the engine ignores MIDI clock while it has peers. */
+    seqState.extSync = false;
+    seqState.linkOn = true; seqState.linkPeers = 0;
+    eq('Link on, alone: the header says so', f('tempo', '120', 'header'), '120 bpm LINK 0');
+    eq('alone, the cell stays bare', f('tempo', '120', 'cell'), null);
+    seqState.linkPeers = 2; seqState.extSync = true;
+    eq('following: peers in the header', f('tempo', '120', 'header'), '120 bpm LINK 2');
+    eq('following: LNK in the cell, over EXT', f('tempo', '120', 'cell'), '120 LNK');
+    seqState.linkOn = false; seqState.linkPeers = 0; seqState.extSync = false;
 }
 
 /* ── the page actually plans (guarded: needs a real schwung checkout) ────── */

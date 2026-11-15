@@ -227,6 +227,21 @@ export async function run() {
     eq('ext=0 clears extSync', seqState.extSync, false);
 }
 
+/* ── Ableton Link: lk= / lkp= status fields ──────────────────────────────── */
+{
+    _log('\nLink status parse:');
+    const { parseStatusForTest } = await import('../../dist/esm/seq/engine.js');
+    const { seqState, resetSeqState } = await import('../../dist/esm/seq/state.js');
+    resetSeqState();
+    eq('link defaults off', seqState.linkOn, false);
+    parseStatusForTest('play=0 bpm=12000 lk=1 lkp=2 lks=80001');
+    eq('lk=1 turns link on', seqState.linkOn, true);
+    eq('lkp carries the peer count', seqState.linkPeers, 2);
+    parseStatusForTest('play=0 bpm=12000 lk=0 lkp=0 lks=0');
+    eq('lk=0 turns it off', seqState.linkOn, false);
+    eq('and the peers with it', seqState.linkPeers, 0);
+}
+
 /* ── Capture: status mirror + the button's two gestures ──────────────────── */
 {
     _log('\nCapture button:');

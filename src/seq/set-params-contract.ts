@@ -22,6 +22,7 @@ import { SCALE_NAMES } from './scales.js';
 import { MODE_NAMES, layoutNames } from '../keyboard/layouts.js';
 import { NOTE_NAMES } from '../keyboard/notes.js';
 import { QUANT_LABELS, quantIndexForPct } from './quant.js';
+import { linkTempoText } from './link-status.js';
 import { applyTempoX100, applySwing, applyDefaultQuantIdx,
          applyRootPc, applyScaleIdx, applyModeIdx, applyLayoutIdx } from './main-page-apply.js';
 import { createVirtualSource, type VirtualCellSpec } from '../renderer/schwung-virtual-source.js';
@@ -46,6 +47,8 @@ const cells: VirtualCellSpec[] = [
          * TEMPO. */
         format: (raw, surface) => {
             if (raw === null) return null;
+            const link = linkTempoText(raw, surface);
+            if (link !== undefined) return link;
             if (seqState.extSync) return raw + ' EXT';
             return surface === 'header' ? raw + ' bpm' : null;
         },

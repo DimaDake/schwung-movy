@@ -81,5 +81,17 @@ printf 'export DOOR=boot\n' > "$T/c1"; code "$T/c1" | grep -qE 'export[[:space:]
 printf '# MoveLauncher in a comment\n' > "$T/c2"; code "$T/c2" | grep -q MoveLauncher \
     && bad "control: a comment counts as code" || ok "control: comments are not code"
 
+# ---- movy-link (Ableton Link) starts with every movy-host, from the shell ----
+# Never from movy-host (a fork there stalls audio), and fresh each time: a new
+# movy-host makes a new segment the old helper never sees.
+check "every movy-host start is preceded by start_link" python3 -c "
+import re,subprocess
+lines=subprocess.run(['sed','-e','s/[[:space:]]*#.*\$//','-e','/^[[:space:]]*\$/d','$LAUNCH'],capture_output=True,text=True).stdout.splitlines()
+runs=[i for i,l in enumerate(lines) if '\"\$DIR/movy-host\"' in l and not l.strip().startswith('[ -x')]
+runs+=[i for i,l in enumerate(lines) if l.strip().startswith('[ -x \"\$DIR/movy-host\" ] && exec')]
+assert len(runs)>=3, runs
+for i in runs: assert 'start_link' in lines[i-1], (i, lines[i-1], lines[i])"
+check "start_link replaces the old helper by name, never by pattern" grep -q 'pidof movy-link' <(code "$LAUNCH")
+check "...and backgrounds the new one" grep -qE '"[$]DIR/movy-link" .*&$' <(code "$LAUNCH")
 [ "$fails" = 0 ] && echo "BOOT DOOR OK" || echo "BOOT DOOR FAILED"
 exit "$fails"

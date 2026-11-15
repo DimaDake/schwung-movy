@@ -139,6 +139,7 @@ tier() {
     ./scripts/build-dsp.sh >/dev/null
     MOVY_VDEV=1 ./scripts/build-host.sh
     ./scripts/build-schwung-js.sh
+    ./scripts/build-link.sh
     local shards
     shards=$(node -e '
         const fs = require("fs"), [jobs, dir] = [Number(process.argv[1]), process.argv[2]];

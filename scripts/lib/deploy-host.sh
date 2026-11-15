@@ -20,6 +20,7 @@ deploy_host() {
         # must not ship the dist/movy-host an earlier build left behind.
         "$dir/scripts/build-host.sh" || return 1
         "$dir/scripts/build-schwung-js.sh" || return 1
+        "$dir/scripts/build-link.sh" || return 1
     fi
     # The virtual device runs the fake-SPI build (scripts/vdev.sh, plan WP12).
     local dist="$dir/dist"
@@ -29,14 +30,16 @@ deploy_host() {
     # for the launcher: sh reads a script as it runs, and a holding launcher
     # (harness mode) is mid-loop in it.
     scp -q "$dist/movy-host" "ableton@$host:$remote/movy-host.new"
+    # One aarch64 movy-link for the box and the vdev alike (no SPI in it).
+    scp -q "$dir/dist/movy-link" "ableton@$host:$remote/movy-link.new"
     scp -q "$dir/standalone/launch.sh" "ableton@$host:$remote/standalone.new"
     scp -q "$dist/movy-heal" "$dir/standalone/boot-entry.sh" "$dir/module.json" "ableton@$host:$remote/"
     # The pinned schwung JS (plans/2026-10-13-pin-schwung-js.md), as a whole
     # new directory swapped in: a running movy-host loaded its copy at start.
     ssh "ableton@$host" "rm -rf $remote/schwung.new"
     scp -qr "$dir/dist/schwung-js" "ableton@$host:$remote/schwung.new"
-    ssh "ableton@$host" "cd $remote && chmod +x movy-host.new standalone.new movy-heal boot-entry.sh \
-        && mv movy-host.new movy-host && mv standalone.new standalone \
+    ssh "ableton@$host" "cd $remote && chmod +x movy-host.new movy-link.new standalone.new movy-heal boot-entry.sh \
+        && mv movy-host.new movy-host && mv movy-link.new movy-link && mv standalone.new standalone \
         && rm -rf schwung.old && { [ ! -d schwung ] || mv schwung schwung.old; } && mv schwung.new schwung && rm -rf schwung.old \
         && rm -rf /data/UserData/schwung/modules/tools/movy-sa \
         && if [ -d /data/UserData/boot-targets ] && [ ! -f $bt/boot.json ]; then mkdir -p $bt \

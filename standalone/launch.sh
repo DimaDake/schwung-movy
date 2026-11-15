@@ -63,6 +63,17 @@ if [ -x "$SCHWUNG/display-server" ] && ! running display-server; then
     echo "launch: started display-server ($!)"
 fi
 
+# movy-link, movy's Ableton Link peer (GPL, link/), starts beside every
+# movy-host and from here, never from movy-host: a fork there stalls audio.
+# Replaced each time: each movy-host makes a fresh /dev/shm/movy-link the old
+# helper cannot see. It idles until the "Movy Link" setting is on, and exits
+# on its own once movy-host is gone.
+start_link() {
+    [ -x "$DIR/movy-link" ] || return 0
+    for p in $(pidof movy-link 2>/dev/null); do kill "$p" 2>/dev/null; done
+    "$DIR/movy-link" >"$SCHWUNG/movy-link.log" 2>&1 &
+}
+
 # The boot door EXECs: this pid is the one MoveLauncher supervises, so it must
 # stay ours and must never just exit — movy-host hands it to Schwung on a quit
 # (and on a crash) and exits only on a stop. It is also the pid a stop's TERM
@@ -70,6 +81,7 @@ fi
 # mask blocks it, host/signals.h). No sweep, no launcher pause: at boot there
 # is no Move to stop, and MoveLauncher is our own supervisor.
 if [ "$DOOR" = boot ]; then
+    start_link
     [ -x "$DIR/movy-host" ] && exec "$DIR/movy-host" --boot
     # A failed exec ends this shell, so each line here only runs for a MISSING
     # file: the device still boots, into Schwung or stock Move.
@@ -106,10 +118,12 @@ own() { chmod 666 "$1" 2>/dev/null; [ "$(id -u)" = 0 ] && chown ableton:users "$
 PIDF=$SHM/.movy-launcher HOLD=$SHM/.movy-hold CMD=$SHM/.movy-cmd
 TESTBUS=$SHM/.movy-testbus
 HOLD_S=${MOVY_HOLD_S:-300}
+start_link
 if [ ! -e "$TESTBUS" ]; then exec "$DIR/movy-host"; fi
 rm -f "$HOLD" "$CMD"
 echo $$ >"$PIDF"; own "$PIDF"
 while :; do
+    start_link
     "$DIR/movy-host"
     rc=$?
     echo "launch: movy-host exited $rc"

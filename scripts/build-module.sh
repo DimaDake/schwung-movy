@@ -50,17 +50,18 @@ node build/device.mjs
 # movy-host and its RT helper. MOVY_RELEASE drops the test bus's UI_EVAL,
 # which runs arbitrary JS in the UI.
 MOVY_RELEASE=1 ./scripts/build-host.sh
+./scripts/build-link.sh         # movy-link, the GPL Ableton Link peer (THIRD_PARTY_LICENSES.md)
 ./scripts/build-schwung-js.sh   # the pinned schwung JS movy-host loads → dist/schwung-js
 
 rm -rf "dist/${MODULE_ID}"
 mkdir -p "dist/${MODULE_ID}/configs"
-cp module.json ui.js "dist/dsp.so" "dist/chain-host.so" "dist/movy-host" "dist/movy-heal" "dist/${MODULE_ID}/"
+cp module.json ui.js "dist/dsp.so" "dist/chain-host.so" "dist/movy-host" "dist/movy-heal" "dist/movy-link" THIRD_PARTY_LICENSES.md "dist/${MODULE_ID}/"
 cp -R dist/schwung-js "dist/${MODULE_ID}/schwung"
 # The standalone module (plan WP8): schwung's Tools menu runs `standalone`, the
 # boot picker runs boot-entry.sh (module.json's boot_target), both the same body.
 cp standalone/launch.sh "dist/${MODULE_ID}/standalone"
 cp standalone/boot-entry.sh "dist/${MODULE_ID}/boot-entry.sh"
-chmod 755 "dist/${MODULE_ID}/"{standalone,boot-entry.sh,movy-host,movy-heal}
+chmod 755 "dist/${MODULE_ID}/"{standalone,boot-entry.sh,movy-host,movy-heal,movy-link}
 # Override configs for the modules whose own movy_config.json movy cannot use
 # (OVERRIDES_MODULE_FILE in src/modules/loader.ts). They are DATA FILES rather
 # than imports so ui.js does not carry ~90 KB of JSON through the QuickJS parser
@@ -119,7 +120,7 @@ echo "(tarball carries $PINNED_JS pinned schwung JS files, $(head -1 dist/schwun
 # A file the store unpacks without its x bit is a Tools entry that does nothing
 # and a boot row that falls through to stock (the manager chmods only the
 # boot_target's exec).
-for f in standalone boot-entry.sh movy-host movy-heal; do
+for f in standalone boot-entry.sh movy-host movy-heal movy-link; do
     MODE=$(tar -tvzf "dist/${MODULE_ID}-module.tar.gz" "${MODULE_ID}/$f" 2>/dev/null | cut -c1-10)
     if [[ "$MODE" != -rwx* ]]; then
         echo "ERROR: ${MODULE_ID}/$f is missing from the tarball or not executable ($MODE)" >&2

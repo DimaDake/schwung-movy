@@ -220,6 +220,12 @@ impl MasterChain {
     /// processed or not: an FX-only chain never calls the `render_block` that
     /// normally ticks its LFOs, and a frozen master LFO is silent about it.
     pub fn run(&mut self, out: &mut [i16]) {
+        self.run_fx(out);
+        self.limit(out);
+    }
+
+    /// The FX half of `run`.
+    pub fn run_fx(&mut self, out: &mut [i16]) {
         self.in_peak = peak(out);
         let run_fx = self.any_loaded()
             && should_process(self.in_peak > 0, self.last_peak, self.continuous);
@@ -234,6 +240,10 @@ impl MasterChain {
         }
         /* A skipped block rang nothing, so its tail is over. */
         self.last_peak = if run_fx { peak(out) } else { 0 };
+    }
+
+    /// The volume-and-limiter half of `run`.
+    pub fn limit(&mut self, out: &mut [i16]) {
         self.min_env = self.limiter.process(out, self.gain);
         self.out_peak = peak(out);
     }

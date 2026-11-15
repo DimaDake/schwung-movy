@@ -181,6 +181,12 @@ impl SendBuses {
     /// Sum a processed bus into the output at unity, remember its peak for the
     /// tail rule, and zero it. Never called for a bus `take_plan` said no to,
     /// which is what keeps an unused bus free of a memset.
+    /// Bus `n`'s return this block, as `finish` is about to sum it.
+    pub fn bus_out(&self, n: usize, frames: usize) -> &[i16] {
+        let b = &self.buses[n];
+        &b.buf[..b.buf.len().min(frames)]
+    }
+
     pub fn finish(&mut self, n: usize, out: &mut [i16], frames: usize) {
         let bus = &mut self.buses[n];
         let len = bus.buf.len().min(frames);

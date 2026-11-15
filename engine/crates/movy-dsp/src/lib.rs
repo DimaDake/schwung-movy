@@ -51,6 +51,7 @@ mod freeze_bank;
 mod freeze_mem;
 mod freeze_files;
 mod link_shm;
+pub(crate) mod link_bridge;
 use freeze::{LoopAt, LoopMap};
 use freeze_bank::{ClipJob, Outcome as FreezeOutcome};
 use seq_core::track::CLIPS_PER_TRACK;
@@ -150,7 +151,7 @@ pub(crate) fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.120.1";
+const ENGINE_VERSION: &str = "0.121.0";
 
 /* Blocks between autosaves. The callback runs at ~344 Hz, so this is ~2 s —
  * flash on this device is not free and the sequencer is dirty constantly while
@@ -799,6 +800,7 @@ impl Instance {
                 /* A module that refused its load (Amino's fifth instance) leaves
                  * the track silent; this is the only place the UI can learn why. */
                 s.push_str(&self.chains.load_status());
+                s.push_str(&self.chains.link.status());
                 s.push_str(&self.engine.freeze_lock.status());
                 s.push_str(&format!(" frzp={}", self.freeze_peaks_seq));
                 Some(s)
@@ -1253,8 +1255,12 @@ impl Instance {
         use block_prof::Stage;
         let mut lap = std::time::Instant::now();
         self.blocks += 1;
-        self.engine
-            .advance_block((out_audio.len() / 2) as u32, &mut self.out);
+        let frames = (out_audio.len() / 2) as u32;
+        let (snap, out_us, _) = self.chains.link.begin_block(self.engine.clock.bpm_x100());
+        self.engine.link_block(&snap, out_us, frames, &mut self.out);
+        self.engine.advance_block(frames, &mut self.out);
+        let req = *self.engine.link.requests();
+        self.chains.link.write_requests(&req);
         /* Before the chains render: a synced chain LFO reads this block's
          * position through the vtable movy hands its chains. */
         host_vtable::publish_clock(
@@ -1345,7 +1351,9 @@ unsafe extern "C" fn create_instance(
 ) -> *mut c_void {
     guard(core::ptr::null_mut(), || {
         let dir = cstr(module_dir).to_string();
-        let instance = Box::new(Instance::new());
+        let mut instance = Box::new(Instance::new());
+        // Only the instance movy-host loads talks to movy-link; tests stay inert.
+        instance.chains.link = link_bridge::LinkBridge::open();
         host::log(&format!(
             "movy-dsp v{ENGINE_VERSION}: create_instance dir={dir} rate={}",
             host::sample_rate()
@@ -1527,6 +1535,10 @@ mod tests_support {
     }
 }
 
+#[cfg(test)]
+#[cfg(test)]
+#[path = "lib_link_tests.rs"]
+mod link_tests;
 #[cfg(test)]
 #[path = "lib_freeze_tests.rs"]
 mod freeze_tests;

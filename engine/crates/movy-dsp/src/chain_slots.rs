@@ -181,6 +181,8 @@ pub struct ChainSlots {
     /// which is the only place a spawn may happen. `None` until movy actually
     /// hosts chains, and the render falls back to serial while it is (see
     /// `parallel_ready`).
+    /// Ableton Link: the session snapshot and the Link Audio taps.
+    pub link: crate::link_bridge::LinkBridge,
     pool: Option<RenderPool>,
     planner: Planner,
     /// Per-lane task lists, refilled in place each block — pushing into a `Vec`
@@ -316,6 +318,7 @@ impl ChainSlots {
             cost: CostMeter::new(MOVY_CHAINS),
             prof: BlockProf::default(),
             pool: None,
+            link: crate::link_bridge::LinkBridge::inert(),
             planner: Planner::new(MOVY_CHAINS, LANES),
             lanes: (0..LANES).map(|_| Vec::with_capacity(MOVY_CHAINS)).collect(),
             blocks_since_plan: 0,
@@ -1895,6 +1898,10 @@ impl ChainSlots {
                 host::log(&format!("chain {}: audio active (peak {})", i, peak));
             }
             mix_into(&mut out[..frames], scratch, &self.mixes[i]);
+            if self.link.wants(i) {
+                let (gl, gr) = self.mixes[i].channel_gains();
+                self.link.tap_gains(i, scratch, gl, gr);
+            }
             /* The same block, at the same gains, tapped into whichever buses
              * this track feeds — post-fader and post-pan by construction, not
              * by a second gain calculation that could drift from the mix's.
@@ -1985,6 +1992,10 @@ impl ChainSlots {
         let colo_ran_any = self.colo_ran.iter().any(|&r| r);
         for n in 0..SEND_BUSES {
             if self.send_work[n] || self.colo_ran[n] {
+                let ch = crate::link_shm::CH_SEND0 + n;
+                if self.link.wants(ch) {
+                    self.link.tap(ch, self.sends.bus_out(n, frames));
+                }
                 self.sends.finish(n, &mut out[..frames], frames);
             }
         }
@@ -1996,7 +2007,13 @@ impl ChainSlots {
         let t_master = self.cost.start();
         /* Every block: its volume and limiter are on the output whether or not
          * an FX is loaded, so the block always counts. */
-        self.master.run(&mut out[..frames]);
+        /* Movy Master is tapped between the FX and the limiter, which is
+         * where the master volume lives: the knob is for monitoring and must
+         * not ride the recording. */
+        self.master.run_fx(&mut out[..frames]);
+        self.link.tap(crate::link_shm::CH_MASTER, &out[..frames]);
+        self.master.limit(&mut out[..frames]);
+        self.link.finish_block();
         let master_ns = t_master.elapsed().as_nanos() as u64;
         self.master.add_cost(master_ns);
         // Elapsed, not `send_ns`: that one reads 0 when no bus ran, and a send

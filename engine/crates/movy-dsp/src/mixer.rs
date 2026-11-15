@@ -39,7 +39,7 @@ impl TrackMix {
     /// Constant-gain (linear) pan law. Not constant-power: these tracks are
     /// summed against Move's own, and a -3dB centre would make a movy track
     /// quieter than a host track at the same fader.
-    fn channel_gains(&self) -> (f32, f32) {
+    pub(crate) fn channel_gains(&self) -> (f32, f32) {
         if self.muted {
             return (0.0, 0.0);
         }
@@ -158,7 +158,7 @@ fn amp_at(frac: f32, top_db: f32) -> f32 {
 }
 
 #[inline]
-fn saturate(v: i32) -> i16 {
+pub(crate) fn saturate(v: i32) -> i16 {
     v.clamp(i16::MIN as i32, i16::MAX as i32) as i16
 }
 

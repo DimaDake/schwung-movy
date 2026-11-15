@@ -354,7 +354,7 @@ export class StandaloneTransport implements Transport {
      * deploy-host.sh). Any change → a new process runs it. */
     async deployEngine(): Promise<EngineDeploy> {
         const md5 = () => this.ssh('ableton',
-            `md5sum ${MOVY_DIR}/dsp.so ${MOVY_DIR}/movy-host ${MOVY_DIR}/chain-host.so 2>/dev/null | md5sum | cut -d' ' -f1`)
+            `md5sum ${MOVY_DIR}/dsp.so ${MOVY_DIR}/movy-host ${MOVY_DIR}/movy-link ${MOVY_DIR}/standalone ${MOVY_DIR}/chain-host.so 2>/dev/null | md5sum | cut -d' ' -f1`)
             .catch(() => '');
         try {
             if (!PREBUILT) {

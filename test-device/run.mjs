@@ -29,6 +29,7 @@ import './dist/scenarios/power.js';
 import './dist/scenarios/debug-tools.js';
 import './dist/scenarios/ext-midi.js';
 import './dist/scenarios/ducker.js';
+import './dist/scenarios/link.js';
 import './dist/scenarios/ai.js';
 import './dist/scenarios/midi-out.js';
 import './dist/scenarios/freeze.js';

@@ -58,29 +58,47 @@ static void leave_audio_core() {
 #endif
 }
 
-int main() {
-    leave_audio_core();
-    std::setvbuf(stdout, nullptr, _IOLBF, 0);
+// A block is 2.9 ms and a ring holds 93 ms: waking every 2 ms keeps up with
+// one or two blocks per sink per wake, and adds at most 2 ms on the way to Live.
+static constexpr int LOOP_MS = 2;
+// How often an idle sink is asked whether someone subscribed: 50 ms.
+static constexpr unsigned LISTEN_EVERY = 25;
 
-    // movy-host creates the segment right after it starts; give it 30 s.
-    movy_link_shm_t *s = nullptr;
-    for (int i = 0; i < 300 && !(s = open_segment()); i++) std::this_thread::sleep_for(milliseconds(100));
-    if (!s) { std::printf("movy-link: no segment from movy-host; exiting\n"); return 0; }
-    std::printf("movy-link: attached to movy-host pid %u\n", s->host_pid);
+static bool pid_alive(uint32_t pid) {
+    return pid && (kill((pid_t)pid, 0) == 0 || errno == EPERM);
+}
 
-    ableton::LinkAudio link(120.0, "Movy");
+// The segment of a LIVE movy-host. launch.sh starts us just before movy-host,
+// so the first segment we can open may still be the previous movy-host's
+// (its sweep has not run yet): one whose pid is gone is skipped, not joined.
+static movy_link_shm_t *wait_for_host() {
+    for (int i = 0; i < 300; i++) {
+        if (movy_link_shm_t *s = open_segment()) {
+            if (pid_alive(s->host_pid)) return s;
+            munmap(s, sizeof *s);
+        }
+        std::this_thread::sleep_for(milliseconds(100));
+    }
+    return nullptr;
+}
+
+// One movy-host's lifetime: returns once it is gone, with Link switched off.
+static void serve(ableton::LinkAudio &link, movy_link_shm_t *s) {
     std::vector<std::unique_ptr<ableton::LinkAudioSink>> sinks;
     mlink::Liveness live;
     mlink::Requests req;
-    uint32_t tempo_ack = 0, play_ack = 0, sent = 0;
+    uint32_t tempo_ack = 0, play_ack = 0, sent = 0, mask = 0;
     bool on = false;
+    unsigned loops = 0;
 
     for (;;) {
+        // Asking a sink whether anyone listens is the idle cost: with nobody
+        // subscribed it was 6.75 % of a core at every loop (device, 2026-11-15).
+        const bool ask = loops++ % LISTEN_EVERY == 0;
         auto now = link.clock().micros();
         uint64_t now_us = (uint64_t)now.count();
-        bool pid_ok = kill((pid_t)s->host_pid, 0) == 0 || errno == EPERM;
-        if (!live.alive(mlink::ld(s->heartbeat, mlink::ACQ), now_us, pid_ok)) {
-            std::printf("movy-link: movy-host gone; exiting\n");
+        if (!live.alive(mlink::ld(s->heartbeat, mlink::ACQ), now_us, pid_alive(s->host_pid))) {
+            std::printf("movy-link: movy-host %u gone\n", s->host_pid);
             break;
         }
         bool want = mlink::ld(s->enabled, mlink::ACQ) != 0;
@@ -104,6 +122,7 @@ int main() {
             sinks.clear();
             link.enableLinkAudio(false);
             link.enable(false);
+            mask = 0;
             mlink::st(s->subscribed, 0u, mlink::REL);
             mlink::publish(s, mlink::Snapshot{0, 0, 0, now_us, false, 0, tempo_ack, play_ack});
             on = false;
@@ -129,25 +148,25 @@ int main() {
             }
 
             auto st = link.captureAppSessionState();
-            uint32_t mask = 0;
             for (int ch = 0; ch < MOVY_LINK_CHANNELS; ch++) {
                 auto &sink = *sinks[ch];
-                bool listened = false;
+                enum { NONE, SENT, REFUSED } got = NONE;
                 mlink::drain(&s->ring[ch], [&](const movy_link_block_t &b) {
                     ableton::LinkAudioSink::BufferHandle h(sink);
-                    if (!h) return false;
+                    if (!h) { got = REFUSED; return false; }
                     std::copy(b.lr, b.lr + MOVY_LINK_FRAMES * 2, h.samples);
                     double beat = st.beatAtTime(microseconds(b.play_time_us), 4.0);
                     h.commit(st, beat, 4.0, MOVY_LINK_FRAMES, 2, 44100);
-                    listened = true;
+                    got = SENT;
                     sent++;
                     return true;
                 });
-                if (!listened) {
-                    // Nothing waited, so ask the sink directly whether anyone listens.
-                    ableton::LinkAudioSink::BufferHandle h(sink);
-                    listened = bool(h);
-                }
+                bool listened;
+                if (got != NONE) listened = got == SENT;
+                // An empty ring says nothing (the engine only fills subscribed
+                // ones): ask the sink every LISTEN_EVERY loops, else keep the bit.
+                else if (ask) listened = bool(ableton::LinkAudioSink::BufferHandle(sink));
+                else listened = (mask >> ch) & 1;
                 mask = mlink::with_bit(mask, ch, listened);
             }
             mlink::st(s->subscribed, mask, mlink::REL);
@@ -157,9 +176,24 @@ int main() {
             s->sent = sent;
         }
         mlink::st(s->link_alive, s->link_alive + 1, mlink::RLX);
-        std::this_thread::sleep_for(milliseconds(1));
+        std::this_thread::sleep_for(milliseconds(LOOP_MS));
     }
     sinks.clear();
+    link.enableLinkAudio(false);
     link.enable(false);
+}
+
+int main() {
+    leave_audio_core();
+    std::setvbuf(stdout, nullptr, _IOLBF, 0);
+    ableton::LinkAudio link(120.0, "Movy");
+    // A restarted movy-host (the harness, a Tools reopen) makes a new
+    // segment: serve that one too. No live movy-host for 30 s: done.
+    while (movy_link_shm_t *s = wait_for_host()) {
+        std::printf("movy-link: attached to movy-host pid %u\n", s->host_pid);
+        serve(link, s);
+        munmap(s, sizeof *s);
+    }
+    std::printf("movy-link: no movy-host; exiting\n");
     return 0;
 }

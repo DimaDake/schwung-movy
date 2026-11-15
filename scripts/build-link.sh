@@ -16,6 +16,16 @@ DIR="$(cd "$(dirname "$0")/.." && pwd)"
 SCHWUNG="${SCHWUNG:-$DIR/../schwung}"
 TAG="$SCHWUNG_PIN_TAG"
 
+if [[ "${1:-}" == "--mac-probe" ]]; then
+    # A probe on this Mac subscribes over the real WiFi/USB path
+    # (scripts/measure-link-cost.sh). Needs the SDK the aarch64 build extracted.
+    SDK=$(ls -d "$DIR"/host/build/link-* 2>/dev/null | head -1)
+    [[ -n "$SDK" ]] || { echo "ERROR: run scripts/build-link.sh once first (extracts the SDK)" >&2; exit 1; }
+    "${CXX:-c++}" -std=c++17 -O2 -DLINK_PLATFORM_MACOSX=1 -Wno-multichar -I"$SDK/include" \
+        -I"$SDK/modules/asio-standalone/asio/include" "$DIR/link/movy_link_probe.cpp" -o "$DIR/dist/movy-link-probe-mac"
+    echo "dist/movy-link-probe-mac built"
+    exit 0
+fi
 if [[ "${1:-}" == "--host-test" ]]; then
     OUT="${TMPDIR:-/tmp}/movy-link-tests"
     mkdir -p "$OUT"

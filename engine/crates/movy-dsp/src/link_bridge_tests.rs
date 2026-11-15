@@ -167,3 +167,27 @@ fn link_tap_cost() {
     println!("link tap: {us:.2} us/block, 20 channels");
     assert!(us < 5.0, "{us:.2} us/block");
 }
+
+#[test]
+fn helper_stall_reads_as_alone() {
+    // movy-link died mid-session: its last snapshot said one peer. Following a
+    // frozen timeline would fight every tempo change, so a helper whose own
+    // counter stops for ~1 s is read as no session at all.
+    let seg = Seg::new();
+    seg.s().peers = 1;
+    seg.s().tempo = 120.0;
+    seg.s().snap_seq = 2;
+    let mut b = LinkBridge::from_raw(seg.0);
+    for i in 0..10 {
+        seg.s().link_alive = i;
+        assert_eq!(b.begin_block(12000).0.peers, 1, "alive");
+    }
+    for _ in 0..STALL_BLOCKS {
+        b.begin_block(12000);
+    }
+    let (snap, _, mask) = b.begin_block(12000);
+    assert_eq!(snap.peers, 0, "stalled helper: alone");
+    assert_eq!(mask, 0, "and nothing is tapped for it");
+    seg.s().link_alive = 99;
+    assert_eq!(b.begin_block(12000).0.peers, 1, "back as soon as it counts again");
+}

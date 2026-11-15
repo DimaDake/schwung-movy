@@ -1252,6 +1252,16 @@ impl Instance {
     }
 
     fn render(&mut self, out_audio: &mut [i16]) {
+        /* Tests only: a render drains the process-global MIDI queue and
+         * publishes the global clock, so the tests that check either one
+         * under its lock must never see a render from a neighbour mid-way.
+         * Taken here, once, in the one order (queue, then clock), rather than
+         * in every test that renders an instance. */
+        #[cfg(test)]
+        let _locks = (
+            crate::midi_out::TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner()),
+            host_vtable::CLOCK_TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner()),
+        );
         use block_prof::Stage;
         let mut lap = std::time::Instant::now();
         self.blocks += 1;

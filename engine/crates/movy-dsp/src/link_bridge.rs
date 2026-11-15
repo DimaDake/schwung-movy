@@ -15,6 +15,11 @@ use seq_core::link_follow::{LinkRequests, LinkSnapshot};
 /// (plans/2026-11-15-ableton-link-plan.md Task 8).
 pub const OUTPUT_LATENCY_US: u64 = 2 * 2902;
 
+/// Blocks (~1 s) without movy-link's own counter moving before its last
+/// snapshot is no longer believed: following a dead helper's frozen timeline
+/// would fight every tempo change made on movy.
+pub const STALL_BLOCKS: u32 = 345;
+
 pub struct LinkBridge {
     shm: *mut LinkShm,
     last: LinkSnapshot,
@@ -22,6 +27,8 @@ pub struct LinkBridge {
     tapped: u32,
     out_us: u64,
     blocks: u64,
+    alive_seen: u32,
+    stalled_for: u32,
 }
 
 // The segment outlives the instance and only the audio thread touches it.
@@ -36,7 +43,8 @@ fn a64<'a>(p: *mut u64) -> &'a AtomicU64 {
 
 impl LinkBridge {
     pub fn inert() -> Self {
-        LinkBridge { shm: core::ptr::null_mut(), last: LinkSnapshot::default(), mask: 0, tapped: 0, out_us: 0, blocks: 0 }
+        LinkBridge { shm: core::ptr::null_mut(), last: LinkSnapshot::default(), mask: 0, tapped: 0, out_us: 0, blocks: 0,
+                     alive_seen: 0, stalled_for: 0 }
     }
 
     /// The segment movy-host created, or inert.
@@ -103,7 +111,20 @@ impl LinkBridge {
                 }
             }
             self.last.enabled = a32(&raw mut (*p).enabled).load(Acquire) != 0;
+            let alive = a32(&raw mut (*p).link_alive).load(Relaxed);
+            if alive != self.alive_seen {
+                self.alive_seen = alive;
+                self.stalled_for = 0;
+            } else {
+                self.stalled_for = self.stalled_for.saturating_add(1);
+            }
             self.mask = if self.last.enabled { a32(&raw mut (*p).subscribed).load(Relaxed) } else { 0 };
+        }
+        if self.stalled_for >= STALL_BLOCKS {
+            // Re-read from the segment next block, so a helper that counts
+            // again is believed at once; the status says "alone" meanwhile.
+            self.mask = 0;
+            self.last.peers = 0;
         }
         (self.last, self.out_us, self.mask)
     }

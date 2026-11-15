@@ -43,7 +43,6 @@ fn drain(p: *mut LinkShm) {
 
 #[test]
 fn track_tap_is_post_fader_and_master_is_pre_volume() {
-    let _q = crate::midi_out::test_guard(); // render drains the global MIDI queue
     let (mut inst, p) = instance();
     inst.chains.set_mix(0, crate::mixer::TrackMix { gain: 0.5, ..Default::default() });
     inst.chains.master_param("vol", "0.25");
@@ -69,7 +68,6 @@ fn track_tap_is_post_fader_and_master_is_pre_volume() {
 
 #[test]
 fn muted_track_streams_silence() {
-    let _q = crate::midi_out::test_guard();
     let (mut inst, p) = instance();
     inst.chains.set_mix(0, crate::mixer::TrackMix { muted: true, ..Default::default() });
     let mut audio = vec![0i16; 256];

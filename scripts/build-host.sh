@@ -53,7 +53,7 @@ FLOOR=$(grep -o "SCHWUNG_FLOOR = '[^']*'" "$DIR/src/renderer/schwung-floor.ts" |
 # "+" marks a build from a tree whose host/ differs from HEAD, untracked
 # files included — a dirty host must never print as the commit it is not.
 MOVY_SHA="$(git -C "$DIR" rev-parse --short HEAD)$([[ -z "$(git -C "$DIR" status --porcelain -- host standalone)" ]] || echo +)"
-CFLAGS=(-O2 -g -Wall -Wextra -Wno-unused-parameter -Wno-cast-function-type -std=gnu11 -pthread
+CFLAGS=(-I"$DIR/link" -O2 -g -Wall -Wextra -Wno-unused-parameter -Wno-cast-function-type -std=gnu11 -pthread
         -DSCHWUNG_TAG="\"$TAG\"" -DMOVY_COMMIT="\"$MOVY_SHA\"" -DSCHWUNG_FLOOR="\"$FLOOR\""
         -I"$DIR/host" -I"$SRC/src" -I"$SRC/src/host" -I"$SRC/$QJS_DIR")
 # The test bus's UI_EVAL runs arbitrary JS in the UI: dev builds only.

@@ -20,6 +20,7 @@
 #include "handover.h"
 #include "js_display.h"
 #include "log.h"
+#include "link_host.h"
 #include "mirror.h"
 #include "movy_host.h"
 #include "power.h"
@@ -134,6 +135,7 @@ static int run(void) {
     }
     display_init();
     mirror_init("/dev/shm", MH_SCHWUNG_DIR "/config/features.json");
+    link_host_init("/dev/shm", MH_SCHWUNG_DIR "/config/features.json");
     speaker_init(MH_SCHWUNG_DIR "/config/features.json", MH_SCHWUNG_DIR "/jack_state");
     audio_start(&spi);
     char path[320];

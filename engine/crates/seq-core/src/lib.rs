@@ -6,6 +6,7 @@ pub mod clip;
 pub mod clock;
 pub mod command;
 pub mod engine;
+pub mod link_follow;
 pub mod persist;
 pub mod track;
 pub mod undo;

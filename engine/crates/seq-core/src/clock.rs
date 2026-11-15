@@ -16,7 +16,15 @@ pub struct Clock {
     threshold: u64,
     /// Monotonic master tick counter since transport start.
     pub tick: u64,
+    /// Ableton Link's phase correction (`link_follow.rs`): a rate offset on
+    /// top of the tempo, so nudging toward the session's beat never changes
+    /// the tempo the Set stores or the UI shows.
+    trim_ppm: i32,
 }
+
+/// The largest phase trim: 0.5 % of the tempo. Notes land a little early or
+/// late while it pulls in; pitch is untouched (it is the sequencer's clock).
+pub const TRIM_PPM_MAX: i32 = 5000;
 
 pub const BPM_X100_MIN: u32 = 2000; // 20 BPM
 pub const BPM_X100_MAX: u32 = 30000; // 300 BPM
@@ -29,7 +37,16 @@ impl Clock {
             accum: 0,
             threshold: sample_rate as u64 * 60 * 100,
             tick: 0,
+            trim_ppm: 0,
         }
+    }
+
+    pub fn trim_ppm(&self) -> i32 {
+        self.trim_ppm
+    }
+
+    pub fn set_trim_ppm(&mut self, ppm: i32) {
+        self.trim_ppm = ppm.clamp(-TRIM_PPM_MAX, TRIM_PPM_MAX);
     }
 
     pub fn bpm_x100(&self) -> u32 {
@@ -54,7 +71,12 @@ impl Clock {
     /// Advance by one audio block of `frames`; returns how many master ticks
     /// fire within this block (0..=n). The caller services each tick.
     pub fn advance(&mut self, frames: u32) -> u32 {
-        self.accum += frames as u64 * self.bpm_x100 as u64 * PPQN as u64;
+        let inc = frames as u64 * self.bpm_x100 as u64 * PPQN as u64;
+        self.accum += if self.trim_ppm == 0 {
+            inc
+        } else {
+            (inc as i128 * (1_000_000 + self.trim_ppm) as i128 / 1_000_000) as u64
+        };
         let mut fired = 0;
         while self.accum >= self.threshold {
             self.accum -= self.threshold;
@@ -116,6 +138,21 @@ mod tests {
         // Exact expectation: floor(frames * bpm_x100 * PPQN / (rate*60*100))
         let expected = frames_done * 13333 * PPQN as u64 / (RATE as u64 * 60 * 100);
         assert_eq!(ticks, expected);
+    }
+
+    #[test]
+    fn clock_trim_scales_tick_rate() {
+        // +1000 ppm for one minute at 120 BPM: 0.1 % more ticks (11520 -> ~11531.5).
+        let blocks = (RATE as u64 * 60) / FRAMES as u64;
+        let mut plain = Clock::new(RATE, 12000);
+        let mut fast = Clock::new(RATE, 12000);
+        fast.set_trim_ppm(1000);
+        let (a, b) = (run_blocks(&mut plain, blocks), run_blocks(&mut fast, blocks));
+        let want = a as f64 * 1.001;
+        assert!((b as f64 - want).abs() <= 1.5, "plain={a} trimmed={b}");
+        assert_eq!(fast.bpm_x100(), 12000, "a trim is never the stored tempo");
+        fast.set_trim_ppm(99_999);
+        assert_eq!(fast.trim_ppm(), 5000, "clamped to +-0.5 %");
     }
 
     #[test]

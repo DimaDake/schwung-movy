@@ -16,6 +16,9 @@ pub use ai_clip::{parse_ai_notes, AiClipWrite};
 mod note_view;
 mod phase;
 mod freeze_lock;
+mod link;
+#[cfg(test)]
+mod link_tests;
 pub use freeze_lock::{clip_edit_verb as freeze_lock_verb, FreezeLock, LoopPos, RecWindow, TrackWindows};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -61,6 +64,8 @@ struct Gate {
 
 pub struct Engine {
     pub clock: Clock,
+    /// Ableton Link: what the session last said and what we asked of it.
+    pub link: crate::link_follow::LinkFollow,
     pub tracks: Vec<Track>,
     pub playing: bool,
     /// Track whose active clip the UI is watching (step LEDs / status).
@@ -230,6 +235,7 @@ impl Engine {
     pub fn new(sample_rate: u32, bpm_x100: u32) -> Self {
         Engine {
             clock: Clock::new(sample_rate, bpm_x100),
+            link: Default::default(),
             tracks: (0..NUM_TRACKS).map(|_| Track::new()).collect(),
             playing: false,
             watch_track: 0,
@@ -1803,7 +1809,8 @@ impl Engine {
     /// Follow is automatic (design §7 Phase 3): engaged while we play and
     /// Move's transport runs.
     fn follow_active(&self) -> bool {
-        self.playing && self.ext_running
+        // Link wins over MIDI clock while it has peers (link_follow.rs).
+        self.playing && self.ext_running && !self.link.active()
     }
 
     /// External MIDI transport, delivered to movy-dsp on_midi.
@@ -1811,6 +1818,9 @@ impl Engine {
     /// runs (design §7 Phase 3). Engage/disengage edges are handled in
     /// advance_block; this only maintains the external-clock model.
     pub fn on_external_realtime(&mut self, status: u8, out: &mut Vec<OutEvent>) {
+        if self.link.active() {
+            return;
+        }
         match status {
             0xFA => {
                 self.ext_running = true;

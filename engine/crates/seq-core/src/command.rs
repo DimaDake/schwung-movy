@@ -178,11 +178,13 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
     }
 
     match verb {
-        "play" => engine.play(),
-        "stop" => engine.stop(out),
+        /* Through Link's door (engine/link.rs): alone it is play/stop/bpm as
+         * before; with peers Play lands on the session's next bar. */
+        "play" => engine.play_requested(),
+        "stop" => engine.stop_requested(out),
         "bpm" => {
             if let Some(v) = next() {
-                engine.clock.set_bpm_x100(v.clamp(0, u32::MAX as i64) as u32);
+                engine.tempo_requested(v.clamp(0, u32::MAX as i64) as u32);
             }
         }
         "swing" => {

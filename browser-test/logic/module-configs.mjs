@@ -107,6 +107,16 @@ _log('\nTest: a module that describes itself wins, unless movy supersedes it');
     globalThis.host_read_file = () => null;
     eq('bundled is still the fallback', loadModuleConfig('mrdrums')?.id, 'mrdrums');
     eq('and an unknown module is still null', loadModuleConfig('nope'), null);
+
+    // A stale module file must not prevent the bundled or generic layout.
+    globalThis.host_read_file = (p) =>
+        /movy_config\.json$/.test(String(p))
+            ? JSON.stringify({ module: '4k-eq', pages: [{ name: 'MASTER', params: ['eq_type'] }] })
+            : null;
+    eq('a config without banks falls back to the bundled layout',
+       loadModuleConfig('mrdrums')?.id, 'mrdrums');
+    eq('an unbundled config without banks falls back to generic layout',
+       loadModuleConfig('4k-eq'), null);
     globalThis.host_read_file = saved;
 }
 

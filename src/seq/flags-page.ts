@@ -33,7 +33,7 @@ export const ACTION_ROWS = [
     /* First, not last: the device scenarios reach BACKUPS by clamping onto the
      * last row and stepping up one, so MIGRATE FROM MOVE must stay last. */
     { name: 'CLICK VOLUME', hint: 'Metronome loudness. Turn knob 1: 0 to +11 dB.' },
-    { name: 'LINK', hint: 'Ableton Link: share tempo, Play and audio with Live.' },
+    { name: 'LINK', hint: 'Ableton Link: tempo, Play and audio with Live. Knob 1.' },
     { name: 'BACKUPS', hint: 'Older versions of this set. Restore one.' },
     /* Its hint and value are live (migrate-action.ts); these are the fallback. */
     { name: 'MIGRATE FROM MOVE', hint: 'Bring every Set over from Move.' },

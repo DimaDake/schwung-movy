@@ -9,7 +9,8 @@ import {
     flagsPageState, flagsPageActive, flagsPageJog, resetFlagsPage,
     flagsRowCount, backupsRowSelected, clickRowSelected, migrateRowSelected, actionRowSelected,
     readPrefClickDb, clickVolumeTurn, clickVolumeLabel, resetClickVolume,
-    readPrefLink, linkSettingOn, linkSettingToggle, linkSettingLabel, resetLinkSetting, linkRowSelected,
+    readPrefLink, linkSettingOn, linkSettingToggle, linkSettingTurn, linkSettingLabel, resetLinkSetting, linkRowSelected,
+    flagsKnobLevel,
     buildFlagsPageVM, VISIBLE_ROWS, firstVisibleRow,
     wrapWords, HINT_W, HINT_LINES, fontWidth, W,
     readPrefModuleBlacklist, installMockEngine, uninstallMockEngine,
@@ -207,6 +208,43 @@ export async function run() {
     ok('and stores that', !readPrefLink());
     uninstallMockEngine(); uninstallMockFs();
     resetLinkSetting(); resetSeqEngine();
+}
+
+/* ── Knob 1 edits the selected row, and its LED shows the value ──────────── */
+{
+    _log('\nSettings knob 1');
+
+    installMockFs();
+    resetLinkSetting(); resetClickVolume(); resetFlagsPage();
+    const eng = installMockEngine();
+
+    /* CLICK VOLUME: the LED is the level across the knob's range, as on a
+     * parameter page (0 dB at the bottom, +11 dB at the top). */
+    eq('knob_led_click_at_default', flagsKnobLevel(), 0);
+    clickVolumeTurn(11);
+    eq('knob_led_click_at_top', flagsKnobLevel(), 1);
+
+    /* LINK: right is on, left is off; turning further changes nothing. */
+    flagsPageJog(1);
+    ok('on the LINK row', linkRowSelected());
+    eq('knob_led_link_off', flagsKnobLevel(), 0);
+    ok('turning left at off does nothing', !linkSettingTurn(-1));
+    ok('link_knob_right_turns_on', linkSettingTurn(1) && linkSettingOn());
+    eq('and the engine is told', eng.params.link, '1');
+    ok('and it is stored', readPrefLink());
+    eq('knob_led_link_on', flagsKnobLevel(), 1);
+    ok('turning right again does nothing', !linkSettingTurn(3));
+    ok('link_knob_left_turns_off', linkSettingTurn(-2) && !linkSettingOn());
+    eq('and the engine hears that too', eng.params.link, '0');
+
+    /* BACKUPS and MIGRATE are clicked, not turned: knob 1 goes dark there. */
+    flagsPageJog(1);
+    eq('knob_led_dark_on_backups', flagsKnobLevel(), null);
+    flagsPageJog(1);
+    eq('knob_led_dark_on_migrate', flagsKnobLevel(), null);
+
+    uninstallMockEngine(); uninstallMockFs();
+    resetLinkSetting(); resetClickVolume(); resetFlagsPage(); resetSeqEngine();
 }
 
 /* ── The hint band: every row says what it does, in two lines ────────────── */

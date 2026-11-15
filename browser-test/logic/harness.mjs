@@ -40,8 +40,8 @@ import {
     flagsPageState, flagsPageActive, flagsPageJog, resetFlagsPage,
     flagsRowCount, backupsRowSelected, clickRowSelected, linkRowSelected, migrateRowSelected, actionRowSelected,
 } from '../../dist/esm/seq/flags-page.js';
-import { linkSettingOn, linkSettingToggle, linkSettingLabel, resetLinkSetting } from '../../dist/esm/seq/link-setting.js';
-import { buildFlagsPageVM } from '../../dist/esm/seq/flags-page-vm.js';
+import { linkSettingOn, linkSettingToggle, linkSettingTurn, linkSettingLabel, resetLinkSetting } from '../../dist/esm/seq/link-setting.js';
+import { buildFlagsPageVM, flagsKnobLevel } from '../../dist/esm/seq/flags-page-vm.js';
 import { schwungPageFor,
          schwungGridReload, schwungGridDrop } from '../../dist/esm/renderer/schwung-grid.js';
 import {
@@ -257,7 +257,8 @@ export {
     wrapWords, HINT_W, HINT_LINES, DETENT_DIV, fontWidth, W,
     serializeUiState, applyUiState, resetUiState,
     readPrefModuleBlacklist, readPrefClickDb, clickVolumeTurn, clickVolumeLabel, resetClickVolume,
-    readPrefLink, linkSettingOn, linkSettingToggle, linkSettingLabel, resetLinkSetting, linkRowSelected,
+    readPrefLink, linkSettingOn, linkSettingToggle, linkSettingTurn, linkSettingLabel, resetLinkSetting, linkRowSelected,
+    flagsKnobLevel,
     buildCpuPageVM, buildSendColumns, FULL_SCALE_US, USABLE_BLOCK, scaleFor, scaleLabel,
     openParamPage, closeParamPage, paramPageActive,
     perfPhase, perfPhaseEnd, perfProbeTick,

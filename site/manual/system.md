@@ -28,13 +28,15 @@ or **Back** to carry on. Movy saves the Set, then the Move shuts down.
 
 **Shift** + **Step 2** opens Settings, a list: **jog** to move, **jog click** to
 open a row, **Back** to close. The line at the bottom explains the selected row.
+**Knob 1** changes the selected row's value, and its light shows that value
+(dim at the bottom, bright at the top), as on a parameter page.
 
 ![Settings](../assets/screens/flags-top.png){ .small }
 
 | Row | What it does |
 | --- | --- |
 | **CLICK VOLUME** | How loud the metronome and count-in are. Turn **knob 1**: 0 dB to +11 dB. Kept for this Move, not per Set. |
-| **LINK** | Ableton Link on or off: **jog click** switches it (see [Playing with Live over Link](#playing-with-live-over-link)). Off until you turn it on; kept for this Move, not per Set. |
+| **LINK** | Ableton Link on or off: turn **knob 1** right for on, left for off (or **jog click**) (see [Playing with Live over Link](#playing-with-live-over-link)). Off until you turn it on; kept for this Move, not per Set. |
 | **BACKUPS** | Older versions of the open Set (see [Backups](sets.md#backups)). |
 | **MIGRATE FROM MOVE** | Copy work from Movy 0.35 and earlier, and Schwung, out of your Move Sets again (see [Work from older Movy versions](sets.md#work-from-older-movy-versions-and-schwung)). Click once to arm (`CONFIRM?`), again to run. |
 
@@ -80,7 +82,7 @@ Movy can join an Ableton Link session: it shares tempo, beat and Play/Stop with
 Live (or any Link app), and sends each track to Live as its own audio input.
 
 **Turn it on:** **Shift** + **Step 2** opens [Settings](#settings); jog to
-**LINK** and **jog click** so it reads **ON**. It is off until you turn it on,
+**LINK** and turn **knob 1** right so it reads **ON**. It is off until you turn it on,
 and stays as you left it.
 
 **Connect:** Move and the computer on the same WiFi, or Move plugged into the

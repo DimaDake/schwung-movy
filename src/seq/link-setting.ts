@@ -21,9 +21,21 @@ export function pushLinkSetting(set: (key: string, value: string) => void): void
 
 /** Jog click on the row. */
 export function linkSettingToggle(): void {
-    on = !linkSettingOn();
-    writePrefLink(on);
-    paramSet('link', on ? '1' : '0');
+    set(!linkSettingOn());
+}
+
+/** Knob 1 on the row: right is on, left is off, like a two-position switch.
+ *  True when the value moved. */
+export function linkSettingTurn(delta: number): boolean {
+    if (delta === 0 || (delta > 0) === linkSettingOn()) return false;
+    set(delta > 0);
+    return true;
+}
+
+function set(next: boolean): void {
+    on = next;
+    writePrefLink(next);
+    paramSet('link', next ? '1' : '0');
 }
 
 export function linkSettingLabel(): string {

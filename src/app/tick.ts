@@ -5,7 +5,7 @@ import { mainPageActive } from '../seq/main-page.js';
 import { mixerHoldTick, mixerMeterDue, mixerPageActive } from '../seq/mixer-page.js';
 import { headerOnlyVM } from '../seq/header-vm.js';
 import { clipPageActive } from '../seq/clip-page.js';
-import { buildFlagsPageVM } from '../seq/flags-page-vm.js';
+import { buildFlagsPageVM, flagsKnobLevel } from '../seq/flags-page-vm.js';
 import { buildVersionsPageVM } from '../seq/versions-page-vm.js';
 import { versionsPageState } from '../seq/versions-page.js';
 import { renderSetsView } from '../renderer/sets-view.js';
@@ -817,7 +817,10 @@ function tickBody(): void {
                               sessionFailScope(), loadingWaited, migrationProgress());
         } else if (appState.currentView === VIEW_FLAGS) {
             renderFlagsView(buildFlagsPageVM());
-            updateSingleKnobLED(-1, 0);   // no knob does anything here
+            /* Knob 1 edits the selected row; its LED is that row's value, dark
+             * on a row it cannot change. */
+            const nv = flagsKnobLevel();
+            updateSingleKnobLED(nv === null ? -1 : 0, nv ?? 0);
         } else if (textEntryActive()) {
             /* The Sets page's rename: Schwung's keyboard draws the whole screen. */
             textEntry()?.drawTextEntry();

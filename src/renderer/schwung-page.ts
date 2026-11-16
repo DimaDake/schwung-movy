@@ -117,6 +117,8 @@ export interface SchwungPage {
     regularKnobAt(slot: number): boolean;
     /** `shift` only means something on a preset door: it steps the bank. */
     knobTurn(slot: number, delta: number, shift?: boolean): void;
+    /** Step the preset list from any page (an external controller's encoder). */
+    presetStep(delta: number): boolean;
     knobTouch(slot: number, down: boolean): void;
     /** Jog click. Returns a host intent ("open") when Schwung asks for one. */
     click(shift?: boolean): SchwungIntent | null;
@@ -271,6 +273,7 @@ export function createSchwungPage(
             seat.onBlock() || hier.padScopedLevel(ctl.pages?.[ctl.pageIndex]?.level)),
         regularKnobAt: (slot: number) => regularKnob(ctl.metaAt ? ctl.metaAt(slot) : null, lib),
         knobTurn: input.knobTurn,
+        presetStep: input.presetStep,
         knobTouch: input.knobTouch,
         click: input.click,
         back: input.back,

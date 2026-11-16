@@ -39,6 +39,8 @@ export interface PageInput {
     /** Where knob 1 sits in the preset list (0..1) while it browses one, else
      *  null — so its LED says "this knob does something" like any bound knob. */
     presetKnobLevel(): number | null;
+    /** Step the preset list from any page — see PresetKnob.stepAnywhere. */
+    presetStep(delta: number): boolean;
 }
 
 export function createPageInput(ctl: any, lib: any, port: PageParamSource,
@@ -162,6 +164,7 @@ export function createPageInput(ctl: any, lib: any, port: PageParamSource,
         },
         knobTouch: (slot: number, down: boolean) => { ctl.onKnobTouch(slot, down); },
         presetKnobLevel: preset.level,
+        presetStep: (delta: number) => preset.stepAnywhere(delta),
         /*
          * The whole ladder, Schwung's. The old binding was `ctl.onClick()` with
          * no slot and the return discarded, which silently dropped three

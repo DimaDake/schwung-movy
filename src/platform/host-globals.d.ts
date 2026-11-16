@@ -27,6 +27,9 @@ declare function shadow_get_params(slot: number, key: string, payload: string): 
 declare function shadow_set_params(slot: number, key: string, payload: string): boolean;
 /* Native LED / surface MIDI: [cin, status, data1, data2], cable 0. */
 declare function move_midi_internal_send(data: number[]): void;
+/* USB-A MIDI out: [cin, status, data1, data2], cable 2 (an external
+ * controller's LEDs — midi/ext-knobs.ts). */
+declare function move_midi_external_send(data: number[]): void;
 /* Evaluates a module's own ui.js canvas in this runtime. */
 declare function shadow_load_ui_module(path: string): boolean;
 declare function host_exit_module(): void;

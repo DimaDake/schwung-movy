@@ -50,6 +50,9 @@ export interface Platform {
     /* ── surface and lifecycle ── */
     /** Cable-0 MIDI to the hardware: LEDs and their animation channels. */
     surfaceSend(data: number[]): void;
+    /** Cable-2 MIDI out of the USB-A port: an external controller's LEDs
+     *  (midi/ext-knobs.ts). */
+    externalSend(data: number[]): void;
     /** Load a module's own `ui.js` canvas into this runtime. */
     loadUiModule(path: string): boolean;
     exit(): void;

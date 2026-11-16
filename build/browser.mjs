@@ -347,6 +347,9 @@ await esbuild.build({
         resolve(root, 'src/track/pad-route.ts'),
         resolve(root, 'src/track/ext-route.ts'),
         resolve(root, 'src/midi/external.ts'),
+        /* The external knob controller's mapping, pure — driven by the
+         * logic suite (ext-knobs.mjs) without a router behind it. */
+        resolve(root, 'src/midi/ext-knob-map.ts'),
         resolve(root, 'src/track/chain-persist.ts'),
         resolve(root, 'src/track/chains-file.ts'),
         resolve(root, 'src/track/chain-payload.ts'),

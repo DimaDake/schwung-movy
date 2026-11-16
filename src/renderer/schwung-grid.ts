@@ -76,7 +76,7 @@ function deadPage(componentKey: string): SchwungPage {
     mlog('schwung-grid: no virtual source for ' + componentKey);
     return {
         reload() {}, tick() {}, pageCount: 0, pageIndex: 0,
-        changePage() {}, goToPage() {}, keyAt: () => null, targetAt: () => null,
+        changePage() {}, goToPage() {}, presetStep: () => false, keyAt: () => null, targetAt: () => null,
         labelAt: () => null, knobParamInfo: () => null, knobLevels: () => new Array(8).fill(null),
         marks: () => 0,
         liveSig: () => '',

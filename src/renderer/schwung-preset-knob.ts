@@ -16,6 +16,10 @@ export interface PresetKnob {
     turn(delta: number, shift: boolean): boolean;
     /** Where knob 1 sits in the preset list (0..1) on a door, else null. */
     level(): number | null;
+    /** Step the list from whatever page is on screen: land on the door, take
+     *  the step, come back. False when the module has no preset door. For an
+     *  external controller's preset encoder (midi/ext-knobs.ts). */
+    stepAnywhere(delta: number): boolean;
 }
 
 interface BankItem { index: number }
@@ -102,6 +106,28 @@ export function createPresetKnob(ctl: any, lib: any, port: PageParamSource,
         return true;
     };
 
+    /*
+     * THE CONTROLLER LEARNS A LIST BY SITTING ON IT: tickPreset reads count,
+     * index and name one per tick while the door is on screen. A visit as
+     * short as `stepAnywhere`'s never ticks, and stepPreset refuses a list
+     * whose count is still 0 — found on device as a preset encoder that turned
+     * and did nothing. So the two reads it needs are done now, through the same
+     * port. The index is left alone while a previous step is settling, for the
+     * reason tickPreset leaves it: a read issued before that write lands after
+     * it and drags the selection back.
+     */
+    const seedDoor = (p: any): void => {
+        const s = ctl.state;
+        if (!s || !p) return;
+        if (!s.preset) s.preset = {};
+        const st = s.preset[p.name] || (s.preset[p.name] = { count: 0, index: 0, name: null, read: 0 });
+        const c = parseInt(port.getParam(qualify(p.countParam)) ?? '', 10);
+        if (isFinite(c) && c >= 0) st.count = c;
+        if (((s.settleUntil && s.settleUntil[p.listParam]) || 0) > s.tickCount) return;
+        const i = parseInt(port.getParam(qualify(p.listParam)) ?? '', 10);
+        if (isFinite(i) && i >= 0) st.index = i;
+    };
+
     return {
         turn(delta: number, shift: boolean): boolean {
             const p = doorPage();
@@ -129,6 +155,20 @@ export function createPresetKnob(ctl: any, lib: any, port: PageParamSource,
             if (!p) return null;
             const st = ctl.state && ctl.state.preset ? ctl.state.preset[p.name] : null;
             return st && st.count > 1 ? Math.min(1, Math.max(0, st.index / (st.count - 1))) : 0;
+        },
+        stepAnywhere(delta: number): boolean {
+            const pages: any[] = ctl.pages || [];
+            const door = pages.findIndex((p) => p && p.kind === lib.PAGE_PRESET
+                && !(Array.isArray(p.keys) && p.keys[0]));
+            if (door < 0) return false;
+            const back = ctl.pageIndex;
+            if (back !== door) ctl.goToPage(door, { remember: false });
+            try {
+                seedDoor(pages[door]);
+                return this.turn(delta, false);
+            } finally {
+                if (back !== door) ctl.goToPage(back, { remember: false });
+            }
         },
     };
 }

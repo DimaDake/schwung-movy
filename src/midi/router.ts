@@ -160,7 +160,7 @@ function masterModel() { return appState.masterFxModels[appState.masterChainInde
 
 /* The model the 8 knobs edit and the screen shows: the master FX slot while the
  * master chain is on screen (Session mode), otherwise the active track slot. */
-function knobModel() { return masterChainActive() ? masterModel() : activeModel(); }
+export function knobModel() { return masterChainActive() ? masterModel() : activeModel(); }
 
 /* Which pair of LFOs a knob on that model can be assigned to. */
 function knobLfoScope() {

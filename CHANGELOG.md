@@ -25,6 +25,11 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **A synth on USB-A kept its last note after Movy closed.** With the MIDI
+  Out module on the selected track, closing Movy while a clip's note sounded
+  (or a pad was still held) left that note hanging on the external synth until
+  it was switched off. Movy now stops its sequencer and closes every note as it
+  closes; a Link session keeps playing. ENGINE 0.121.1.
 - **Clicks every 2 s while editing a Set of heavy instruments.** The autosave
   read every instrument's preset in one audio block (1.3-3.3 ms of a 2.9 ms
   block); it now reads a few per block.

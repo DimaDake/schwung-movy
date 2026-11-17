@@ -243,6 +243,44 @@ _log('\nTest: onUnload releases live notes and sequencer gates');
   globalThis.shadow_send_midi_to_dsp = origSendMidi;
 }
 
+_log('\nTest: onUnload closes what the engine holds on the ACTIVE track');
+
+/* The ordinary case the block above resets away: the active track's pads
+ * belong to the engine, so the mirror's release skips that track's gates, and
+ * a synth on USB-A behind the MIDI Out module kept the note after Close Movy.
+ * The engine closes what it holds itself: `halt` for its gates, a changed pad
+ * map for a pad still held. */
+{
+  const L = await import('../../dist/esm/keyboard/held-notes.js');
+  const { onUnload } = await import('../../dist/esm/app/unload.js');
+  const { seqState, resetSeqState } = await import('../../dist/esm/seq/state.js');
+  const { syncPadRoute, resetPadRoute, engineOwnsPads } = await import('../../dist/esm/track/pad-route.js');
+  const { selectTrack } = await import('../../dist/esm/track/focus.js');
+
+  const engine = installMockEngine();
+  resetSeqEngine(); resetSeqState(); L.drainAll(); resetPadRoute();
+  seqEngineTick();                       // boot probe → ready
+  const origSendMidi = globalThis.shadow_send_midi_to_dsp;
+  globalThis.shadow_send_midi_to_dsp = () => {};
+
+  selectTrack(0);
+  syncPadRoute(globalThis.host_module_set_param);
+  eq('precondition: the engine owns track 0\'s pads', engineOwnsPads(0), true);
+  seqState.activeNotes[0 * 128 + 60] = 1;   // a clip's note sounding on the active track
+  engine.ops.length = 0;
+
+  onUnload();
+
+  eq('the engine is told to halt: it closes its own gates and starts none', engine.ops.includes('halt'), true);
+  const map = String(engine.params['padmap'] ?? '').split(',');
+  eq('the pads are taken back, so the engine drains what they hold',
+     map.length === 33 && map.every(v => v === '-1'), true);
+  eq('and the engine no longer owns them', engineOwnsPads(0), false);
+
+  globalThis.shadow_send_midi_to_dsp = origSendMidi;
+  uninstallMockEngine(); resetSeqEngine(); resetSeqState(); L.drainAll(); resetPadRoute();
+}
+
 /* ── Knob LEDs are sent on change only ────────────────────────────────────── */
 
 _log('\nTest: knob LEDs diff against a movy-owned cache');

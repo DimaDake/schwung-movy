@@ -136,7 +136,7 @@ pub fn is_control_verb(verb: &str) -> bool {
     matches!(
         verb,
         // transport and recording mode
-        "play" | "stop" | "rec" | "metro" | "launch" | "stoptrk"
+        "play" | "stop" | "halt" | "rec" | "metro" | "launch" | "stoptrk"
         // song mode: building an arrangement is a performance gesture, not an
         // edit — the same call `launch` gets, and for the same reason.
         | "song" | "songadd"
@@ -182,6 +182,12 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
          * before; with peers Play lands on the session's next bar. */
         "play" => engine.play_requested(),
         "stop" => engine.stop_requested(out),
+        /* Teardown (the UI's onUnload): stop and close every open gate, but on
+         * movy alone. The engine is unloaded next, so a gate left open is a
+         * note nothing will ever end on whatever a MIDI Out module feeds, and a
+         * playing clip could start another one before it goes. A Link session
+         * must not stop because Movy closed. */
+        "halt" => engine.stop(out),
         "bpm" => {
             if let Some(v) = next() {
                 engine.tempo_requested(v.clamp(0, u32::MAX as i64) as u32);
@@ -855,6 +861,31 @@ mod tests {
         }
         assert_eq!(e.tracks[0].playing_slot, Some(a), "starts on the bar");
         assert_eq!(e.tracks[0].queued_slot, None);
+    }
+
+    /// Close Movy with a clip's note sounding: every open gate gets its
+    /// note-off at once, and nothing starts after it — the block before the
+    /// engine is unloaded must not open a gate nobody will close.
+    #[test]
+    fn halt_closes_every_gate_and_starts_nothing() {
+        let mut e = engine();
+        let mut out = Vec::new();
+        e.play();
+        apply_batch(&mut e, "clen 0 16;tog 0 0 60 100;elen 0 0 0 60 100000;tog 0 8 64 100", &mut out);
+        let on = |out: &[OutEvent]| out.iter().any(|x| matches!(x, OutEvent::NoteOn { track: 0, .. }));
+        while !on(&out) && e.clock.tick < 4 * crate::TICKS_PER_BAR as u64 {
+            e.advance_block(128, &mut out);
+        }
+        assert!(on(&out), "the clip's note never sounded");
+        out.clear();
+        apply_batch(&mut e, "halt", &mut out);
+        assert!(!e.playing);
+        assert!(out.iter().any(|x| matches!(x, OutEvent::NoteOff { track: 0, pitch: 60 })), "{out:?}");
+        out.clear();
+        for _ in 0..2000 {
+            e.advance_block(128, &mut out);
+        }
+        assert!(!on(&out), "a note started after halt: {out:?}");
     }
 
     #[test]

@@ -205,3 +205,13 @@ fn play_while_session_runs_joins_next_bar() {
     let started_at = s.beat_at(m.now() - BLOCK_US as u64);
     assert!((started_at - 4.0).abs() < 0.01, "joined on beat 4, got {started_at}");
 }
+
+#[test]
+fn halt_stops_movy_but_not_the_session() {
+    let mut m = Sim::new(12000);
+    m.run(&session(120.0, false), 1);
+    m.e.play();
+    crate::command::apply_batch(&mut m.e, "halt", &mut m.out);
+    assert!(!m.e.playing);
+    assert_eq!(m.e.link.requests().play_seq, 0, "Close Movy is not a Stop for the session");
+}

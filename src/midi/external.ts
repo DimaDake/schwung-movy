@@ -1,7 +1,8 @@
 /* A USB-A keyboard (cable 2). The ENGINE sounds it (ext_route.rs), at pad
  * latency; this side only RECORDS, through the pad path, so a key behaves like a
  * pad under Rec, step record and a held step. Wheels are played by the engine
- * and deliberately not recorded. */
+ * and deliberately not recorded. Other CCs are an external knob controller's —
+ * midi/ext-knobs.ts. */
 
 import { appState } from '../app/state.js';
 import { drumConfigFor } from '../track/pad-route.js';
@@ -9,10 +10,12 @@ import { extDrumPitch } from '../track/ext-route.js';
 import { seqNotePadPlayed, seqNotePadReleased } from '../seq/router-pads.js';
 import { EXT_KEY_BASE, extHold, extRelease } from './external-ledger.js';
 import { freezeBusy, freezeGuard } from '../seq/freeze.js';
+import { onExternalControlChange } from './ext-knobs.js';
 
 export function onMidiMessageExternal(data: number[]): void {
     if (!data || data.length < 3) return;
     const type = data[0] & 0xF0, note = data[1] & 0x7F, vel = data[2];
+    if (type === 0xB0) { onExternalControlChange(data); return; }
     const key = EXT_KEY_BASE + note;
     if (type === 0x90 && vel > 0) {
         const track = appState.activeTrack.index;

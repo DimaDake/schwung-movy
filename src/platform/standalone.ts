@@ -27,6 +27,7 @@ export const standalonePlatform: Platform = {
     engineSubmitted: () => movy_engine_submitted(),
 
     surfaceSend: (data) => { move_midi_internal_send(data); },
+    externalSend: (data) => { move_midi_external_send(data); },
     loadUiModule: (p) => shadow_load_ui_module(p),
     exit: () => { host_exit_module(); },
     powerOff: () => { host_power_off(); },

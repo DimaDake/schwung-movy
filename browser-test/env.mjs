@@ -239,6 +239,7 @@ export function installEnv() {
     /* shadow_ui re-encodes wheel deltas (1-63 = +, 65-127 = -). */
     globalThis.decodeDelta        = (d2) => (d2 < 64 ? d2 : d2 - 128);
     globalThis.move_midi_internal_send = () => {};
+    globalThis.move_midi_external_send = () => {};
     /* RGB palette indices used by keyboard/leds.ts (mirror of seq/colors.ts). */
     globalThis.NeonGreen          = 11;   // C_GREEN
     globalThis.White              = 120;  // C_WHITE

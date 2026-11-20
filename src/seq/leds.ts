@@ -25,6 +25,8 @@ import { stepRecActive, stepRecCanGoLeft, stepRecHead } from './step-rec.js';
 import { cachedSetLED, cachedSetButtonLED, cachedSetAnimLED, ledFrameReset, seqLedsInvalidate } from './led-cache.js';
 import { watchedTrack } from './watch.js';
 import { aiSessionStep } from '../ai/preview.js';
+import { feedbackStepLeds, feedbackTickNo, padLedColor } from '../keyboard/module-feedback.js';
+import { moduleOwnsUndo } from '../keyboard/module-input.js';
 
 /* Re-exported so callers keep importing the LED API from one place. */
 export { seqLedsInvalidate, cachedSetAnimLED, ledFrameReset };
@@ -199,7 +201,7 @@ function paintAffordances(view: number, barOffset: number, maxOff: number, shift
         paint(CC_LEFT, arrowLedColor(-1, barOffset, maxOff));
         paint(CC_RIGHT, arrowLedColor(+1, barOffset, maxOff));
     }
-    paint(CC_SAMPLE, sampleLedColor()); paint(CC_CAPTURE, captureLedColor(seqState.capPending)); paint(CC_UNDO, undoLedColor(canUndo(), canRedo(), shiftHeld));
+    paint(CC_SAMPLE, sampleLedColor()); paint(CC_CAPTURE, captureLedColor(seqState.capPending)); paint(CC_UNDO, moduleOwnsUndo() ? undoLedColor(true, true, shiftHeld) : undoLedColor(canUndo(), canRedo(), shiftHeld));
     paint(CC_LOOP, seqState.loopMode ? WHITE_BRIGHT : WHITE_DIM);
     /* Note/Session was painted by nobody, so the button read as dead rather
      * than available. Same dim-idle / bright-active shape as Loop. */
@@ -327,6 +329,17 @@ export function seqLedsTick(
      * stays the selector so the next press switches again. */
     if (seqState.trackSelectHold) {
         paintTrackSelector();
+        paintTransport();
+        return;
+    }
+    /* A module that declares step_buttons_param and step_leds_param paints the
+     * row itself (keyboard/module-feedback.ts). */
+    const modSteps = feedbackStepLeds(appState.activeTrack.index);
+    if (modSteps && !seqState.loopMode) {
+        const tickNo = feedbackTickNo();
+        for (let i = 0; i < NUM_STEP_BUTTONS; i++) {
+            cachedSetLED(STEP_NOTE_BASE + i, padLedColor(modSteps[i], tickNo));
+        }
         paintTransport();
         return;
     }

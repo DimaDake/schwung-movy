@@ -185,6 +185,8 @@ export function createModel(port: TrackPort, componentKey = 'synth') {
          * Null for every module that has not declared one, which is all of
          * them in docs/module-dump/. */
         getPressParam(): string | null { return s.pressParam; },
+        /* Pad-colour / status-text params the module declared, or null. */
+        getFeedbackKeys(): import('../keyboard/module-feedback.js').FeedbackKeys | null { return s.feedback; },
         getDrumConfig(): import('../types/param.js').DrumConfig | null {
             /* `drumConfig` is the RESOLVED one — the module's declaration where
              * it made one, movy's table otherwise — settled once per hierarchy

@@ -27,10 +27,11 @@ import { anyStepHeld, editNudge, editTranspose, editVelocity } from './step-edit
 import { stepRecArrow, stepRecDown, stepRecEnd, stepRecUp } from './step-rec.js';
 import { padsPlayNotes } from './router-pads.js';
 import { handleStepButton, navigateBar } from './router-steps.js';
-import { seqHandleButtonCc } from './router-buttons.js';
+import { muteHeld, seqHandleButtonCc } from './router-buttons.js';
 import { freezeGuard } from './freeze.js';
 import { appState } from '../app/state.js';
 import { watchedTrack } from './watch.js';
+import { moduleStepButton } from '../keyboard/module-input.js';
 
 /* The sequencer's public input surface stays on this module: these are its
  * other halves, re-exported so callers keep one import site. */
@@ -44,6 +45,9 @@ const CC_WHEEL = 14;     // MoveMainKnob — wheel
 const CC_VOLUME = 79;    // MoveMaster — Volume encoder
 const CC_PLUS = 55;      // MoveUp / +
 const CC_MINUS = 54;     // MoveDown / -
+
+/* Step buttons whose press went to a module (their release is the module's too). */
+let moduleSteps = 0;
 
 export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
     const statusType = data[0] & 0xF0;
@@ -75,6 +79,17 @@ export function seqHandleMidi(data: number[], shiftHeld: boolean): boolean {
 
     if ((statusType === 0x90 || statusType === 0x80)
         && d1 >= STEP_NOTE_BASE && d1 < STEP_NOTE_BASE + NUM_STEP_BUTTONS) {
+        /* A module that declares step_buttons_param owns the row on its own
+         * track (Shift keeps the shifted step functions, Mute the mute map,
+         * Session view the track selector). */
+        const sb = d1 - STEP_NOTE_BASE, bit = 1 << sb;
+        if (statusType === 0x90 && d2 > 0) {
+            if (!shiftHeld && !muteHeld() && !seqState.sessionMode && !seqState.trackSelectHold
+                && moduleStepButton(sb, true)) { moduleSteps |= bit; return true; }
+        } else if (moduleSteps & bit) {          // the release of a press the module took
+            moduleSteps &= ~bit;
+            return true;
+        }
         handleStepButton(d1 - STEP_NOTE_BASE, statusType === 0x90 && d2 > 0, shiftHeld);
         return true;
     }

@@ -72,6 +72,9 @@ export interface ModelState {
      * Here rather than on DrumConfig because `focus_press_param` sits at the
      * hierarchy ROOT — a module need not declare a drum layout to want it. */
     pressParam:          string | null;
+    /* The module's declared feedback params (pad colours, status text) — see
+     * keyboard/module-feedback.ts. Null for a module that declares neither. */
+    feedback:            import('../keyboard/module-feedback.js').FeedbackKeys | null;
     drumCurrentPad:      number;
     drumCurrentPhysPad:  number;
     /* ioKeys on this component that a slot LFO targets. Cached (refreshed on the
@@ -109,6 +112,7 @@ export function createModelState(port: TrackPort, componentKey: string): ModelSt
         voiceKeys:           [],
         declared:            null,
         pressParam:          null,
+        feedback:            null,
         drumCurrentPad:      1,
         drumCurrentPhysPad:  0,
         modulatedKeys:       new Set(),

@@ -3580,5 +3580,282 @@ _log('\napp-loop: clearing a send slot leaves its detail page');
     seqState.sessionMode = false;
 }
 
+/* ── a module that paints its own pads and names a status line ───────────── */
+_log('\napp-loop: module feedback (pad_leds / status_text)');
+{
+    resetApp();
+    const hex = (fn) => Array.from({ length: 32 }, (_, i) => fn(i).toString(16).padStart(2, '0')).join('');
+    env.params['synth:ui_hierarchy'] = JSON.stringify({
+        pad_leds_param: 'pad_leds', status_text_param: 'status_text',
+        levels: { root: { knobs: [] } },
+    });
+    env.params['synth:pad_leds'] = hex((i) => (i === 0 ? 0x80 | 127 : 40 + i));
+    env.params['synth:status_text'] = '0:';
+    appState.trackModels[0][1].reload();
+    advance(40);
+    eq('the module declares feedback keys', !!appState.trackModels[0][1].getFeedbackKeys(), true);
+    /* rack pad 1 = grid pad 68 (bottom-left); pad 2 = 69; pad 5 = row 2, col 0 = 76 */
+    eq('pad 2 shows the module colour', padColor(69), 41);
+    eq('pad 5 shows the module colour', padColor(72 + 4), 44);
+    eq('a pad past the rack stays black', padColor(72), 0);
+    env.params['synth:status_text'] = '1:MUTE 2';
+    advance(40);
+    eq('a new status seq shows as a toast', seqToastText(), 'MUTE 2');
+    env.params['synth:pad_leds'] = hex(() => 33);
+    advance(40);
+    eq('colour changes follow', padColor(69), 33);
+}
+
+/* ── a module's display view and Delete + pad forwarding ─────────────────── */
+_log('\napp-loop: module display view + delete_pad');
+{
+    const CC_DELETE = 119;
+    const hex128 = Array.from({ length: 128 }, (_, i) => (i % 200).toString(16).padStart(2, '0')).join('');
+    const declare = (extra) => {
+        resetApp();
+        env.params['synth:ui_hierarchy'] = JSON.stringify({
+            ...extra, levels: { root: { knobs: [] } },
+        });
+        env.params['synth:display'] = '1|10|' + hex128 + '|PLAY 1 - 4 BARS';
+        env.params['synth:status_text'] = '0:';
+        appState.trackModels[0][1].reload();
+        advance(40);
+    };
+    /* the playhead (pos 10) is a 1 px column over the whole wave band: only the display view draws it */
+    const headerInverted = () => painted.some((r) => r[0] === 10 && r[1] === 9 && r[2] === 1 && r[3] === 48);
+    const fb = await import('../dist/esm/keyboard/module-feedback.js');
+    declare({ display_param: 'display', status_text_param: 'status_text', delete_pad_param: 'delete_pad' });
+    fb.displayActivity(0);       // earlier tests touched knobs
+    appState.currentView = 3;   // VIEW_CHAIN
+    appState.dirty = true;
+    advance(2 * 8 + 40);        // past the 1.5 s idle gate from boot
+    painted.length = 0;
+    appState.dirty = true;
+    advance(2);
+    eq('the display view is up while nothing is touched', headerInverted(), true);
+    /* a knob touch gives the screen back to the knob page */
+    sendMidi([0x90, 0, 127]);
+    advance(2);
+    painted.length = 0;
+    appState.dirty = true;
+    advance(2);
+    eq('a touched knob shows the knob page', headerInverted(), false);
+    sendMidi([0x80, 0, 0]);
+
+    /* Delete + pad -> the module's delete_pad, with the 0-based rack pad index; movy's own wipe does not run. */
+    declare({ display_param: 'display', delete_pad_param: 'delete_pad' });
+    engine.reset();
+    sendMidi([0xB0, CC_DELETE, 127]);
+    advance(2);
+    sendMidi([0x90, PAD_KICK + 1, 110]);                // rack pad 2
+    sendMidi([0x80, PAD_KICK + 1, 0]);
+    advance(3);
+    eq('Delete + pad writes the rack pad index to the module', env.params['synth:delete_pad'], '1');
+    eq('movy does not wipe the voice steps', engine.ops.some((o) => o.startsWith('del ')), false);
+    sendMidi([0xB0, CC_DELETE, 0]);
+    advance(2);
+    eq('and releasing Delete does not delete the clip', engine.ops.some((o) => o.startsWith('clipdel')), false);
+
+    /* A module that does not declare it keeps movy's behaviour. */
+    declare({ display_param: 'display' });
+    engine.reset();
+    delete env.params['synth:delete_pad'];
+    sendMidi([0xB0, CC_DELETE, 127]);
+    advance(2);
+    sendMidi([0x90, PAD_KICK, 110]);
+    sendMidi([0x80, PAD_KICK, 0]);
+    advance(3);
+    eq('without delete_pad_param nothing is written', env.params['synth:delete_pad'], undefined);
+    eq('and movy wipes that pad as before', engine.ops.includes(`del 0 0 255 ${NOTE_KICK}`), true);
+    sendMidi([0xB0, CC_DELETE, 0]);
+    advance(2);
+}
+
+/* ── a module that takes the step row and Loop + knob ───────────────────── */
+_log('\napp-loop: module step buttons + Loop knob');
+{
+    const CC_LOOP = 58;
+    const declareSteps = (extra) => {
+        resetApp();
+        env.params['synth:ui_hierarchy'] = JSON.stringify({ ...extra, levels: { root: { knobs: [] } } });
+        env.params['synth:step_leds'] = Array.from({ length: 16 }, (_, i) => (30 + i).toString(16).padStart(2, '0')).join('');
+        delete env.params['synth:step'];
+        delete env.params['synth:loop_knob'];
+        appState.trackModels[0][1].reload();
+        advance(40);
+    };
+    const stepTap = (i) => { sendMidi([0x90, STEP_NOTE_BASE + i, 100]); sendMidi([0x80, STEP_NOTE_BASE + i, 0]); advance(2); };
+
+    declareSteps({ step_buttons_param: 'step', step_leds_param: 'step_leds', loop_knob_param: 'loop_knob' });
+    engine.reset();
+    stepTap(6);
+    eq('a step press writes the 0-based button to the module', env.params['synth:step'], '6');
+    eq('and is not a sequencer step', engine.ops.some((o) => o.startsWith('step ') || o.startsWith('tog')), false);
+    eq('the step LEDs are the module\'s', ledByPad[STEP_NOTE_BASE + 3], 33);
+    eq('the last step LED too', ledByPad[STEP_NOTE_BASE + 15], 45);
+
+    /* Loop is a pure modifier on such a track: no Loop mode, the row stays the module's */
+    sendMidi([0xB0, CC_LOOP, 127]);
+    advance(2);
+    eq('Loop does not switch to Loop mode', seqState.loopMode, false);
+    sendMidi([0xB0, 71, 3]);                                  // knob 1, +3
+    advance(2);
+    eq('Loop + knob 1 goes to the module as N:delta', env.params['synth:loop_knob'], '1:3');
+    sendMidi([0xB0, 73, 127]);                                // knob 3, -1
+    advance(2);
+    eq('a negative turn', env.params['synth:loop_knob'], '3:-1');
+    appState.shiftHeld = true;
+    sendMidi([0xB0, 72, 1]);
+    appState.shiftHeld = false;
+    advance(2);
+    eq('Shift adds the fine flag', env.params['synth:loop_knob'], '2:1:1');
+    delete env.params['synth:loop_knob'];
+    sendMidi([0x90, 0, 127]); sendMidi([0x80, 0, 0]);          // a knob touch
+    advance(2);
+    sendMidi([0xB0, CC_LOOP, 0]);
+    advance(2);
+    sendMidi([0xB0, 71, 3]);
+    advance(2);
+    eq('without Loop a knob turn is not sent to the module', env.params['synth:loop_knob'], undefined);
+
+    /* A module that declares none of it keeps the sequencer. */
+    declareSteps({ pad_leds_param: 'pad_leds' });
+    engine.reset();
+    stepTap(6);
+    eq('without step_buttons_param nothing is written', env.params['synth:step'], undefined);
+    sendMidi([0xB0, CC_LOOP, 127]);
+    advance(2);
+    eq('and Loop still enters Loop mode', seqState.loopMode, true);
+    sendMidi([0xB0, 71, 3]);
+    advance(2);
+    eq('and Loop + knob writes no loop_knob', env.params['synth:loop_knob'], undefined);
+    sendMidi([0xB0, CC_LOOP, 0]);
+    advance(2);
+    seqState.loopMode = false;
+
+    /* Shift + step keeps the shifted step functions on a module-owned row. */
+    declareSteps({ step_buttons_param: 'step' });
+    appState.shiftHeld = true;
+    sendMidi([0x90, STEP_NOTE_BASE + 5, 100]); sendMidi([0x80, STEP_NOTE_BASE + 5, 0]);
+    appState.shiftHeld = false;
+    advance(2);
+    eq('Shift + step is not the module\'s', env.params['synth:step'], undefined);
+}
+
+/* ── a module that captures the knobs and takes Undo ─────────────────────── */
+_log('\napp-loop: module knob capture + undo_param');
+{
+    const CC_SHIFT = 49, CC_UNDO_B = 56;
+    const { VIEW_KNOBS: VIEW_KNOBS_P } = await import('../dist/esm/app/state.js');
+    const { resetUndoState, canUndo, undoDepth } = await import('../dist/esm/undo/state.js');
+    const { resetUndoGroups } = await import('../dist/esm/undo/group.js');
+    const { resetUndoApply } = await import('../dist/esm/undo/apply.js');
+    const { resetAutomation } = await import('../dist/esm/seq/automation.js');
+    const declareCap = (extra, cap) => {
+        engine.reset();
+        env.setParams({
+            'synth:name': 'CapTest',
+            'synth:chain_params': JSON.stringify([{ key: 'vol', name: 'Volume', type: 'float', min: 0, max: 1, step: 0.01 }]),
+            'synth:ui_hierarchy': JSON.stringify({ ...extra, levels: { root: { knobs: ['vol'] } } }),
+            'synth:vol': '0.5',
+        });
+        if (cap !== undefined) env.params['synth:knob_capture'] = cap;
+        resetSeqState(); resetSeqEngine(); resetAutomation();
+        globalThis.init();
+        appState.trackModels[0][1].reload();
+        advance(12);
+        appState.currentView = VIEW_KNOBS_P;
+        appState.activeTrack = trackRef(0);
+        advance(40);
+    };
+    /* The observable for "the knob reached the hierarchy parameter": with a step held in
+     * step-automation mode, such a turn locks the parameter (an engine `aset`). */
+    const hierWrote = () => engine.ops.some((o) => o.startsWith('aset '));
+    const armProbe = () => { engine.reset(); seqState.stepAutoMode = true; seqState.holdStep = 4; };
+    const endProbe = () => { seqState.stepAutoMode = false; seqState.holdStep = -1; };
+    const keysDecl = { knob_capture_param: 'knob_capture', knob_delta_param: 'knob_delta', undo_param: 'undo_cmd' };
+
+    /* baseline: not captured, a knob turn is the hierarchy parameter and nothing goes to knob_delta */
+    declareCap(keysDecl, '0');
+    armProbe();
+    sendMidi([0xB0, 71, 3]);
+    advance(6);
+    eq('not captured: the knob edits its parameter', hierWrote(), true);
+    eq('not captured: nothing goes to knob_delta', env.params['synth:knob_delta'], undefined);
+
+    /* captured: the turn is the module's, the hierarchy parameter is untouched */
+    declareCap(keysDecl, '1');
+    armProbe();
+    sendMidi([0xB0, 71, 3]);
+    advance(6);
+    eq('captured: knob 1 goes to knob_delta as N:delta', env.params['synth:knob_delta'], '1:3');
+    eq('captured: the hierarchy parameter is not written', hierWrote(), false);
+    sendMidi([0xB0, 74, 127]);
+    advance(2);
+    eq('captured: a negative turn on knob 4', env.params['synth:knob_delta'], '4:-1');
+    appState.shiftHeld = true;
+    sendMidi([0xB0, 72, 1]);
+    appState.shiftHeld = false;
+    advance(2);
+    eq('captured: Shift adds the fine flag', env.params['synth:knob_delta'], '2:1:1');
+    delete env.params['synth:knob_delta'];
+    armProbe();
+    sendMidi([0x90, 0, 127]); sendMidi([0x80, 0, 0]);          // a knob touch is the module's too
+    advance(2);
+    eq('captured: a touch writes nothing', env.params['synth:knob_delta'], undefined);
+    eq('captured: and the hierarchy parameter is still untouched', hierWrote(), false);
+    /* back to 0: the knob is the parameter again */
+    env.params['synth:knob_capture'] = '0';
+    advance(40);
+    delete env.params['synth:knob_delta'];
+    armProbe();
+    sendMidi([0xB0, 71, 3]);
+    advance(6);
+    eq('capture released: the knob edits its parameter again', hierWrote(), true);
+    eq('capture released: nothing goes to knob_delta', env.params['synth:knob_delta'], undefined);
+
+    /* a module that declares neither is untouched (the capture key alone is not enough) */
+    declareCap({ knob_capture_param: 'knob_capture' }, '1');
+    armProbe();
+    sendMidi([0xB0, 71, 3]);
+    advance(6);
+    eq('capture without knob_delta_param: the knob stays the parameter', hierWrote(), true);
+    declareCap({ pad_leds_param: 'pad_leds' }, '1');
+    armProbe();
+    sendMidi([0xB0, 71, 3]);
+    advance(6);
+    eq('a module declaring nothing keeps its knobs', hierWrote() && env.params['synth:knob_delta'] === undefined, true);
+
+    /* undo_param: Undo / Shift+Undo go to the module, movy's undo does not run */
+    declareCap({ undo_param: 'undo_cmd' });
+    resetUndoState(); resetUndoGroups();
+    sendMidi([0x90, STEP_NOTE_BASE + 7, 127]); sendMidi([0x80, STEP_NOTE_BASE + 7, 0]);
+    advance(2);
+    const depth = undoDepth();
+    eq('movy has something to undo', canUndo(), true);
+    sendMidi([0xB0, CC_UNDO_B, 127]); sendMidi([0xB0, CC_UNDO_B, 0]);
+    advance(2);
+    eq('Undo writes "undo" to the module', env.params['synth:undo_cmd'], 'undo');
+    eq('and movy does not undo', undoDepth(), depth);
+    sendMidi([0xB0, CC_SHIFT, 127]);
+    sendMidi([0xB0, CC_UNDO_B, 127]); sendMidi([0xB0, CC_UNDO_B, 0]);
+    sendMidi([0xB0, CC_SHIFT, 0]);
+    advance(2);
+    eq('Shift+Undo writes "redo"', env.params['synth:undo_cmd'], 'redo');
+    eq('and movy still does not undo', undoDepth(), depth);
+    /* a module without undo_param: movy's own undo, nothing written */
+    declareCap({ pad_leds_param: 'pad_leds' });
+    resetUndoState(); resetUndoGroups();
+    sendMidi([0x90, STEP_NOTE_BASE + 7, 127]); sendMidi([0x80, STEP_NOTE_BASE + 7, 0]);
+    advance(2);
+    const depth2 = undoDepth();
+    sendMidi([0xB0, CC_UNDO_B, 127]); sendMidi([0xB0, CC_UNDO_B, 0]);
+    advance(2);
+    eq('without undo_param movy undoes as before', undoDepth(), depth2 - 1);
+    eq('and nothing is written to the module', env.params['synth:undo_cmd'], undefined);
+    resetUndoState(); resetUndoGroups(); resetUndoApply();
+    endProbe();
+}
+
 if (failures === 0) _log('\n\x1b[32m\x1b[1mALL APP-LOOP CHECKS PASSED\x1b[0m');
 else { _log(`\n\x1b[31m\x1b[1m${failures} APP-LOOP CHECK(S) FAILED\x1b[0m`); process.exit(1); }

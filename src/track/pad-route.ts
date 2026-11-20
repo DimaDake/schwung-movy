@@ -24,6 +24,7 @@ import { seqState } from '../seq/state.js';
 import { PAD_MIN } from '../seq/constants.js';
 import { padPitch } from '../seq/pads.js';
 import { padsPlayNotes } from '../seq/router-pads.js';
+import { deleteActive } from '../seq/edit-ops.js';
 import type { DrumConfig } from '../types/param.js';
 import { chainInstance } from './ref.js';
 
@@ -71,7 +72,13 @@ function buildMap(): string {
      * both gestures are played, cannot. */
     const shiftSelect  = drumShiftSelect(appState.shiftHeld, drum);
     const muteGesture  = appState.muteHeld && drum !== null;
-    const owns = padsPlayNotes() && !shiftSelect && !muteGesture;
+    /* Delete + pad on a module that declares delete_pad_param is the module's
+     * "clear this track" (router.ts): the press must not also reach the module
+     * as a note — it would fire the pad's own action just before the clear. A
+     * module that does not declare it keeps the engine answering, as before. */
+    const deleteGesture = deleteActive() && drum !== null
+        && !!appState.trackModels[t]?.[1]?.getFeedbackKeys()?.deleteKey;
+    const owns = padsPlayNotes() && !shiftSelect && !muteGesture && !deleteGesture;
     const chain = owns ? chainInstance(t) : -1;
     const parts: (string | number)[] = [chain];
     for (let i = 0; i < PAD_COUNT; i++) {

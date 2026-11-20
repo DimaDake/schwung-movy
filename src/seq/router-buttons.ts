@@ -10,6 +10,7 @@ import { releaseAllLive } from '../keyboard/release.js';
 import { toggleMute, toggleSolo } from '../mixer/track-mutes.js';
 import { redoOnce, undoOnce } from '../undo/apply.js';
 import { showUndoToast } from '../undo/toast.js';
+import { moduleUndo } from '../keyboard/module-input.js';
 import { CC_MUTE, CC_NOTE_SESSION } from './constants.js';
 import { captureButton, captureClear } from './capture.js';
 import { closeParamPage, paramPageActive } from './param-page.js';
@@ -159,6 +160,8 @@ export function seqHandleButtonCc(d1: number, d2: number, shiftHeld: boolean): b
     if (d1 === CC_UNDO) {
         if (d2 > 0) {
             const redo = shiftHeld;
+            /* A module that declares undo_param undoes its own work on its own track. */
+            if (moduleUndo(redo)) return true;
             showUndoToast(redo ? redoOnce() : undoOnce(), redo);
         }
         return true;

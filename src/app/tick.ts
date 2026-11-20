@@ -22,12 +22,17 @@ import { isSounding } from '../keyboard/held-notes.js';
 import { browserState } from '../browser/state.js';
 import { CHAIN_SLOTS, isMixSlot, MASTER_FX_SLOTS, CLIP_PARAMS_COMPONENT, MIXER_COMPONENT, SET_PARAMS_COMPONENT, STEP_PARAMS_COMPONENT } from '../chain/config.js';
 import { drumPadLedColor } from '../keyboard/leds.js';
-import { drumNoteOfPhys } from '../keyboard/drum-grid.js';
+import {
+    feedbackPoll, feedbackLeds, feedbackForget, feedbackTickNo, padLedColor,
+    feedbackDisplay, displayTakeDirty, displayShowing,
+} from '../keyboard/module-feedback.js';
+import { drumNoteOfPhys, drumPadOfPhys } from '../keyboard/drum-grid.js';
 import { padVoiceSilent } from '../mixer/pad-mutes.js';
 import { WHITE_DIM } from '../seq/colors.js';
 import { padColor } from '../seq/pads.js';
 import { midiNoteName } from '../keyboard/notes.js';
 import { renderKnobsView } from '../renderer/knob-view.js';
+import { drawModuleDisplay } from '../renderer/module-display.js';
 import { pageOwnerOf, type PageOwner } from './page-owner.js';
 import { pageOwnerForComponent } from './page-owner-virtual.js';
 import { moduleGridOnScreen, pollDrawnPage, drawnKnobLevels } from './page-poll.js';
@@ -102,7 +107,7 @@ import { drawStepPiano } from '../renderer/step-piano.js';
 import { perfProbeEnter, perfProbeTick, perfPhase, perfPhaseEnd } from './perf-probe.js';
 import {
     drawLoopStrip, drawSeqToast, drawSeqHeader, songBandTick,
-    seqToastActive, seqToastTick, seqToastVersion,
+    seqToastActive, seqToastTick, seqToastVersion, seqToast,
     seqHeaderActive, seqHeaderTick,
 } from '../seq/render.js';
 import { isFrozen, freezeBusy, freezeBusyToast, freezeCapturing, freezePeaksSeq } from '../seq/freeze.js';
@@ -401,6 +406,7 @@ const drumCache = new Uint8Array(32);
  * claim at init), so there is no race left to win. The one-shot invalidation
  * stays: it is what makes the grid overwrite colours left by the previous
  * layout, which the per-pad cache would otherwise consider already correct. */
+let lastWaveOn = false;
 let drumCacheStale = false;
 let lastActiveSlot   = -1;
 let lastShownKey     = '';   // identity of the on-screen param page (for touch reset)
@@ -603,6 +609,30 @@ function tickBody(): void {
      * even when the user is browsing FX parameters on the same track. */
     const synthModel = appState.trackModels[appState.activeTrack.index]?.[1];
     const isDrum     = (synthModel?.getDrumPadCount() ?? 0) > 0;
+
+    /* A module that declares pad_leds_param / status_text_param (see
+     * keyboard/module-feedback.ts) is polled here, for the ACTIVE track only
+     * and at a throttled rate. Its status text becomes a toast; its pad colours
+     * are read by the drum painter below. */
+    const fbKeys = synthModel?.getFeedbackKeys() ?? null;
+    if (fbKeys && synthModel) {
+        const trk = appState.activeTrack.index;
+        const ck  = synthModel.getComponentKey();
+        const msg = feedbackPoll(trk, fbKeys, (k) => portFor(trk).getParam(ck + ':' + k));
+        if (msg) seqToast(msg);
+    } else {
+        feedbackForget(appState.activeTrack.index);
+    }
+    /* The module's own display (waveform) replaces the knob page on the two
+     * module views while no knob / jog is in use. A flip either way, and every
+     * change the module reports while it is up, repaints the frame. */
+    const waveOn = !!fbKeys && !seqState.sessionMode
+        && (appState.currentView === VIEW_KNOBS || appState.currentView === VIEW_CHAIN)
+        && !(stepPageAvailable() && stepPageState.selected)
+        && !schwungEditorActive() && !canvasDiveActive()
+        && displayShowing(Date.now(), fbKeys, appState.activeTrack.index);
+    if (waveOn !== lastWaveOn) { lastWaveOn = waveOn; appState.dirty = true; }
+    if (displayTakeDirty() && waveOn) appState.dirty = true;
 
     /* A track switch changes what the pads mean, so the grid must repaint even
      * where the new colour matches the cached one. Detected here (before the
@@ -930,6 +960,9 @@ function tickBody(): void {
             else updateSingleKnobLED(-1, 0);
         } else if (appState.currentView === VIEW_KEYS) {
             renderKeysView(activeModel?.getModuleName() ?? '—', baseNoteFor(appState.activeTrack.index), midiNoteName);
+        } else if (waveOn) {
+            drawModuleDisplay(feedbackDisplay(appState.activeTrack.index)!, appState.activeTrack.index);
+            updateSingleKnobLED(-1, 0);
         } else if (appState.currentView === VIEW_KNOBS) {
             const stepAvail = stepPageAvailable();
             let vm;
@@ -1112,6 +1145,7 @@ function tickBody(): void {
             }
             const track = appState.activeTrack.index;
             const sel   = synthModel!.getDrumCurrentPhysPad();
+            const modLeds = fbKeys?.ledsKey ? feedbackLeds(track) : null;
             for (let i = 0; i <= PAD_MAX - PAD_MIN; i++) {
                 const p = PAD_MIN + i;
                 // The note this pad plays — the same lookup drumPadLedColor and
@@ -1119,8 +1153,13 @@ function tickBody(): void {
                 // with what a press sends. -1 = not part of the rack.
                 const note = drumNoteOfPhys(p, PAD_MIN, drumCfg);
                 const playing = note >= 0 && (activeHasNote(track, note) || isSounding(p));
+                /* A module that paints its own pads owns the whole rack: its
+                 * colour replaces the sounding/selected/mute colours. */
+                const modPad = modLeds && note >= 0 ? drumPadOfPhys(p, PAD_MIN, drumCfg) : -1;
                 /* A frozen track plays no notes: its pads are dark. */
                 const color = isFrozen(track) ? 0
+                    : modPad >= 1
+                    ? padLedColor(modLeds![modPad - 1], feedbackTickNo())
                     : drumPadLedColor(p, PAD_MIN, drumCfg, sel, track, playing,
                                       note >= 0 && padVoiceSilent(note));
                 if (drumCache[i] !== color) {

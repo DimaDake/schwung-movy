@@ -337,6 +337,8 @@ await esbuild.build({
         resolve(root, 'src/seq/held.ts'),
         resolve(root, 'src/seq/buttons.ts'),
         resolve(root, 'src/keyboard/leds.ts'),
+        /* Module -> movy feedback (pad colours, status text), pure. */
+        resolve(root, 'src/keyboard/module-feedback.ts'),
         resolve(root, 'src/app/state.ts'),
         resolve(root, 'src/model/state.ts'),
         resolve(root, 'src/track/ref.ts'),

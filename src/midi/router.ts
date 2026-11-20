@@ -65,7 +65,7 @@ import { noteOn, noteOff, changeOctave } from '../keyboard/handler.js';
 import { soundingPitch, soundingTrack } from '../keyboard/held-notes.js';
 import { releaseAllLive } from '../keyboard/release.js';
 import { drumPadOn, drumPadOff, padFocusWrite } from '../keyboard/drum-handler.js';
-import { drumNoteOfPad, drumNoteOfPhys } from '../keyboard/drum-grid.js';
+import { drumNoteOfPad, drumNoteOfPhys, drumPadOfPhys } from '../keyboard/drum-grid.js';
 import { padsPlayNotes } from '../seq/router-pads.js';
 import { padMuteGesture } from '../mixer/pad-mutes.js';
 import { openBrowser, loadSelectedModule } from '../browser/handler.js';
@@ -80,6 +80,9 @@ import { handleAutomationKnob, clearLaneForKnob, automationKnobReleased, automat
 import { holdTouch, holdRelease, holdTurnCancel, assignActive, assignCycle, assignCommit } from '../lfo/assign-mode.js';
 import { masterScope, trackScope } from '../lfo/scope.js';
 import { deleteActive, markDeleteActed } from '../seq/edit-ops.js';
+import { displayActivity, deletePadWrite } from '../keyboard/module-feedback.js';
+import { moduleKnobTurn, moduleKnobsCaptured, moduleOwnsLoopKnobs } from '../keyboard/module-input.js';
+import { loopHeld } from '../seq/loop-mode.js';
 import { seqToast } from '../seq/render.js';
 import { aiRunningInput } from '../ai/job.js';
 import { aiPreviewActive } from '../ai/preview.js';
@@ -139,6 +142,13 @@ function trackButtonPress(data: number[]): void {
     if (k === MoveMainKnob || k === MASTER_CC) return;
     if (k >= KNOB_CC_BASE && k < KNOB_CC_BASE + NUM_KNOBS) return;
     setButtonHeld(k, data[2] > 0);
+}
+
+/* Loop is held on a track whose module takes Loop + knob (loop_knob_param), or the
+ * module has captured the knobs (knob_capture_param): the knobs are the module's,
+ * and its display view stays on screen. */
+function loopKnobOwned(): boolean {
+    return !seqState.sessionMode && ((loopHeld() && moduleOwnsLoopKnobs()) || moduleKnobsCaptured());
 }
 
 function activeModel() {
@@ -351,9 +361,26 @@ export function onMidiMessageInternal(data: number[]): void {
     const d1     = data[1];
     const d2     = data[2];
 
+    /* A knob, the jog or the master knob is in use (touch, release or turn):
+     * a module's own display view gives the screen back to the knob page for a
+     * moment (keyboard/module-feedback.ts DISPLAY_IDLE_MS). */
+    {
+        const hi = status & 0xF0;
+        const isKnob = (hi === 0x90 || hi === 0x80) && d1 < 8
+            || (hi === 0xB0 && d1 >= KNOB_CC_BASE && d1 < KNOB_CC_BASE + NUM_KNOBS);
+        if (((hi === 0x90 || hi === 0x80) && d1 < 10)
+            || (hi === 0xB0 && (d1 === MoveMainKnob || d1 === MASTER_CC
+                                || (d1 >= KNOB_CC_BASE && d1 < KNOB_CC_BASE + NUM_KNOBS)))) {
+            if (!(isKnob && loopKnobOwned())) displayActivity(Date.now());
+        }
+    }
+
     /* Capacitive knob touch: NoteOn note=0..7. Hold-Clear (Delete) + touch
      * clears that knob's automation lane. */
     if ((status & 0xF0) === 0x90 && d1 < 8) {
+        /* Loop + knob belongs to the module: its touch opens no knob page. (Only
+         * the press: a release is owed to whatever pinned it, below.) */
+        if (d2 > 0 && loopKnobOwned()) return;
         /*
          * A RELEASE IS OWED TO THE PRESS, NOT TO WHAT IS ON SCREEN NOW.
          *
@@ -532,6 +559,20 @@ export function onMidiMessageInternal(data: number[]): void {
          * has no voice to silence; in Session they are the clip grid, which
          * `seqHandleMidi` has already answered. Shift is read at the action as
          * well as at the press, like the track solo — either order is natural. */
+        /* Delete + pad on a module that declares delete_pad_param (e.g. a
+         * looper: "clear the track in this column"). The module owns what a
+         * pad means, so movy's own Delete+pad — erase that voice's steps —
+         * does not run: the press is forwarded as the rack pad index and
+         * swallowed. A module that declares nothing keeps movy's behaviour. */
+        if ((status & 0xF0) === 0x90 && d2 > 0 && deleteActive() && drumCfg && model) {
+            const w = deletePadWrite(model.getFeedbackKeys(), drumPadOfPhys(d1, PAD_MIN, drumCfg));
+            if (w) {
+                portFor(track).setParam(model.getComponentKey() + ':' + w[0], w[1]);
+                markDeleteActed();
+                appState.dirty = true;
+                return;
+            }
+        }
         if ((status & 0xF0) === 0x90 && d2 > 0 && muteHeld() && drumCfg && padsPlayNotes()) {
             const voice = drumNoteOfPhys(d1, PAD_MIN, drumCfg);
             if (voice >= 0) {
@@ -693,6 +734,7 @@ export function onMidiMessageInternal(data: number[]): void {
             if (k < 5) stepParamsOwner().page?.knobTurn(k, delta);
             return;
         }
+        if (loopKnobOwned() && moduleKnobTurn(k, delta, appState.shiftHeld, loopHeld())) return;
         mlog('knobCC k=' + k + ' d2=' + d2 + ' delta=' + delta);
         const model = knobModel();
         const track = appState.activeTrack.index;

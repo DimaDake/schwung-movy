@@ -21,6 +21,7 @@ import { songLoopHold } from './song.js';
 import { clipBars, loopStartBar, seqState } from './state.js';
 import { watchedTrack } from './watch.js';
 import { loopLengthTaken } from './loop-hook.js';
+import { moduleOwnsStepRow } from '../keyboard/module-input.js';
 
 const MAX_BARS = 16;
 /* Wall-clock, not tick-counted: the device tick rate is not a stable constant
@@ -49,6 +50,9 @@ export function loopButton(down: boolean): void {
     if (down) {
         held = true;
         if (seqState.sessionMode) return;
+        /* A module that owns the step row (step_buttons_param) owns Loop too:
+         * here it is a pure modifier (Loop + knob), the row is not bars. */
+        if (moduleOwnsStepRow()) return;
         loopPrev = seqState.loopMode;
         momentaryDown(CC_LOOP_BTN, () => {
             seqState.loopMode = loopPrev;

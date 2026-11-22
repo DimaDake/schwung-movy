@@ -37,6 +37,11 @@ module back with its settings.
 
 Modules follow Movy's tempo and transport, so a synced arpeggiator or delay locks to your Set.
 
+An audio effect that listens for notes, such as a **Ducker**, hears every
+track's notes, not only its own track's. Each track sends on its own channel
+(track 1 on channel 1, track 2 on channel 2…), so a Ducker on the bass set to
+channel 1 ducks the bass under the kick on track 1.
+
 ## Parameter pages
 
 **Jog click** on a loaded slot opens the module's parameters, eight at a time.

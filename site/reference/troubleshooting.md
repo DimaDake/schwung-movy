@@ -46,6 +46,12 @@ or knob numbers such as `1,4`), then reopen Movy.
 Each track can lock or automate up to 32 different parameters. Clear a lane you
 no longer need: hold **Delete** and touch its knob.
 
+**`T5: AMINO DID NOT LOAD`** (any track, any module).
+The module refused to start on that track. Some modules only allow a few
+copies at once (Amino allows four), so a fifth track with it stays silent.
+Load another module there, or free a copy on another track. The Set keeps the
+module, so it tries again the next time you open the Set.
+
 **A module's page looks wrong or empty.**
 Note the module's name and version and report it (below).
 

@@ -226,6 +226,10 @@ of the task, like tests and the commit. (Purely internal/dev-only changes —
 refactors, test infra, perf fixes with no visible effect — don't need doc
 edits.)
 
+**Before editing `site/`, read `docs/MANUAL-GUIDE.md`**: what belongs in the
+manual and what doesn't (no legacy sections, nothing obvious, no removed
+features, no invented uses), structure, voice and how to check it.
+
 Two places, two granularities — read them before editing to match their voice:
 
 - **The website, `site/`** (MkDocs Material, `mkdocs.yml`, published to

@@ -36,6 +36,9 @@ first.
    from the source, so `npm test` (`build-assets.mjs --check`) already fails
    when they are stale. Read the manual chapters the release touches on the
    website (`mkdocs serve`) — a changed gesture is a changed page.
+   Check every user-visible commit since the last tag against
+   `docs/MANUAL-GUIDE.md` → **Checking it**: each one is in the manual, and
+   nothing in the manual describes a removed or renamed control.
 
 5. **Write the announcement** at `docs/discord-v<X.Y.Z>.md`. Discord caps a
    message at **2000 characters**; aim well under. `build-module.sh` refuses to

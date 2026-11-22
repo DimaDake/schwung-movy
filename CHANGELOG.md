@@ -13,194 +13,93 @@ far. Earlier work is summarised in the timeline below for context.
 
 ## [Unreleased]
 
-### Added
-
-- **Ableton Link.** Turn on **Settings → LINK** (Shift + Step 2, jog click; off
-  by default, kept for this Move): Movy joins the Link session over WiFi or USB-C, follows and
-  sets the tempo, shares Play/Stop with Start Stop Sync (on the next bar), and
-  publishes 20 Link Audio channels — Movy 01-16 (post-fader), Movy Send 1-3 and
-  Movy Master (before the master volume) — as inputs Live can record. The
-  Set page tempo shows LNK while following. A new helper, `movy-link`
-  (GPL, `THIRD_PARTY_LICENSES.md`), runs beside movy-host. ENGINE 0.121.0.
-
-### Fixed
-
-- **Clicks every 2 s while editing a Set of heavy instruments.** The autosave
-  read every instrument's preset in one audio block (1.3-3.3 ms of a 2.9 ms
-  block); it now reads a few per block.
-- **Link Audio timing.** Each block is stamped from the sample count instead of
-  the moment it rendered, so Live no longer sees jumps from render jitter.
-  Measured on the device: movy's metronome lands within about 1.5 ms of Live's
-  beat (median -0.5 ms).
-
-- **Freeze a track.** Shift + a track button opens its menu; FREEZE records
-  every clip of the track into loops and unloads its synth and effects: it
-  sounds the same, launches, scenes and the song still work, it keeps its MIX
-  slot (level, pan, sends, mute, solo), and its CPU goes back to the Set. A
-  frozen track shows the waveform of the clip it plays; Loop mode can cut a
-  frozen clip shorter. Frozen tracks are saved with the Set and open without
-  loading their chain (live again when the synth's sound or the clips changed,
-  e.g. an older version restored). The engine refuses every other edit to a
-  frozen track, whichever control it comes from; a knob touch or a jog press
-  says how to unfreeze. Each loop is at most 60 seconds, all of them 200 MB.
-  While it records, the screen shows the frozen track's waveform growing; a
-  frozen track's waveform sits on the Loop strip's bars with the strip's
-  playhead through it. Loops cross-fade at their seam and at every start,
-  stop, launch and Loop-mode wrap, so a frozen track does not click.
-
-### Changed
-
-- **Generators sound right with the band.** New Clip, Variation and a Smart
-  Double's ending no longer strike a semitone against a note another track
-  holds, including a short clip looping under a longer scene (a one-bar motif
-  over four bars of chords). New Clip's chords keep a fifth above the bass, so
-  chords and bass no longer sit in one muddy octave. A Smart Double keeps its
-  part's role, as a Variation does (no 16th-note run flooding a sparse line).
-- **Every click of TENSION, PITCH FIX, VARY and DRIFT does something.**
-  TENSION walks from 5: up adds colour tones a few at a time, down takes
-  outside notes back to chord tones. PITCH FIX counts notes (`OFF`, `1 NOTE`
-  … `ALL`), worst first. VARY and DRIFT vary at least one more note per click
-  on a short part.
-- **More harmony on new scenes.** New Clip's HARMONY adds four more loops
-  in the key (SENSITIVE, ROYAL ROAD, TURNAROUND, SWAY in major; HOOK,
-  RISE, SHUTTLE, FALL in minor), which a run may open on, and at the end of
-  the knob five borrowed / modal progressions (MIXOLYDIAN, MINOR IV, BVI
-  BVII, BACKDOOR, LYDIAN; DORIAN, PHRYGIAN, HARMONIC, ANDALUSIAN, PICARDY)
-  for an experimental take. Variation's and Smart Double EVOLVE's harmony
-  in a free scene keep the moves they used to drop below WILD, at the end of
-  the knob. A line over a borrowed chord borrows its tone (Bb under a bVII
-  in C, not B), in New Clip's MELODY, RIFF and COUNTER and in every
-  Variation that walks the scale.
-- **Wider knob ranges, more positions where they mean something.** The
-  octave and register knobs reach past their usual range, for a more
-  experimental colour, while New Clip's takes still start inside it. Chord
-  REGISTER has nine positions, each one inversion higher. RIFF and COUNTER
-  REGISTER go an octave further each way. BASS OCTAVE adds DEEP and HIGH.
-  ARP OCTAVES goes up to 4 in half octaves, and ARP RATE adds 1/4 and now
-  runs slowest to fastest. MELODY RANGE runs from a 4th to two octaves.
-  CHORDS VOICES runs 2 to 6, and PAD SPREAD adds WIDER and VAST. RANGE adds
-  X2.5 and X3.0, and fewer of its clicks change nothing. Variation's ARP
-  OCTAVES and REGISTER INTERVAL (±2 octaves) reach further too.
-
-### Fixed
-
-- **A module's live meter keeps up.** The Ducker's duck meter (and any widget
-  a module marks live) is read and redrawn about every 33 ms instead of a few
-  times a second, so it follows each duck. Schwung's page code is now v1.9.2,
-  which also makes a knob turn continue from the value a module changed on its
-  own, rather than writing the old value back.
-
-- **Quark no longer crashes Movy.** A page that leaves a knob slot empty now
-  loads as an empty slot.
-
-- **A chord part no longer sinks.** With HARMONY on ROOTS or INVERSION, or
-  RANGE opened, a long pad or comp led each chord from the root dropped under
-  the one before and slid down bar by bar, to notes near E0.
-
-- **No more loading animation while a generator runs.** The pad sweep and
-  the full-screen progress page are gone (the sweep could leave pads stuck
-  in its colours). The header names the job instead, the screen and lights stay as they were, and the power
-  button's dialog now shows and answers over a running generator.
+## [0.38.0] — 2026-11-22
 
 ### Added
 
-- **DRIFT: a knob that morphs a take step by step.** Each click moves one
-  more note a little (a scale step, a chord voice to the next chord tone, a
-  drum hit a 16th or a ghost), keeping the moves before it, so the part
-  evolves gradually and turns back exactly. On every Variation and Smart
-  Double generator with a free knob (43 of them; Smart Double drifts only
-  its second half).
-- **Smart Double: EVOLVE.** The first half stays as played and the second
-  answers it over new chords: the first half's progression developed (a
-  sequence, a Riemann turn, a substitute, a borrowed chord; MOVE picks
-  which), with TENSION, RHYTHM and RANGE. Offered for chord-backed parts
-  whenever the scene's chords are the clip's own to change. PHRASES on EACH
-  answers every phrase with its own development.
-- **Longer progressions on longer clips.** From eight bars up, New Clip's
-  HARMONY adds developed progressions (+DEV: each repeat answered by a
-  different development) and eight-chord ones (CIRCLE, CANON, ROAD; LAMENT,
-  SAGA), and a long clip opens on one of them, so it can move through more
-  than four chords. Smart Double's EVOLVE does the same on a long clip.
-- **SEED on more generators.** CONNECT, RECOMBINE, THIN, ORNAMENT, PEDAL,
-  OCTAVE, WALK, RETRO and drum FILL (Variation), EMBELLISH (Smart Quantize)
-  and FILL (Smart Double) roll dice and had knobs to spare: knob 5 is now
-  SEED. `#1` is the take they always gave.
-- **New Clip: Shift + hold Step 14 on an empty track.** A part from nothing,
-  fitted to the scene's chords, swing and accents. On melodic tracks there are
-  eight options, one per part: CHORDS, PAD, STABS, BASS, ARP, MELODY, RIFF and
-  COUNTER. On drum tracks there are six: PAD EUCLID and PAD PATTERN build the
-  kit one pad at a time (knob 1 DENSITY, 0 removes the pad), then GROOVE,
-  EUCLID KIT, BROKEN and PERC. Every run gives new, checked defaults, never the
-  options of the last few runs. The length comes from the slot, else the
-  scene, and Loop Mode remakes the options at a new length without leaving
-  the preview. Knobs 5 to 8 shape the feel of every option: GATE (from
-  clipped to held, so chords need not ring their full length), VARY (bar
-  to bar variety in rhythm and lengths), SWING (STRUM on PAD) and DYNAMICS;
-  drums have VARY, SWING, DYNAMICS and HUMAN. Their starting points are
-  rolled on every run.
-- **Smart Double: Shift + hold Step 15.** The loop doubles with a new ending,
-  leading back into the top the way a player would, while everything before
-  the ending stays as played. Six options from fourteen generators, each with
-  its own knobs: TURNAROUND, CADENCE, PUSH, RUN, ECHO, STYLE, STOP and TURN for
-  melodic parts; FILL, PICKUP, ROLL, REPEAT, BREAK and STYLE for drums. ENDING
-  sets how much is rewritten; SEAMS on BOTH gives the first half an ending too.
-  A tap on Shift + Step 15 still doubles the loop, now on release.
-- **A doubled loop joins the scene in phase.** Doubling (a tap or Smart
-  Double) while a longer neighbour was in its second bar left the doubled clip
-  a bar out against it for good. It now lines up with the longest playing
-  loop its new length fits into (ENGINE 0.113.0).
-- **Smart Double endings hit with the band.** Pickups (STOP, TURNAROUND, drum
-  PICKUP, BREAK) land on the other tracks' accents in the ending, so a bass
-  pickup falls with the drummer's fill; RUN accents the notes it shares.
-- **Generators learn the part's style.** New Variation generators: STYLE
-  writes a new part in the source's own language (a Markov model learned from
-  the clip and the track's other clips; LIKENESS and PHRASE knobs), for melodic
-  parts and drums; LOOPER is a locked loop that mutates as it repeats (after
-  the Turing Machine and Marbles; LOCK, LOOP, CLOCK, SPREAD). RHYTHM gains
-  CYCLE 3/5/6/7 (a figure repeated against the bar), and an empty scene can
-  take Tonnetz moves (R, L and P TURN). Variation's six options now include
-  two experimental ones (three on WILD).
-- **FORM and a new GRIDS.** FORM lays a part out as a phrase (AABA, call and
-  response, three and a turnaround, or the GROWTH and MIRROR L-systems) with a
-  chosen answer as B: a sequence, an inversion, a pushed rhythm, a new phrase
-  in your style, or for drums a fill or a breakdown. GRIDS now morphs with X
-  and Y from your own pattern across a map of genre patterns.
-- **Algorithmic generators.** Smart Quantize and Variation run Movy's own
-  generators on the Move: no key, no network, options in under a
-  second. About thirty Variation generators and a dozen for Smart Quantize, each
-  its own algorithm with its own four or eight knobs, built on a harmony engine
-  (key and chord finding, Roman numerals, chord/colour/approach tones, voice
-  leading, harmonic moves) whose rule is that the scene owns the harmony: a
-  Variation follows the chords the other tracks already play there, fits the
-  note a lone bass or drone pins, and only moves the harmony in an empty scene.
-  Variation offers six options, Smart Quantize three, chosen per part and per
-  GENERATORS level. In the preview the knobs reshape the option showing (a turn
-  rewrites it; touch shows the name and value in the top strip; the knob lights
-  show each position like a module's params, dimmest at a minimum and off where
-  there is no knob), and a knob that cannot change it is hidden. One click is
-  one step. New knobs CHANGES (more chord changes than the source), RHYTHM
-  (keep, push, syncopate, double, half, comp, Euclid, shuffle) and VOICES
-  (more harmony notes) on NEXT, FOLLOW, PULSE, NEW LINE, ANSWER, SPREAD, COMP
-  and DEVELOP; RANGE reaches twice the played intervals; a BASSLINE generator
-  writes new bass figures. Each generator is also tried with its feel moved
-  two ways, and options after the first are chosen to differ. Measured on the
-  generator bench (`scripts/gen-bench/algo.mjs`,
-  `plans/gen-bench-results-2026-10-27-algo.md`).
+- **Generators.** Four of them, all in Track view, all previewed against your
+  original before anything is kept:
+  - **Smart Quantize** (Shift + hold Step 16): six takes on a recorded clip,
+    from TIGHT (onto the scene's groove, only clashing notes moved) to takes
+    that develop it (SHAPED, DECORATE, ANSWER, GHOSTS, FILL, MUTATE, MODE,
+    RATCHET, HUMANIZE…).
+  - **Variation** (Shift + hold Step 14): a B part from the clip above the
+    slot. Six options from some thirty generators, closest first. NUDGE moves
+    a few notes, and every option keeps the track's role (chords stay chords,
+    drums keep their pads).
+  - **New Clip** (Shift + hold Step 14 on an empty track): a part from nothing
+    in the scene's chords and swing, or in the Set's ROOT and KEY when the
+    scene is silent. Melodic parts include CHORDS, PAD, STABS, BASS, ARP,
+    MELODY, RIFF, COUNTER, HOLD NOTE, PULSE, WALK, LOOPER and HARMONIZE/FOLLOW.
+    Drums get DRUM MAP, EUCLID KIT, BROKEN, PERC, and PAD EUCLID/PAD PATTERN
+    for one pad at a time.
+  - **Smart Double** (Shift + hold Step 15): the loop doubled with a new
+    ending that leads back to the top (turnarounds, cadences, runs, fills,
+    rolls, breaks). The first half stays as played.
 
-- **Generators: Smart Quantize and Variation.** Shift + hold Step 16 previews
-  three takes on the recorded clip, from tightened to developed, against the
-  original. Shift + hold Step 14 writes a variation of the track's previous clip
-  into the selected slot. Choose with the jog, edit while previewing, and undo
-  it all in one step. ENGINE 0.111.0 (`ait:` clip dump, `aiclip`,
-  `aistash`/`aiload`/`aiclr`). They follow the chords the other tracks play,
-  not a scale, and **Settings → GENERATORS** (SAFE / BALANCED / WILD) sets how
-  bold the options are. (An earlier Gemini-model mode and its API-key page were
-  removed before release; only the on-device generators remain.)
+  Generators listen to the scene: a Variation follows the chords the other
+  tracks play, and only an empty scene gets new harmony. In the preview the
+  jog picks an option (and keeps going past the picks to every generator that
+  suits the clip), the knobs reshape it (AMOUNT, DENSITY, HARMONY, RHYTHM,
+  DRIFT, SEED and more), and pads and steps edit it. Undo steps back through
+  everything you did in the preview. Previews can be stacked, and you can
+  leave one and come back to it. Drum generators find the kick, snare and
+  hats from what the drum module says about its pads.
+- **Freeze a track.** Shift + a track button opens its menu. FREEZE records
+  every clip of the track into loops and unloads its synth and effects. It
+  sounds the same, its clips still launch, scenes and the song still work, it
+  keeps its MIX slot, and its CPU goes back to the Set. A frozen track shows
+  its clip's waveform, and Loop mode can cut a frozen clip shorter. Frozen
+  tracks are saved with the Set and open without loading their chain. Loops
+  cross-fade at every seam, start and launch, so they don't click.
+  Contributed by [@alanmunozlopez](https://github.com/alanmunozlopez)
+  ([#30](https://github.com/DimaDake/schwung-movy/pull/30)), thank you!
+- **Ableton Link.** Settings → LINK (Shift + Step 2, off by default): Movy
+  joins a Link session over WiFi or USB-C, shares tempo and Play/Stop (on the
+  next bar), and sends 20 Link Audio inputs to Live: Movy 01 to Movy 16,
+  Movy Send 1 to 3 and Movy Master. The Set page tempo shows LNK while
+  following. Ships a new helper, `movy-link` (GPL, `THIRD_PARTY_LICENSES.md`).
+- **Sidechain for audio effects.** A Ducker (or any audio effect that
+  listens for notes) hears every track's notes, each track on its own channel,
+  so it can duck the bass under the kick.
+- **Speaker EQ.** The built-in speaker gets the same EQ as under Move,
+  following Schwung's Spkr EQ setting (Auto / Off / On).
+- **One-command install.** The website's Install page builds a one-line
+  command that installs the Schwung this Movy is tested with, Movy, a choice
+  of sounds, and Movy as the start-up default. The manual is now a website:
+  <https://dimadake.github.io/schwung-movy/>.
 
 ### Changed
 
-- In Track view, Shift + Step 16 cycles quantization when you let go of the
-  button, so holding it can start Smart Quantize instead.
+- **Settings: knob 1 changes the selected row**, and its light shows the value.
+- **Note length ends at FIT.** The LEN knob goes up to where the note meets
+  its own next note or the loop end. FIT is that exact room. A length is kept
+  as you set it, so moving the loop or deleting a note no longer leaves a
+  shortened note behind.
+- **Shift + Step 16** changes quantize when you let go, so holding it can
+  start Smart Quantize.
+- **Schwung 1.9.4.** Movy is built against Schwung 1.9.4, and the installer
+  updates older Schwung installs to it.
+
+### Fixed
+
+- **Clicks while turning a track's volume**, every few seconds.
+- **Clicks every 2 s while editing a Set of heavy instruments.**
+- **A freshly opened Set no longer plays its first second at default
+  sounds**: the splash stays up until the saved sounds are applied
+  (`LOADING SOUNDS`).
+- **Sets with several Virus (Osirus) tracks no longer hang on "Booting DSP".**
+- **A module that refuses to load says so** (`T5: AMINO DID NOT LOAD`)
+  instead of leaving a silent track.
+- **Quark no longer crashes Movy.**
+- **A preset change on a Schwung page shows the new preset's name.**
+- **A module's live meter keeps up** (the Ducker's duck meter), and a knob
+  turn continues from a value the module changed on its own.
+- **Deleting a playing or queued clip in Session view stops it** and
+  darkens its pad.
+- **The note view no longer paints over** the volume slider, the quantize
+  panel, the undo toast and the leave dialog.
+- **The web mirror's sound** plays at full level whatever the master volume.
 
 ## [0.37.0] — 2026-10-19
 

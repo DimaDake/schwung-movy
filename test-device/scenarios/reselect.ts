@@ -34,7 +34,8 @@ import { Device } from '../device.js';
 import type { Transport } from '../transport.js';
 import { Probe } from '../probe.js';
 import * as fixture from '../fixture.js';
-import { CC_UNDO } from '../midi.js';
+import { CC_UNDO, CC_BACK } from '../midi.js';
+import { CC_SHIFT } from '../sets-nav.js';
 import { until } from '../wait.js';
 
 /* Frames to let movy act on a gesture before reading — a quantity of device
@@ -157,7 +158,23 @@ scenario('reselect', async (t) => {
     for (let swap = 1; swap <= 2; swap++) {
         const wasModule = hierName(await lastLine(dev, HIER));
         const before    = (await dev.logLines(BROWSE)).length;
-        await dev.tap.jog();                  // open the browser
+        /* From the Chain view, the user's own replace gesture. A jog click on
+         * the module's page is not one: a module with a screen of its own
+         * (quark's canvas.js) takes the click, and the jog turn after it then
+         * stepped quark's preset (`undo: PRESET T1`) instead of the browser.
+         * Back is asked one press at a time, because Back ON the Chain view
+         * opens the Leave modal. */
+        const view = async (): Promise<string> => String((await probe.ask({ key: 'sets' }))?.view ?? '');
+        for (let i = 0; i < 4; i++) {
+            const v = await view();
+            /* An unknown view presses nothing: a Back too many is the Leave
+             * modal, and the Shift + click after it would close movy. */
+            if (v === 'chain' || v === '') break;
+            await dev.tap.cc(CC_BACK);
+            await t.tx.frames(ACT);
+        }
+        t.note(`swap${swap}FromView`, await view());
+        await dev.holdCc(CC_SHIFT, () => dev.tap.jog());   // open the browser
         await moreLines(t.tx, dev, BROWSE, before, `browser open #${swap}`, 900);
         await dev.tap.jogTurn(1);             // jog turn → the next module
         await t.tx.frames(ACT);

@@ -13,6 +13,14 @@ far. Earlier work is summarised in the timeline below for context.
 
 ## [Unreleased]
 
+### Fixed
+
+- **A synth on USB-A kept its last note after Movy closed.** With the MIDI
+  Out module on the selected track, closing Movy while a clip's note sounded
+  (or a pad was still held) left that note hanging on the external synth until
+  it was switched off. Movy now stops its sequencer and closes every note as it
+  closes; a Link session keeps playing. ENGINE 0.121.1.
+
 ## [0.38.0] — 2026-11-22
 
 ### Added

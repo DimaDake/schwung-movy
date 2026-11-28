@@ -113,6 +113,15 @@ export function syncPadRoute(send: (key: string, value: string) => void): void {
 
 /** Forget the pushed state. Used on teardown and engine reload — a re-dlopened
  *  engine has no map, and believing otherwise would leave pads dead. */
+/** Teardown: take the pads back from the engine. A changed map makes it close
+ *  every pad note it still holds (`drain_held`), so a pad held through Close
+ *  Movy is released on its chain — and on anything a MIDI Out module behind
+ *  it feeds — before the engine is unloaded. */
+export function releasePadRoute(send: (key: string, value: string) => void): void {
+    pushed = [-1, ...new Array(PAD_COUNT).fill(-1)].join(',');
+    send('padmap', pushed);
+}
+
 export function resetPadRoute(): void {
     pushed = '';
     pushedVel = '';

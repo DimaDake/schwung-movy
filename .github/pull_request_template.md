@@ -1,4 +1,6 @@
-<!-- Thanks for contributing to Movy! Keep PRs focused. See CONTRIBUTING.md. -->
+<!-- Thanks for contributing to Movy! Movy is on pause: only fixes for real
+     bugs are considered, and there's no promise of a quick review. Feature
+     PRs will be closed; a fork is the way to build on Movy. See CONTRIBUTING.md. -->
 
 ## What & why
 

@@ -6,6 +6,14 @@
 ⬇️ **[Install](https://dimadake.github.io/schwung-movy/install/)** ·
 📜 **[Changelog](CHANGELOG.md)**
 
+> **Movy is on pause.** I've stopped active development for personal reasons.
+> v0.38.1 stays in the Module Store and keeps working with the Schwung version
+> it was built for, but there won't be new features, and I'm not reviewing
+> feature pull requests. If something is really broken I may still merge a
+> fix, but I can't promise when. I might come back to it one day. Movy is MIT
+> licensed, so if you want to take it further, fork it, and tell me so I can
+> link your fork here.
+
 ![Movy on the Move](site/assets/diagrams/panel-hero.svg)
 
 Movy turns Move into a groovebox for Schwung modules. Every module's parameters

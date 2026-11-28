@@ -8,6 +8,17 @@ hide:
 
 **A 16-track sequencer and Elektron-style knob interface for Ableton Move.**
 
+!!! note "Movy is on pause"
+
+    I've stopped active development for personal reasons.
+    v0.38.1 stays in the Module Store and keeps working with the Schwung version
+    it was built for, but there won't be new features, and I'm not reviewing
+    feature pull requests. If something is really broken I may still merge a
+    fix, but I can't promise when. I might come back to it one day. Movy is MIT
+    licensed, so if you want to take it further, fork it, and tell me so I can
+    link your fork from the
+    [repository](https://github.com/DimaDake/schwung-movy).
+
 Movy turns Move into a groovebox for [Schwung](https://github.com/charlesvestal/schwung)
 modules. Every module's parameters land on the eight knobs as clear, readable
 pages. Underneath runs a 16-track sequencer that plays like Move's own, with

@@ -13,7 +13,17 @@ far. Earlier work is summarised in the timeline below for context.
 
 ## [Unreleased]
 
+## [0.38.1] — 2026-11-28
+
+Movy is on pause after this release: no new features are planned. See the
+README.
+
 ### Fixed
+
+- **Schwung restarted when a 4K EQ went on a track or the master.** A leftover
+  `movy_config.json` in an old format sat in the module's folder, and Movy's
+  UI stopped on it. Movy now skips a module config without banks and uses its
+  own layout. Thanks to @dbdefault (#33).
 
 - **A synth on USB-A kept its last note after Movy closed.** With the MIDI
   Out module on the selected track, closing Movy while a clip's note sounded

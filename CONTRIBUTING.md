@@ -1,12 +1,15 @@
 # Contributing to Movy
 
-Thanks for your interest! Movy is an **early prototype** built for fun and
-experimentation, and contributions — code, module layout templates, docs, or
-good bug reports — are very welcome.
+> **Movy is on pause**, for personal reasons, and I'm not reviewing pull
+> requests that add features. A fix for something that is really broken may
+> still get merged, but I can't promise when. Bug reports are still welcome:
+> they help anyone who picks Movy up later. Movy is MIT licensed, so if you
+> want to build on it, a fork is the way to go, and I'm happy to link it from
+> the README.
 
-Please keep in mind: I can't promise to merge everything or to keep the project
-going indefinitely. Opening an issue to discuss a larger change before you build
-it is usually the fastest path.
+Movy is an **early prototype** built for fun and experimentation. The rest of
+this page is how it is built and tested, which is what you need for a fork or a
+fix.
 
 ---
 

@@ -68,7 +68,11 @@ const CONFIGS: Record<string, ModuleConfig> = {
 function tryFile(path: string): ModuleConfig | null {
     try {
         const s = platform.readFile(path);
-        if (s) return JSON.parse(s) as ModuleConfig;
+        if (s) {
+            const cfg = JSON.parse(s) as Partial<ModuleConfig>;
+            if (cfg && Array.isArray(cfg.banks)) return cfg as ModuleConfig;
+            mlog('loadModuleConfig: ignoring ' + path + ' (no banks array)');
+        }
     } catch {}
     return null;
 }

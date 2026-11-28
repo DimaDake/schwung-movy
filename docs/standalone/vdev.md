@@ -66,6 +66,12 @@ on them.
 - **python3 (full, for `mmap`)**: the dev tools run python on the box.
 - **`--cap-add SYS_PTRACE`**: root reads another uid's `/proc/<pid>/maps`
   (smoke's chain-host check); a container's root may not without it.
+- **`--ulimit memlock=-1:-1`**: on the box movy-host's setuid helper lifts
+  the limit and `mlockall` locks every page. At docker's 8 MB default it ran
+  unlocked, and `freeze-mem` read an RSS the box never has.
+- **`libatomic1`**: the box's rootfs ships `libatomic.so.1`, which
+  `movy-link` and `movy-link-probe` link dynamically; without it neither
+  starts and `link` fails.
 
 RT priority is degraded in the container (no setuid helper), and the four
 vCPUs are shared by every shard: fine for function, meaningless for

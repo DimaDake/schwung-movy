@@ -2,9 +2,12 @@
 # glibc 2.35 / aarch64, the device's own, so movy-host (the vdev build) and
 # every module's dsp.so run natively. Built by scripts/vdev.sh image.
 FROM ubuntu:22.04
+# libatomic1: the Move's rootfs ships /usr/lib/libatomic.so.1 and movy-link /
+# movy-link-probe link it dynamically (scripts/build-link.sh -latomic); without
+# it here neither binary starts and the link scenario fails on the image alone.
 RUN apt-get update -qq \
  && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
-      openssh-server procps psmisc file python3 \
+      openssh-server procps psmisc file python3 libatomic1 \
  && rm -rf /var/lib/apt/lists/*
 # The device's ableton: uid 1000, group users (100), plus ablspi.
 RUN groupadd -g 1000 ablspi && useradd -u 1000 -g users -G ablspi -m -s /bin/sh ableton \

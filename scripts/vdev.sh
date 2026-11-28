@@ -98,7 +98,12 @@ up() {
     # /dev/shm: movy-host's rings, the session lock and the vspi mailbox.
     # SYS_PTRACE: root reads another uid's /proc/<pid>/maps on the box (smoke's
     # chain-host check), and a container's root may not without it.
+    # memlock unlimited: on the box movy-host's setuid helper lifts the limit
+    # and mlockall locks every page (host/rt.c); at docker's 8 MB default it
+    # ran "NOT locked (degraded)", and freeze-mem measured an RSS the box
+    # never has (thawed 34.5/36.5/36.5 against the box's flat 112.0).
     docker run -d --name "$name" --hostname "vdev$n" --shm-size=256m --cap-add SYS_PTRACE \
+        --ulimit memlock=-1:-1 \
         -p "127.0.0.1:$((SSH_BASE + n)):22" -p "127.0.0.1:$((BUS_BASE + n)):47777" \
         -v "$STATE/id_ed25519.pub:/vdev-key.pub:ro" "$IMAGE" >/dev/null
     local i
